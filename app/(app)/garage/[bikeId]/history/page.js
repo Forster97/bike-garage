@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { supabase } from "../../../../../lib/supabaseClient";
+import { getSupabase  } from "../../../../../lib/supabaseClient";
 
 export default function BikeHistoryPage() {
   const router = useRouter();

@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../../lib/supabaseClient";
+import { getSupabase  } from "../../../lib/supabaseClient";
 import Link from "next/link";
 
 export default function GaragePage() {
