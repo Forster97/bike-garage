@@ -1,10 +1,10 @@
 "use client";
-
+export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 import Link from "next/link";
-export const dynamic = "force-dynamic";
+
 export default function GaragePage() {
   const router = useRouter();
 
