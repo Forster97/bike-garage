@@ -1,9 +1,12 @@
 "use client";
-export const dynamic = "force-dynamic";
+
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
 
+/* =========================
+   Defaults
+========================= */
 
 const DEFAULT_CATEGORIES = [
   "Frame",
@@ -18,248 +21,412 @@ const DEFAULT_CATEGORIES = [
   "Other",
 ];
 
-export default function CategoriesSettingsPage() {
+/* =========================
+   Helpers
+========================= */
+
+const normalizeName = (s) => (s ?? "").trim();
+
+export default function CategoriesPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const [email, setEmail] = useState("");
 
-  const [custom, setCustom] = useState([]);
-  const [hidden, setHidden] = useState([]);
-  const [name, setName] = useState("");
+  const [custom, setCustom] = useState([]); // rows: { id, name }
+  const [hidden, setHidden] = useState(() => new Set()); // Set<string>
 
-  const hiddenSet = useMemo(() => new Set(hidden.map((h) => h.name)), [hidden]);
+  const [newName, setNewName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const mergedList = useMemo(() => {
-    const customNames = custom.map((c) => c.name);
+  const visibleList = useMemo(() => {
+    const hiddenSet = hidden;
+    const customNames = custom.map((r) => r.name);
 
-    const all = [...DEFAULT_CATEGORIES, ...customNames]
-      .filter((n, i, arr) => arr.indexOf(n) === i)
-      .map((n) => ({
-        name: n,
-        isDefault: DEFAULT_CATEGORIES.includes(n),
-        isHidden: hiddenSet.has(n),
-        customRow: custom.find((c) => c.name === n) || null,
-      }));
+    // Merge defaults + custom, preserve order, remove duplicates (case-sensitive)
+    const merged = [...DEFAULT_CATEGORIES, ...customNames];
+    const unique = [];
+    const seen = new Set();
 
-    // primero activas, después ocultas
-    return all.sort((a, b) => Number(a.isHidden) - Number(b.isHidden));
-  }, [custom, hiddenSet]);
+    for (const name of merged) {
+      if (!name) continue;
+      if (seen.has(name)) continue;
+      seen.add(name);
+      if (hiddenSet.has(name)) continue;
+      unique.push(name);
+    }
+    return unique;
+  }, [custom, hidden]);
 
-  const activeList = useMemo(() => mergedList.filter((x) => !x.isHidden), [mergedList]);
-  const hiddenList = useMemo(() => mergedList.filter((x) => x.isHidden), [mergedList]);
+  const hiddenList = useMemo(() => {
+    // show hidden names that exist in defaults or custom; keep stable-ish order
+    const all = [...DEFAULT_CATEGORIES, ...custom.map((r) => r.name)];
+    const unique = [];
+    const seen = new Set();
+
+    for (const name of all) {
+      if (!name) continue;
+      if (seen.has(name)) continue;
+      seen.add(name);
+      if (!hidden.has(name)) continue;
+      unique.push(name);
+    }
+
+    // Also include any "orphan" hidden names (in case defaults changed)
+    for (const name of hidden) {
+      if (seen.has(name)) continue;
+      unique.push(name);
+    }
+
+    return unique;
+  }, [custom, hidden]);
 
   useEffect(() => {
+    let cancelled = false;
+
     const load = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!data?.user) return router.replace("/login");
-      setUser(data.user);
+      setLoading(true);
+      setErrorMsg("");
 
-      const { data: customRows } = await supabase
-        .from("categories")
-        .select("*")
-        .order("created_at", { ascending: true });
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data?.user) {
+        router.replace("/login");
+        return;
+      }
 
-      const { data: hiddenRows } = await supabase.from("category_hidden").select("*");
+      if (cancelled) return;
+      setEmail(data.user.email ?? "");
 
-      setCustom(customRows || []);
-      setHidden(hiddenRows || []);
+      // IMPORTANT: filter by user_id in both tables
+      const [{ data: customRows, error: customErr }, { data: hiddenRows, error: hiddenErr }] =
+        await Promise.all([
+          supabase
+            .from("categories")
+            .select("id,name,created_at")
+            .eq("user_id", data.user.id)
+            .order("created_at", { ascending: true }),
+          supabase
+            .from("category_hidden")
+            .select("name")
+            .eq("user_id", data.user.id),
+        ]);
+
+      if (cancelled) return;
+
+      if (customErr) setErrorMsg(customErr.message);
+      if (hiddenErr) setErrorMsg((prev) => prev || hiddenErr.message);
+
+      setCustom(
+        (customRows ?? [])
+          .map((r) => ({ id: r.id, name: r.name }))
+          .filter((r) => normalizeName(r.name).length > 0)
+      );
+
+      setHidden(new Set((hiddenRows ?? []).map((r) => r.name).filter(Boolean)));
+
       setLoading(false);
     };
 
     load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
-  const addCustom = async () => {
-    const n = name.trim();
-    if (!n) return;
+  const addCustom = async (e) => {
+    e.preventDefault();
+    setErrorMsg("");
 
-    // si estaba oculta, la des-ocultamos
-    if (hiddenSet.has(n)) {
-      const { error } = await supabase
-        .from("category_hidden")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("name", n);
+    const name = normalizeName(newName);
+    if (!name) return;
 
-      if (error) return alert(error.message);
-      setHidden((prev) => prev.filter((h) => h.name !== n));
+    setSaving(true);
+
+    const { data: authData, error: authErr } = await supabase.auth.getUser();
+    const user = authData?.user;
+
+    if (authErr || !user) {
+      setSaving(false);
+      router.replace("/login");
+      return;
     }
 
-    const { data, error } = await supabase
+    // Prevent adding duplicates against defaults/custom
+    const exists =
+      DEFAULT_CATEGORIES.includes(name) || custom.some((r) => r.name === name);
+
+    if (exists) {
+      setSaving(false);
+      setNewName("");
+      return;
+    }
+
+    const { data: row, error } = await supabase
       .from("categories")
-      .insert([{ user_id: user.id, name: n }])
-      .select("*")
+      .insert({ user_id: user.id, name })
+      .select("id,name")
       .single();
 
-    if (error) return alert(error.message);
+    if (error) {
+      setErrorMsg(error.message);
+      setSaving(false);
+      return;
+    }
 
-    setCustom((prev) => [...prev, data]);
-    setName("");
+    setCustom((prev) => [...prev, { id: row.id, name: row.name }]);
+    // If it was hidden, keep it hidden unless user unhides manually
+    setNewName("");
+    setSaving(false);
   };
 
-  const hideDefault = async (catName) => {
-    const ok = confirm(`¿Ocultar "${catName}"? (puedes restaurarla después)`);
-    if (!ok) return;
+  const hideCategory = async (name) => {
+    setErrorMsg("");
 
-    const { data, error } = await supabase
-      .from("category_hidden")
-      .insert([{ user_id: user.id, name: catName }])
-      .select("*")
-      .single();
+    const { data: authData, error: authErr } = await supabase.auth.getUser();
+    const user = authData?.user;
 
-    if (error) return alert(error.message);
-    setHidden((prev) => [...prev, data]);
+    if (authErr || !user) {
+      router.replace("/login");
+      return;
+    }
+
+    const n = normalizeName(name);
+    if (!n) return;
+
+    // Optimistic
+    setHidden((prev) => new Set([...prev, n]));
+
+    // Insert hidden (if you add a UNIQUE(user_id,name) constraint, this becomes safely idempotent)
+    const { error } = await supabase.from("category_hidden").insert({
+      user_id: user.id,
+      name: n,
+    });
+
+    // If duplicate insert fails, you can ignore that specific error,
+    // but we’ll keep it simple: revert on any error.
+    if (error) {
+      setHidden((prev) => {
+        const next = new Set(prev);
+        next.delete(n);
+        return next;
+      });
+      setErrorMsg(error.message);
+    }
   };
 
-  const restoreDefault = async (catName) => {
+  const unhideCategory = async (name) => {
+    setErrorMsg("");
+
+    const { data: authData, error: authErr } = await supabase.auth.getUser();
+    const user = authData?.user;
+
+    if (authErr || !user) {
+      router.replace("/login");
+      return;
+    }
+
+    const n = normalizeName(name);
+    if (!n) return;
+
+    // Optimistic
+    setHidden((prev) => {
+      const next = new Set(prev);
+      next.delete(n);
+      return next;
+    });
+
     const { error } = await supabase
       .from("category_hidden")
       .delete()
       .eq("user_id", user.id)
-      .eq("name", catName);
+      .eq("name", n);
 
-    if (error) return alert(error.message);
-    setHidden((prev) => prev.filter((h) => h.name !== catName));
+    if (error) {
+      setHidden((prev) => new Set([...prev, n]));
+      setErrorMsg(error.message);
+    }
   };
 
   const deleteCustom = async (row) => {
-    const ok = confirm(`¿Eliminar "${row.name}"?`);
-    if (!ok) return;
+    setErrorMsg("");
 
-    const { error } = await supabase.from("categories").delete().eq("id", row.id);
-    if (error) return alert(error.message);
+    const { data: authData, error: authErr } = await supabase.auth.getUser();
+    const user = authData?.user;
 
-    setCustom((prev) => prev.filter((c) => c.id !== row.id));
+    if (authErr || !user) {
+      router.replace("/login");
+      return;
+    }
+
+    // Optimistic remove
+    setCustom((prev) => prev.filter((r) => r.id !== row.id));
+
+    const { error } = await supabase
+      .from("categories")
+      .delete()
+      .eq("id", row.id)
+      .eq("user_id", user.id); // IMPORTANT
+
+    if (error) {
+      // revert
+      setCustom((prev) => [...prev, row].sort((a, b) => String(a.id).localeCompare(String(b.id))));
+      setErrorMsg(error.message);
+    }
   };
 
-  if (loading) return <div className="px-6 py-8 text-muted">Cargando...</div>;
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        <div className="text-sm text-muted">Cargando categorías…</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-5">
-      <button
-        onClick={() => router.back()}
-        className="rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-muted hover:bg-surface/80 hover:text-text transition"
-      >
-        ← Volver
-      </button>
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Categorías</h1>
+          <p className="mt-1 text-sm text-muted">
+            Administra tus categorías visibles/ocultas.
+          </p>
+        </div>
+        <div className="text-sm text-muted">{email}</div>
+      </div>
 
-      {/* Header card */}
-      <div className="rounded-xl2 border border-border bg-card/75 p-5 shadow-soft backdrop-blur-sm">
-        <h1 className="text-2xl font-semibold tracking-tight">Categorías</h1>
-        <p className="mt-1 text-sm text-muted">
-          Tienes categorías por defecto + tus categorías. Las por defecto se pueden ocultar.
-        </p>
+      {errorMsg ? (
+        <div className="rounded-xl border border-border bg-surface/60 p-3 text-sm text-red-400">
+          {errorMsg}
+        </div>
+      ) : null}
 
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+      {/* Add custom */}
+      <div className="rounded-2xl border border-border bg-surface/60 p-4">
+        <div className="mb-3 font-medium">Agregar categoría personalizada</div>
+        <form onSubmit={addCustom} className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Ej: Power Meter, Suspension..."
-            className="flex-1 rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-text placeholder:text-muted outline-none focus:ring-2 focus:ring-primary/40"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="Ej: Suspension"
+            className="w-full rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-border"
           />
           <button
-            onClick={addCustom}
-            className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-bg hover:brightness-110 transition"
+            type="submit"
+            disabled={saving}
+            className="rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-muted hover:bg-surface/80 hover:text-text transition disabled:opacity-60"
           >
-            Agregar
+            {saving ? "Guardando…" : "Agregar"}
           </button>
+        </form>
+        <div className="mt-2 text-xs text-muted">
+          No se agregan duplicadas (incluye las defaults).
         </div>
       </div>
 
-      {/* Activas */}
-      <SectionTitle title="Activas" subtitle={`${activeList.length} categorías`} />
-      <div className="grid gap-3">
-        {activeList.map((c) => (
-          <CategoryRow
-            key={c.name}
-            c={c}
-            onHide={() => hideDefault(c.name)}
-            onDelete={() => deleteCustom(c.customRow)}
-          />
-        ))}
-        {activeList.length === 0 ? (
-          <EmptyCard text="No hay categorías activas." />
-        ) : null}
+      {/* Visible */}
+      <div className="rounded-2xl border border-border bg-surface/60 p-4">
+        <div className="mb-3 font-medium">Visibles</div>
+
+        {visibleList.length === 0 ? (
+          <div className="text-sm text-muted">No tienes categorías visibles.</div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {visibleList.map((name) => (
+              <div
+                key={`vis-${name}`}
+                className="flex items-center gap-2 rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm"
+              >
+                <span className="text-text">{name}</span>
+                <button
+                  onClick={() => hideCategory(name)}
+                  className="rounded-lg px-2 py-1 text-xs text-muted hover:bg-surface/80 hover:text-text transition"
+                  title="Ocultar"
+                >
+                  Ocultar
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Ocultas */}
-      <SectionTitle title="Ocultas" subtitle={`${hiddenList.length} categorías`} />
-      <div className="grid gap-3">
-        {hiddenList.map((c) => (
-          <div
-            key={c.name}
-            className="rounded-xl2 border border-border bg-card/55 p-4 shadow-soft backdrop-blur-sm opacity-70"
-          >
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <div className="font-semibold">{c.name}</div>
-                <div className="text-xs text-muted">
-                  {c.isDefault ? "Default" : "Personalizada"} • Oculta
+      {/* Hidden */}
+      <div className="rounded-2xl border border-border bg-surface/60 p-4">
+        <div className="mb-3 font-medium">Ocultas</div>
+
+        {hiddenList.length === 0 ? (
+          <div className="text-sm text-muted">No tienes categorías ocultas.</div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {hiddenList.map((name) => (
+              <div
+                key={`hid-${name}`}
+                className="flex items-center gap-2 rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm"
+              >
+                <span className="text-text">{name}</span>
+                <button
+                  onClick={() => unhideCategory(name)}
+                  className="rounded-lg px-2 py-1 text-xs text-muted hover:bg-surface/80 hover:text-text transition"
+                  title="Mostrar"
+                >
+                  Mostrar
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Custom list with delete */}
+      <div className="rounded-2xl border border-border bg-surface/60 p-4">
+        <div className="mb-3 font-medium">Personalizadas</div>
+
+        {custom.length === 0 ? (
+          <div className="text-sm text-muted">Aún no agregas categorías personalizadas.</div>
+        ) : (
+          <div className="space-y-2">
+            {custom.map((row) => (
+              <div
+                key={row.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface/60 px-3 py-2"
+              >
+                <div className="text-sm text-text">{row.name}</div>
+                <div className="flex items-center gap-2">
+                  {!hidden.has(row.name) ? (
+                    <button
+                      onClick={() => hideCategory(row.name)}
+                      className="rounded-lg px-2 py-1 text-xs text-muted hover:bg-surface/80 hover:text-text transition"
+                    >
+                      Ocultar
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => unhideCategory(row.name)}
+                      className="rounded-lg px-2 py-1 text-xs text-muted hover:bg-surface/80 hover:text-text transition"
+                    >
+                      Mostrar
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => deleteCustom(row)}
+                    className="rounded-lg px-2 py-1 text-xs text-red-400 hover:bg-surface/80 transition"
+                    title="Eliminar categoría personalizada"
+                  >
+                    Eliminar
+                  </button>
                 </div>
               </div>
-
-              <button
-                onClick={() => restoreDefault(c.name)}
-                className="rounded-xl border border-border bg-surface/50 px-3 py-2 text-sm text-muted hover:bg-surface/80 hover:text-text transition"
-              >
-                Restaurar
-              </button>
-            </div>
+            ))}
           </div>
-        ))}
-        {hiddenList.length === 0 ? (
-          <EmptyCard text="No tienes categorías ocultas." />
-        ) : null}
-      </div>
-    </div>
-  );
-}
+        )}
 
-function CategoryRow({ c, onHide, onDelete }) {
-  return (
-    <div className="rounded-xl2 border border-border bg-card/75 p-4 shadow-soft backdrop-blur-sm hover:border-primary/35 transition">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <div className="font-semibold">{c.name}</div>
-          <div className="text-xs text-muted">{c.isDefault ? "Default" : "Personalizada"}</div>
-        </div>
-
-        <div className="flex gap-2">
-          {c.isDefault ? (
-            <button
-              onClick={onHide}
-              className="rounded-xl border border-border bg-surface/50 px-3 py-2 text-sm text-muted hover:bg-surface/80 hover:text-text transition"
-            >
-              Ocultar
-            </button>
-          ) : (
-            <button
-              onClick={onDelete}
-              className="rounded-xl border border-border bg-surface/50 px-3 py-2 text-sm text-muted hover:bg-surface/80 hover:text-text transition"
-            >
-              Eliminar
-            </button>
-          )}
+        <div className="mt-3 text-xs text-muted">
+          Nota: eliminar solo borra la categoría personalizada (no toca defaults).
         </div>
       </div>
-    </div>
-  );
-}
-
-function SectionTitle({ title, subtitle }) {
-  return (
-    <div className="flex items-end justify-between">
-      <div className="text-sm font-semibold text-text">{title}</div>
-      <div className="text-xs text-muted">{subtitle}</div>
-    </div>
-  );
-}
-
-function EmptyCard({ text }) {
-  return (
-    <div className="rounded-xl2 border border-border bg-card/65 p-5 shadow-soft backdrop-blur-sm">
-      <div className="text-sm text-muted">{text}</div>
     </div>
   );
 }

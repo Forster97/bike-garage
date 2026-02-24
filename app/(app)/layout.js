@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabaseClient";
+import { getSupabase } from "../../lib/supabaseClient";
 
 function NavItem({ href, label, active }) {
   return (
@@ -27,18 +27,23 @@ export default function AppGroupLayout({ children }) {
   const [email, setEmail] = useState("");
 
   useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!data?.user) return router.replace("/login");
-      setEmail(data.user.email ?? "");
-    };
+const load = async () => {
+  const supabase = getSupabase();
+  if (!supabase) return router.replace("/login");
+
+  const { data } = await supabase.auth.getUser();
+  if (!data?.user) return router.replace("/login");
+  setEmail(data.user.email ?? "");
+};
+
     load();
   }, [router]);
 
-  const logout = async () => {
-    await supabase.auth.signOut();
-    router.replace("/login");
-  };
+const logout = async () => {
+  const supabase = getSupabase();
+  if (supabase) await supabase.auth.signOut();
+  router.replace("/login");
+};
 
   const isGarage = pathname?.startsWith("/garage");
   const isCategories = pathname?.startsWith("/settings/categories");
@@ -53,7 +58,11 @@ export default function AppGroupLayout({ children }) {
           {/* Desktop nav */}
           <div className="hidden items-center gap-2 sm:flex">
             <NavItem href="/garage" label="Garage" active={isGarage} />
-            <NavItem href="/settings/categories" label="Categorías" active={isCategories} />
+            <NavItem
+              href="/settings/categories"
+              label="Categorías"
+              active={isCategories}
+            />
             <span className="ml-2 text-sm text-muted">{email}</span>
             <button
               onClick={logout}
@@ -77,16 +86,18 @@ export default function AppGroupLayout({ children }) {
           <div className="mx-auto max-w-5xl px-4 pb-3">
             <div className="grid grid-cols-2 gap-2">
               <NavItem href="/garage" label="Garage" active={isGarage} />
-              <NavItem href="/settings/categories" label="Categorías" active={isCategories} />
+              <NavItem
+                href="/settings/categories"
+                label="Categorías"
+                active={isCategories}
+              />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Content wrapper: responsive padding + max width */}
-      <main className="mx-auto max-w-5xl px-4 py-6 sm:py-8">
-        {children}
-      </main>
+      {/* Content wrapper */}
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:py-8">{children}</main>
     </div>
   );
 }
