@@ -10,6 +10,7 @@ export default function SignupPage() {
 
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
+  const supabase = getSupabase();
 
   const signUp = async () => {
     setMsg("");

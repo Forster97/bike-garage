@@ -11,6 +11,7 @@ export default function BikeHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState([]);
   const [bike, setBike] = useState(null);
+  const supabase = getSupabase();
 
   useEffect(() => {
     const load = async () => {

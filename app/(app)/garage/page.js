@@ -12,6 +12,7 @@ export default function GaragePage() {
   const [bikes, setBikes] = useState([]);
   const [newBikeName, setNewBikeName] = useState("");
   const [loading, setLoading] = useState(true);
+  const supabase = getSupabase();
 
   useEffect(() => {
     const load = async () => {

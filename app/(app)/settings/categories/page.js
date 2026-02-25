@@ -43,6 +43,7 @@ export default function CategoriesPage() {
   const visibleList = useMemo(() => {
     const hiddenSet = hidden;
     const customNames = custom.map((r) => r.name);
+    const supabase = getSupabase();
 
     // Merge defaults + custom, preserve order, remove duplicates (case-sensitive)
     const merged = [...DEFAULT_CATEGORIES, ...customNames];
