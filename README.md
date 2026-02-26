@@ -29,6 +29,21 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## Que es Bike Garage
+
+Bike garage es una aplicación que tiene como objetivo gestionar las bicicletas de una persona, detallando sus componentes, pesos y más.
+
+Casos de uso:
+- Como ciclista, quiero guardar mis bicicletas
+- Como ciclista, quiero llevar un registro de los componentes de mi bicicleta
+- Como ciclista, quiero poder registrar los campos más relevantes de mis bicicletas
+
+## Comandos utiles para el deploy
+    git pull
+    # trabajas
+    git add .
+    git commit -m "mensaje claro"
+    git push
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
