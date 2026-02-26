@@ -33,15 +33,13 @@ export default function Home() {
       <main style={styles.main}>
         {/* Hero */}
         <section style={styles.hero}>
-          <div style={styles.heroTopPill}>Nuevo • Simple • Mobile-first</div>
 
           <h1 style={styles.h1}>
-            Ordena tus bicis, repuestos y mantenimiento en un solo lugar.
+            Ordena tus bicis, repuestos y proximamente mantenimiento en un solo lugar.
           </h1>
 
           <p style={styles.lead}>
-            Registra tus bicicletas, piezas y notas. Ten claridad de pesos, cambios
-            y tareas pendientes, sin planillas.
+            Registra tus bicicletas, piezas y notas. Ten claridad de pesos y cambios de componentes.
           </p>
 
           <div style={styles.ctaRow}>
@@ -86,27 +84,27 @@ export default function Home() {
 
               <div style={styles.previewList}>
                 <div style={styles.previewRow}>
-                  <div style={styles.previewAvatar}>G</div>
+                  <div style={styles.previewAvatar}>S</div>
                   <div style={{ flex: 1 }}>
-                    <div style={styles.previewName}>Gravel</div>
-                    <div style={styles.previewMeta}>Rival 1x11 • 45 mm</div>
+                    <div style={styles.previewName}>Diverge comp</div>
+                    <div style={styles.previewMeta}>Gravel</div>
                   </div>
                   <div style={styles.previewPill}>Activa</div>
                 </div>
 
                 <div style={styles.previewRow}>
-                  <div style={styles.previewAvatar}>M</div>
+                  <div style={styles.previewAvatar}>O</div>
                   <div style={{ flex: 1 }}>
-                    <div style={styles.previewName}>MTB</div>
-                    <div style={styles.previewMeta}>29” • Trail</div>
+                    <div style={styles.previewName}>Gambler</div>
+                    <div style={styles.previewMeta}>Downhill</div>
                   </div>
-                  <div style={styles.previewPillMuted}>Pendiente</div>
+                  <div style={styles.previewPillMuted}>En mantención</div>
                 </div>
 
                 <div style={styles.previewCard}>
                   <div style={styles.previewCardTitle}>Próximo mantenimiento</div>
                   <div style={styles.previewCardText}>
-                    Revisar pastillas + purga frenos
+                    Diverge comp - Revisar pastillas + purga frenos 
                   </div>
                   <div style={styles.previewCardCta}>Marcar como hecho</div>
                 </div>
@@ -131,6 +129,7 @@ export default function Home() {
                 Registra transmisión, frenos, ruedas, cockpit y más.
               </div>
             </div>
+          </div>
 
             <div style={styles.card}>
               <div style={styles.cardIcon}>🛠️</div>
@@ -145,18 +144,9 @@ export default function Home() {
               <div style={styles.cardTitle}>Notas simples</div>
               <div style={styles.cardText}>
                 Deja apuntes de setup, presión, sensaciones y ajustes.
-              </div>
+                </div>
             </div>
-
-            <div style={styles.card}>
-              <div style={styles.cardIcon}>⚡</div>
-              <div style={styles.cardTitle}>Rápido en móvil</div>
-              <div style={styles.cardText}>
-                UX mobile-first: botones grandes, lectura clara, flujo corto.
-              </div>
-            </div>
-          </div>
-        </section>
+          </section>
 
         {/* How it works */}
         <section id="como-funciona" style={styles.section}>
@@ -166,7 +156,7 @@ export default function Home() {
             <div style={styles.step}>
               <div style={styles.stepNum}>1</div>
               <div>
-                <div style={styles.stepTitle}>Crea tu bici</div>
+                <div style={styles.stepTitle}>Crea tu bicicleta</div>
                 <div style={styles.stepText}>
                   Nombre, tipo, año, talla y notas.
                 </div>
@@ -178,7 +168,7 @@ export default function Home() {
               <div>
                 <div style={styles.stepTitle}>Agrega componentes</div>
                 <div style={styles.stepText}>
-                  Categoría + peso + comentario (si aplica).
+                  Categoría + peso y comentarios.
                 </div>
               </div>
             </div>
@@ -205,33 +195,7 @@ export default function Home() {
               Ir a /login
             </Link>
           </div>
-        </section>
-
-        {/* Footer */}
-        <footer style={styles.footer}>
-          <div style={styles.footerInner}>
-            <div style={styles.footerBrand}>
-              <div style={styles.logoSmall} aria-hidden="true">
-                BG
-              </div>
-              <div>
-                <div style={styles.footerName}>Bike Garage</div>
-                <div style={styles.footerText}>
-                  Hecho para ciclistas que quieren orden.
-                </div>
-              </div>
-            </div>
-
-            <div style={styles.footerLinks}>
-              <Link href="/login" style={styles.footerLink}>
-                Login
-              </Link>
-              <a href="#como-funciona" style={styles.footerLink}>
-                Cómo funciona
-              </a>
-            </div>
-          </div>
-        </footer>
+          </section>
       </main>
     </div>
   );
