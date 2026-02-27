@@ -13,8 +13,8 @@ function NavItem({ href, label, active }) {
       className={[
         "rounded-xl px-3 py-2 text-sm transition",
         active
-          ? "bg-surface/80 text-text"
-          : "text-muted hover:bg-surface/70 hover:text-text",
+          ? "bg-slate-900/70 text-slate-100"
+          : "text-slate-300 hover:bg-slate-900/50 hover:text-slate-100",
       ].join(" ")}
     >
       {label}
@@ -50,12 +50,12 @@ export default function AppGroupLayout({ children }) {
   const isCategories = pathname?.startsWith("/settings/categories");
 
   return (
-    <div className="min-h-screen bg-bg text-text">
+    <div className="min-h-screen bg-slate-950 text-slate-100">
       {/* Glow de fondo */}
       <BackgroundGlow />
 
       {/* Topbar */}
-      <div className="sticky top-0 z-20 border-b border-border bg-surface/60 backdrop-blur-md">
+      <div className="sticky top-0 z-20 border-b border-slate-800 bg-slate-950/70 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <div className="font-semibold tracking-tight">Bike Garage</div>
 
@@ -67,12 +67,12 @@ export default function AppGroupLayout({ children }) {
               label="Categorías"
               active={isCategories}
             />
-            <span className="ml-2 max-w-[220px] truncate text-sm text-muted">
+            <span className="ml-2 max-w-[220px] truncate text-sm text-slate-300">
               {email}
             </span>
             <button
               onClick={logout}
-              className="ml-2 rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-muted hover:bg-surface/80 hover:text-text transition"
+              className="ml-2 rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-300 hover:bg-slate-900/80 hover:text-slate-100 transition"
             >
               Salir
             </button>
@@ -81,7 +81,7 @@ export default function AppGroupLayout({ children }) {
           {/* Mobile logout */}
           <button
             onClick={logout}
-            className="sm:hidden rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-muted hover:bg-surface/80 hover:text-text transition"
+            className="sm:hidden rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-300 hover:bg-slate-900/80 hover:text-slate-100 transition"
           >
             Salir
           </button>
