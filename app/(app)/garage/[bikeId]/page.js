@@ -703,10 +703,15 @@ export default function BikeDetailPage() {
                   <select
                     value={partCategory}
                     onChange={(e) => setPartCategory(e.target.value)}
+                    style={{ colorScheme: "dark" }} // <-- clave en Chrome/Windows
                     className="w-full rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-primary/40"
                   >
                     {categories.map((c) => (
-                      <option key={c} value={c}>
+                      <option
+                        key={c}
+                        value={c}
+                        className="bg-zinc-900 text-zinc-100" // <-- ayuda cuando el navegador sí lo respeta
+                      >
                         {c}
                       </option>
                     ))}
