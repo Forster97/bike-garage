@@ -136,9 +136,16 @@ export default function GaragePage() {
             </Link>
 
             {user?.email ? (
-              <div style={styles.userChip} title={user?.email}>
+              <div className="userChipHideMobile" style={styles.userChip} title={user?.email}>
                 <span style={styles.userDot} aria-hidden="true" />
                 <span style={styles.userText}>{userLabel}</span>
+                <style jsx>{`
+                  @media (max-width: 520px) {
+                    .userChipHideMobile {
+                      display: none !important;
+                    }
+                  }
+                `}</style>
               </div>
             ) : null}
 
@@ -231,40 +238,55 @@ export default function GaragePage() {
               </a>
             </div>
           ) : (
-            <div style={styles.grid}>
+            <div style={styles.bikeGrid}>
               {bikes.map((bike) => (
-                <div key={bike.id} style={styles.bikeCard}>
-                  <div style={styles.bikeTop}>
-                    <div style={styles.bikeAvatar} aria-hidden="true">
-                      {(bike.name || "B").trim().slice(0, 1).toUpperCase()}
-                    </div>
+                <Link
+                  key={bike.id}
+                  href={`/garage/${bike.id}`}
+                  style={{ textDecoration: "none" }}
+                  aria-label={`Abrir ${bike.name}`}
+                >
+                  <div style={styles.bikeCard} role="button" tabIndex={0}>
+                    <div style={styles.bikeTop}>
+                      <div style={styles.bikeLeft}>
+                        <div style={styles.bikeAvatar} aria-hidden="true">
+                          {(bike.name?.trim()?.[0] || "B").toUpperCase()}
+                        </div>
 
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <Link href={`/garage/${bike.id}`} style={styles.bikeName}>
-                        {bike.name}
-                      </Link>
-                      <div style={styles.bikeMeta}>
-                        Creada:{" "}
-                        {bike.created_at ? new Date(bike.created_at).toLocaleDateString() : "—"}
+                        <div style={styles.bikeInfo}>
+                          <div style={styles.bikeName}>{bike.name}</div>
+                          <div style={styles.bikeDate}>
+                            Creada: {new Date(bike.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={styles.bikeRight}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault(); // evita navegación del Link
+                            e.stopPropagation(); // evita bubbling
+                            deleteBike(bike.id);
+                          }}
+                          style={styles.trashBtn}
+                          aria-label={`Eliminar ${bike.name}`}
+                          title="Eliminar"
+                        >
+                          🗑️
+                        </button>
+
+                        <div style={styles.chevron} aria-hidden="true">
+                          →
+                        </div>
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => deleteBike(bike.id)}
-                      style={styles.trashBtn}
-                      title="Eliminar bicicleta"
-                      aria-label="Eliminar bicicleta"
-                    >
-                      🗑️
-                    </button>
+                    <div style={styles.bikeHint}>
+                      Toca para ver detalles y gestionar componentes
+                    </div>
                   </div>
-
-                  <div style={styles.bikeActions}>
-                    <Link href={`/garage/${bike.id}`} style={styles.secondaryLink}>
-                      Ver detalles
-                    </Link>
-                  </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -341,6 +363,106 @@ const styles = {
 
   brand: { display: "flex", alignItems: "center", gap: 10 },
 
+  bikeGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: 12,
+  },
+
+  bikeCard: {
+    borderRadius: 18,
+    padding: 14,
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.10)",
+    boxShadow: "0 18px 40px rgba(0,0,0,0.35)",
+    transition: "transform 120ms ease, border-color 120ms ease, background 120ms ease",
+  },
+
+  bikeTop: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  bikeLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    minWidth: 0,
+  },
+
+  bikeAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    display: "grid",
+    placeItems: "center",
+    fontWeight: 900,
+    color: "rgba(255,255,255,0.92)",
+    background: "rgba(255,255,255,0.10)",
+    border: "1px solid rgba(255,255,255,0.10)",
+    flexShrink: 0,
+  },
+
+  bikeInfo: { minWidth: 0 },
+
+  bikeName: {
+    fontSize: 18,
+    fontWeight: 900,
+    color: "rgba(255,255,255,0.92)",
+    lineHeight: 1.1,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    maxWidth: "100%",
+  },
+
+  bikeDate: {
+    marginTop: 4,
+    fontSize: 13,
+    color: "rgba(255,255,255,0.60)",
+  },
+
+  bikeRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    flexShrink: 0,
+  },
+
+  trashBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(0,0,0,0.22)",
+    color: "rgba(255,255,255,0.85)",
+    display: "grid",
+    placeItems: "center",
+    cursor: "pointer",
+  },
+
+  chevron: {
+    width: 36,
+    height: 36,
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.06)",
+    color: "rgba(255,255,255,0.70)",
+    display: "grid",
+    placeItems: "center",
+    fontWeight: 900,
+  },
+
+  bikeHint: {
+    marginTop: 10,
+    fontSize: 12,
+    color: "rgba(255,255,255,0.55)",
+    paddingTop: 10,
+    borderTop: "1px solid rgba(255,255,255,0.08)",
+  },
+
   logo: {
     width: 36,
     height: 36,
@@ -381,7 +503,13 @@ const styles = {
   },
 
   userChip: {
-    display: "none",
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "8px 10px",
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.06)",
   },
 
   userDot: {
@@ -532,101 +660,6 @@ const styles = {
     display: "grid",
     gridTemplateColumns: "1fr",
     gap: 10,
-  },
-
-  bikeCard: {
-    padding: 14,
-    borderRadius: 18,
-    background: "rgba(0,0,0,0.22)",
-    border: "1px solid rgba(255,255,255,0.08)",
-  },
-
-  bikeTop: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-  },
-
-  bikeAvatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    display: "grid",
-    placeItems: "center",
-    fontWeight: 900,
-    color: "rgba(255,255,255,0.92)",
-    background: "rgba(255,255,255,0.10)",
-    flexShrink: 0,
-  },
-
-  bikeName: {
-    display: "block",
-    textDecoration: "none",
-    fontWeight: 900,
-    color: "rgba(255,255,255,0.92)",
-    lineHeight: 1.1,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-
-  bikeMeta: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.60)",
-    marginTop: 4,
-  },
-
-  trashBtn: {
-    marginLeft: "auto",
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.06)",
-    color: "rgba(255,255,255,0.90)",
-    borderRadius: 12,
-    padding: "8px 10px",
-    cursor: "pointer",
-  },
-
-  bikeActions: {
-    display: "flex",
-    justifyContent: "center", // ✅ centra en mobile
-  },
-  secondaryLink: {
-    display: "inline-flex",
-    justifyContent: "center",
-    textDecoration: "none",
-    fontWeight: 800,
-    padding: "12px 14px",
-    borderRadius: 14,
-    color: "rgba(255,255,255,0.90)",
-    background: "rgba(255,255,255,0.08)",
-    border: "1px solid rgba(255,255,255,0.12)",
-    width: "100%",           // ✅ botón full width en mobile
-    maxWidth: 220,           // ✅ y queda “centrado” visualmente
-    textAlign: "center",
-  },
-
-  primaryLink: {
-    flex: 1,
-    minWidth: 140,
-    textDecoration: "none",
-    fontWeight: 900,
-    padding: "12px 14px",
-    borderRadius: 14,
-    color: "#0b1220",
-    background:
-      "linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.82))",
-    textAlign: "center",
-  },
-
-  secondaryLink: {
-    textDecoration: "none",
-    fontWeight: 800,
-    padding: "12px 14px",
-    borderRadius: 14,
-    color: "rgba(255,255,255,0.90)",
-    background: "rgba(255,255,255,0.08)",
-    border: "1px solid rgba(255,255,255,0.12)",
-    textAlign: "center",
   },
 
   empty: {

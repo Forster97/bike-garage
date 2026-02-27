@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+@media (min-width: 900px) {
+  .garage-grid-desktop {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+}
+
 body {
   background-color: #0b0f19;
   color: #f8fafc;
@@ -17,3 +25,4 @@ select.dark-select option {
   background-color: #111827;
   color: #f8fafc;
 }
+
