@@ -2,21 +2,15 @@ import Button from "./Button";
 
 export default function Navbar({ email, onLogout }) {
   return (
-    <div style={{
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      padding: "14px 18px",
-      borderBottom: "1px solid #eee",
-      position: "sticky",
-      top: 0,
-      background: "white",
-      zIndex: 10
-    }}>
-      <div style={{ fontWeight: 800 }}>Bike Garage</div>
-      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-        <span style={{ color: "#555", fontSize: 14 }}>{email}</span>
-        <Button onClick={onLogout}>Salir</Button>
+    <div className="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/70 backdrop-blur">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
+        <div className="font-extrabold text-slate-100">Bike Garage</div>
+        <div className="flex items-center gap-3">
+          <span className="max-w-[220px] truncate text-sm text-slate-300">
+            {email}
+          </span>
+          <Button onClick={onLogout}>Salir</Button>
+        </div>
       </div>
     </div>
   );
