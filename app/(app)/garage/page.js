@@ -3,13 +3,8 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-
-import PageShell from "../../../components/PageShell";
-import Card from "../../../components/Card";
-import PrimaryButton from "../../../components/PrimaryButton";
-
 import { supabase } from "../../../lib/supabaseClient";
+import Link from "next/link";
 
 export default function GaragePage() {
   const router = useRouter();
@@ -116,173 +111,693 @@ export default function GaragePage() {
   };
 
   return (
-    <PageShell
-      title="Tu Garage"
-      subtitle="Crea tus bicicletas y entra a cada una para registrar componentes y pesos."
-      right={
-        <div className="flex items-center gap-2">
-          <Link
-            href="/settings/categories"
-            className="rounded-xl border border-slate-700 px-3 py-2 text-sm text-slate-100 hover:bg-slate-800"
-          >
-            Categorías
-          </Link>
+    <div style={styles.page}>
+      {/* Background glow (igual a landing) */}
+      <div style={styles.bgGlow} aria-hidden="true" />
 
-          {user?.email ? (
-            <div
-              className="hidden items-center gap-2 rounded-full border border-slate-700 bg-slate-900/50 px-3 py-2 text-xs text-slate-200 sm:flex"
-              title={user?.email}
-            >
-              <span className="h-2 w-2 rounded-full bg-lime-400" aria-hidden="true" />
-              <span className="max-w-[220px] truncate">{userLabel}</span>
-            </div>
-          ) : null}
-
-          <PrimaryButton variant="ghost" onClick={logout}>
-            Salir
-          </PrimaryButton>
-        </div>
-      }
-    >
-      {/* Resumen simple */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="text-sm text-slate-300">
-          <span className="font-semibold text-slate-100">{bikes.length}</span> bici(s) en tu garage
-        </div>
-
-        <div className="rounded-xl border border-slate-800 bg-slate-900/50 px-3 py-2 text-xs text-slate-300">
-          Todo ordenado, sin Excel 😉
-        </div>
-      </div>
-
-      {/* Agregar bicicleta */}
-      <Card className="mb-4">
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold text-slate-100">Agregar bicicleta</div>
-            <div className="mt-1 text-xs text-slate-300">
-              Ej: Orbea Terra / Diverge / Gambler
+      {/* Header (igual a landing, pero con acciones app) */}
+      <header style={styles.header}>
+        <div style={styles.headerInner}>
+          <div style={styles.brand}>
+            <Link href="/" style={{ textDecoration: "none" }}>
+              <div style={styles.logo} aria-hidden="true">
+                BG
+              </div>
+            </Link>
+            <div>
+              <div style={styles.brandName}>Bike Garage</div>
+              <div style={styles.brandTag}>Tu garage digital</div>
             </div>
           </div>
 
-          <div className="rounded-full border border-lime-500/30 bg-lime-500/10 px-3 py-1 text-xs font-semibold text-lime-200">
-            Nuevo
-          </div>
-        </div>
+          <div style={styles.headerActions}>
+            <Link href="/settings/categories" style={styles.headerLink}>
+              Categorías
+            </Link>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            value={newBikeName}
-            onChange={(e) => setNewBikeName(e.target.value)}
-            placeholder="Nombre de la bicicleta"
-            className="w-full flex-1 min-w-[220px] rounded-xl border border-slate-700 bg-slate-950/40 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:ring-2 focus:ring-lime-400"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") addBike();
-            }}
-          />
+            {user?.email ? (
+              <div className="userChipHideMobile" style={styles.userChip} title={user?.email}>
+                <span style={styles.userDot} aria-hidden="true" />
+                <span style={styles.userText}>{userLabel}</span>
+                <style jsx>{`
+                  @media (max-width: 520px) {
+                    .userChipHideMobile {
+                      display: none !important;
+                    }
+                  }
+                `}</style>
+              </div>
+            ) : null}
 
-          <PrimaryButton
-            onClick={addBike}
-            disabled={!newBikeName.trim() || adding}
-            className="min-w-[130px]"
-          >
-            {adding ? "Agregando..." : "Agregar"}
-          </PrimaryButton>
-        </div>
-
-        <div className="mt-3 flex items-start gap-2 text-xs text-slate-300">
-          <span className="mt-1 h-2 w-2 rounded-full bg-indigo-400" aria-hidden="true" />
-          <p>
-            Tip: después podrás agregar tipo, año, talla y notas dentro de la bici.
-          </p>
-        </div>
-      </Card>
-
-      {/* Contenido */}
-      {loading ? (
-        <div className="grid gap-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <div className="h-4 w-2/3 rounded-full bg-slate-800" />
-              <div className="mt-3 h-3 w-1/2 rounded-full bg-slate-800/70" />
-              <div className="mt-4 h-10 w-full rounded-xl bg-slate-800/60" />
-            </Card>
-          ))}
-        </div>
-      ) : bikes.length === 0 ? (
-        <Card className="text-center">
-          <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl border border-slate-800 bg-slate-900/60 text-lg">
-            ✨
-          </div>
-          <div className="font-semibold text-slate-100">No tienes bicicletas aún</div>
-          <div className="mt-2 text-sm text-slate-300">
-            Agrega tu primera bici arriba para empezar.
-          </div>
-
-          <div className="mt-4">
-            <button
-              type="button"
-              onClick={(e) => e.preventDefault()}
-              className="text-xs text-slate-300 underline underline-offset-4 hover:text-slate-100"
-            >
-              Próximamente: mantenimiento + recordatorios
+            <button onClick={logout} style={styles.headerGhostBtn}>
+              Salir
             </button>
           </div>
-        </Card>
-      ) : (
-        <div className="grid gap-3">
-          {bikes.map((bike) => (
-            <Card key={bike.id} className="p-0 overflow-hidden">
-              <div className="flex items-center justify-between gap-3 p-4">
-                <Link href={`/garage/${bike.id}`} className="flex min-w-0 flex-1 items-center gap-3">
-                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-slate-800/60 text-sm font-extrabold text-slate-100">
-                    {(bike.name || "B").slice(0, 1).toUpperCase()}
-                  </div>
+        </div>
+      </header>
 
-                  <div className="min-w-0">
-                    <div className="truncate text-base font-semibold text-slate-100">
-                      {bike.name}
-                    </div>
-                    <div className="mt-1 text-xs text-slate-300">
-                      Creada: {new Date(bike.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                </Link>
+      <main style={styles.main}>
+        <section style={styles.hero}>
+          <div style={styles.heroTopRow}>
+            <div>
+              <h1 style={styles.h1}>Tu Garage</h1>
+              <p style={styles.lead}>
+                Crea tus bicicletas y entra a cada una para registrar componentes y pesos.
+              </p>
+            </div>
 
-                <PrimaryButton
-                  variant="ghost"
-                  onClick={() => deleteBike(bike.id)}
-                  aria-label="Eliminar bicicleta"
-                  title="Eliminar"
-                  className="h-10 w-10 p-0"
-                >
-                  🗑
-                </PrimaryButton>
+            <div style={styles.quickPill} aria-label="Resumen">
+              <div style={styles.quickPillTop}>
+                <div style={styles.quickValue}>{bikes.length}</div>
+                <div style={styles.quickLabel}>Bicis</div>
               </div>
+              <div style={styles.quickSub}>Todo ordenado, sin Excel</div>
+            </div>
+          </div>
 
-              <Link
-                href={`/garage/${bike.id}`}
-                className="block border-t border-slate-800 px-4 py-3 text-xs text-slate-300 hover:bg-slate-900/60"
+          {/* Add bike card (look landing) */}
+          <div style={styles.card}>
+            <div style={styles.cardHeader}>
+              <div>
+                <div style={styles.cardTitle}>Agregar bicicleta</div>
+                <div style={styles.cardText}>Ej: Orbea Terra / Diverge / Gambler</div>
+              </div>
+              <div style={styles.cardBadge}>Nuevo</div>
+            </div>
+
+            <div style={styles.addRow}>
+              <input
+                value={newBikeName}
+                onChange={(e) => setNewBikeName(e.target.value)}
+                placeholder="Nombre de la bicicleta"
+                style={styles.input}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") addBike();
+                }}
+              />
+              <button
+                onClick={addBike}
+                disabled={!newBikeName.trim() || adding}
+                style={{
+                  ...styles.primaryBtn,
+                  opacity: !newBikeName.trim() || adding ? 0.55 : 1,
+                  cursor: !newBikeName.trim() || adding ? "not-allowed" : "pointer",
+                }}
               >
-                Toca para ver detalles →
-              </Link>
-            </Card>
-          ))}
-        </div>
-      )}
+                {adding ? "Agregando..." : "Agregar"}
+              </button>
+            </div>
 
-      {/* Footer mini */}
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 pt-4 text-xs text-slate-400">
-        <div>Bike Garage • Construido para ciclistas</div>
-        <div className="flex items-center gap-3">
-          <Link href="/" className="hover:text-slate-200">
-            Inicio
-          </Link>
-          <Link href="/settings/categories" className="hover:text-slate-200">
-            Categorías
-          </Link>
-        </div>
-      </div>
-    </PageShell>
+            <div style={styles.tipRow}>
+              <div style={styles.tipDot} aria-hidden="true" />
+              <div style={styles.tipText}>Tip: después podrás agregar tipo, año, talla y notas dentro de la bici.</div>
+            </div>
+          </div>
+
+          {/* Content */}
+          {loading ? (
+            <div style={styles.grid}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} style={styles.skeletonCard} aria-hidden="true">
+                  <div style={styles.skelLine1} />
+                  <div style={styles.skelLine2} />
+                  <div style={styles.skelBtn} />
+                </div>
+              ))}
+            </div>
+          ) : bikes.length === 0 ? (
+            <div style={styles.empty}>
+              <div style={styles.emptyIcon}>✨</div>
+              <div style={styles.emptyTitle}>No tienes bicicletas aún</div>
+              <div style={styles.emptyText}>Agrega tu primera bici arriba para empezar.</div>
+
+              <div style={{ height: 10 }} />
+
+              <a href="#" onClick={(e) => e.preventDefault()} style={styles.emptyMini}>
+                Próximamente: mantenimiento + recordatorios
+              </a>
+            </div>
+          ) : (
+            <div style={styles.bikeGrid}>
+              {bikes.map((bike) => (
+                <div key={bike.id} style={styles.bikeCard}>
+                  {/* HEADER */}
+                  <div style={styles.bikeHeader}>
+                    <Link href={`/garage/${bike.id}`} style={styles.bikeLinkArea}>
+                      <div style={styles.bikeLeft}>
+                        <div style={styles.bikeAvatar}>
+                          {(bike.name || "B").slice(0, 1).toUpperCase()}
+                        </div>
+
+                        <div style={{ minWidth: 0 }}>
+                          <div style={styles.bikeName}>{bike.name}</div>
+                          <div style={styles.bikeMeta}>
+                            Creada: {new Date(bike.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+
+                    <button
+                      onClick={() => deleteBike(bike.id)}
+                      style={styles.iconBtn}
+                      aria-label="Eliminar bicicleta"
+                      title="Eliminar"
+                    >
+                      🗑
+                    </button>
+                  </div>
+
+                  {/* DIVIDER */}
+                  <div style={styles.bikeDivider} />
+
+                  {/* FOOTER (solo info/ayuda) */}
+                  <Link href={`/garage/${bike.id}`} style={styles.bikeFooterLink}>
+                    Toca para ver detalles
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Footer mini (coherente con landing) */}
+        <footer style={styles.footer}>
+          <div style={styles.footerInner}>
+            <div style={styles.footerBrand}>
+              <div style={styles.logoSmall} aria-hidden="true">
+                BG
+              </div>
+              <div>
+                <div style={styles.footerName}>Bike Garage</div>
+                <div style={styles.footerText}>Construido para ciclistas</div>
+              </div>
+            </div>
+
+            <div style={styles.footerLinks}>
+              <Link href="/" style={styles.footerLink}>
+                Inicio
+              </Link>
+              <Link href="/settings/categories" style={styles.footerLink}>
+                Categorías
+              </Link>
+            </div>
+          </div>
+        </footer>
+      </main>
+    </div>
   );
 }
+
+/* =========================
+   Styles (match landing)
+========================= */
+
+const styles = {
+  page: {
+    fontFamily:
+      'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"',
+    minHeight: "100vh",
+    color: "#0b1220",
+    background: "#070A12",
+  },
+
+  bikeHeader: {
+  display: "flex",
+    alignItems: "center",          // ✅ alinea con el título (no con todo el card)
+    justifyContent: "space-between",
+    gap: 12,
+    padding: 14,
+  },
+
+  bikeLinkArea: {
+    textDecoration: "none",
+    flex: 1,
+    minWidth: 0,
+  },
+
+  bgGlow: {
+    position: "fixed",
+    inset: 0,
+    background:
+      "radial-gradient(800px 400px at 20% 0%, rgba(99,102,241,0.20), transparent 60%), radial-gradient(700px 350px at 100% 20%, rgba(34,197,94,0.14), transparent 55%), radial-gradient(600px 300px at 50% 100%, rgba(59,130,246,0.10), transparent 55%)",
+    pointerEvents: "none",
+    zIndex: 0,
+  },
+
+  header: {
+    position: "sticky",
+    top: 0,
+    zIndex: 20,
+    backdropFilter: "blur(10px)",
+    background: "rgba(7,10,18,0.70)",
+    borderBottom: "1px solid rgba(255,255,255,0.08)",
+  },
+
+  bikeFooterLink: {
+    display: "block",
+    padding: "12px 14px",
+    textDecoration: "none",
+    fontSize: 13,
+    color: "rgba(255,255,255,0.60)",
+  },
+
+  headerInner: {
+    maxWidth: 980,
+    margin: "0 auto",
+    padding: "12px 16px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  bikeDivider: {
+    height: 1,
+    background: "rgba(255,255,255,0.08)",
+  },
+
+  brand: { display: "flex", alignItems: "center", gap: 10 },
+
+  bikeGrid: {
+    width: "100%",
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: 12,
+  },
+
+  iconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(0,0,0,0.20)",
+    color: "rgba(255,255,255,0.85)",
+    display: "grid",
+    placeItems: "center",
+  },
+
+  bikeMeta: {
+    marginTop: 4,
+    fontSize: 13,
+    color: "rgba(255,255,255,0.65)",
+  },
+
+  bikeCard: {
+    borderRadius: 22,
+    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.06)",
+    boxShadow: "0 25px 60px rgba(0,0,0,0.35)",
+    overflow: "hidden",
+  },
+
+  bikeTop: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  bikeLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    minWidth: 0,
+  },
+
+  bikeAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    display: "grid",
+    placeItems: "center",
+    fontWeight: 900,
+    color: "rgba(255,255,255,0.92)",
+    background: "rgba(255,255,255,0.10)",
+    flexShrink: 0,
+  },
+
+  bikeInfo: { minWidth: 0 },
+
+  bikeName: {
+    fontWeight: 900,
+    fontSize: 20,
+    color: "rgba(255,255,255,0.95)",
+    lineHeight: 1.1,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+
+  bikeDate: {
+    marginTop: 4,
+    fontSize: 13,
+    color: "rgba(255,255,255,0.60)",
+  },
+
+  bikeRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    flexShrink: 0,
+  },
+
+  trashBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(0,0,0,0.22)",
+    color: "rgba(255,255,255,0.85)",
+    display: "grid",
+    placeItems: "center",
+    cursor: "pointer",
+  },
+
+  chevron: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.06)",
+    color: "rgba(255,255,255,0.70)",
+    display: "grid",
+    placeItems: "center",
+    fontWeight: 900,
+  },
+
+  bikeHint: {
+    marginTop: 10,
+    fontSize: 12,
+    color: "rgba(255,255,255,0.55)",
+    paddingTop: 10,
+    borderTop: "1px solid rgba(255,255,255,0.08)",
+  },
+
+  logo: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    display: "grid",
+    placeItems: "center",
+    fontWeight: 800,
+    fontSize: 13,
+    color: "white",
+    background:
+      "linear-gradient(135deg, rgba(99,102,241,1), rgba(34,197,94,1))",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+  },
+
+  brandName: { fontWeight: 700, color: "rgba(255,255,255,0.95)" },
+  brandTag: { fontSize: 12, color: "rgba(255,255,255,0.60)" },
+
+  headerActions: { display: "flex", alignItems: "center", gap: 10 },
+
+  headerLink: {
+    color: "rgba(255,255,255,0.78)",
+    textDecoration: "none",
+    fontSize: 14,
+    padding: "10px 10px",
+    borderRadius: 12,
+  },
+
+  headerGhostBtn: {
+    appearance: "none",
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.06)",
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 14,
+    fontWeight: 800,
+    padding: "10px 12px",
+    borderRadius: 12,
+    cursor: "pointer",
+  },
+
+  userChip: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "8px 10px",
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.06)",
+  },
+
+  userDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 99,
+    background: "rgba(34,197,94,0.9)",
+  },
+
+  userText: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.80)",
+    maxWidth: 220,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+
+  main: { position: "relative", zIndex: 1 },
+
+  hero: {
+    maxWidth: 980,
+    margin: "0 auto",
+    padding: "18px 16px 8px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 14,
+  },
+
+  heroTopRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+
+  h1: {
+    margin: 0,
+    fontSize: 28,
+    lineHeight: 1.05,
+    letterSpacing: -0.6,
+    color: "rgba(255,255,255,0.96)",
+  },
+
+  lead: {
+    margin: "8px 0 0",
+    fontSize: 14,
+    lineHeight: 1.45,
+    color: "rgba(255,255,255,0.70)",
+    maxWidth: 680,
+  },
+
+  quickPill: {
+    borderRadius: 16,
+    padding: "10px 12px",
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.10)",
+    minWidth: 170,
+  },
+
+  quickPillTop: { display: "flex", alignItems: "baseline", gap: 8 },
+  quickValue: { fontWeight: 900, fontSize: 18, color: "rgba(255,255,255,0.92)" },
+  quickLabel: { fontSize: 12, color: "rgba(255,255,255,0.65)" },
+  quickSub: { marginTop: 4, fontSize: 12, color: "rgba(255,255,255,0.60)" },
+
+  card: {
+    padding: 14,
+    borderRadius: 18,
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.10)",
+    transition: "all 0,2s ease",
+    boxShadow: "0 18px 55px rgba(0,0,0,0.22)",
+  },
+
+  cardHeader: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 10,
+    marginBottom: 10,
+  },
+
+  cardTitle: { fontWeight: 900, color: "rgba(255,255,255,0.92)" },
+  cardText: { marginTop: 4, fontSize: 12, color: "rgba(255,255,255,0.65)" },
+
+  cardBadge: {
+    fontSize: 12,
+    fontWeight: 900,
+    color: "rgba(255,255,255,0.90)",
+    padding: "7px 10px",
+    borderRadius: 999,
+    background: "rgba(34,197,94,0.18)",
+    border: "1px solid rgba(34,197,94,0.25)",
+    whiteSpace: "nowrap",
+  },
+
+  addRow: {
+    display: "flex",
+    gap: 10,
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
+
+  input: {
+    flex: 1,
+    minWidth: 220,
+    padding: "12px 12px",
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(0,0,0,0.22)",
+    color: "rgba(255,255,255,0.92)",
+    outline: "none",
+    fontSize: 14,
+  },
+
+  primaryBtn: {
+    border: 0,
+    fontWeight: 900,
+    padding: "12px 14px",
+    borderRadius: 14,
+    color: "#0b1220",
+    background:
+      "linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.82))",
+    boxShadow: "0 14px 30px rgba(0,0,0,0.35)",
+    minWidth: 130,
+  },
+
+  tipRow: {
+    marginTop: 10,
+    display: "flex",
+    gap: 8,
+    alignItems: "center",
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 12,
+  },
+
+  tipDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 99,
+    background: "rgba(99,102,241,0.75)",
+  },
+
+  tipText: { lineHeight: 1.4 },
+
+  grid: {
+    marginTop: 4,
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: 10,
+  },
+
+  empty: {
+    padding: "18px 14px",
+    borderRadius: 18,
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.10)",
+    textAlign: "center",
+  },
+
+  emptyIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    display: "grid",
+    placeItems: "center",
+    margin: "0 auto 10px",
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    color: "rgba(255,255,255,0.92)",
+    fontSize: 18,
+    fontWeight: 900,
+  },
+
+  emptyTitle: { fontWeight: 900, color: "rgba(255,255,255,0.92)" },
+  emptyText: { marginTop: 6, color: "rgba(255,255,255,0.68)", fontSize: 13 },
+
+  emptyMini: {
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 12,
+    textDecoration: "underline",
+    textUnderlineOffset: 3,
+  },
+
+  skeletonCard: {
+    padding: 14,
+    borderRadius: 18,
+    background: "rgba(0,0,0,0.22)",
+    border: "1px solid rgba(255,255,255,0.08)",
+  },
+
+  skelLine1: {
+    height: 14,
+    width: "70%",
+    borderRadius: 999,
+    background: "rgba(255,255,255,0.10)",
+  },
+
+  skelLine2: {
+    height: 12,
+    width: "45%",
+    borderRadius: 999,
+    background: "rgba(255,255,255,0.08)",
+    marginTop: 10,
+  },
+
+  skelBtn: {
+    height: 40,
+    width: "100%",
+    borderRadius: 14,
+    background: "rgba(255,255,255,0.10)",
+    marginTop: 14,
+  },
+
+  footer: {
+    borderTop: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(7,10,18,0.70)",
+    marginTop: 10,
+  },
+
+  footerInner: {
+    maxWidth: 980,
+    margin: "0 auto",
+    padding: "18px 16px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+
+  footerBrand: { display: "flex", alignItems: "center", gap: 10 },
+
+  logoSmall: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    display: "grid",
+    placeItems: "center",
+    fontWeight: 900,
+    fontSize: 12,
+    color: "white",
+    background:
+      "linear-gradient(135deg, rgba(99,102,241,1), rgba(34,197,94,1))",
+  },
+
+  footerName: { fontWeight: 900, color: "rgba(255,255,255,0.92)" },
+  footerText: { fontSize: 12, color: "rgba(255,255,255,0.60)" },
+
+  footerLinks: { display: "flex", gap: 12, alignItems: "center" },
+
+  footerLink: {
+    color: "rgba(255,255,255,0.72)",
+    textDecoration: "none",
+    fontSize: 14,
+    padding: "10px 10px",
+    borderRadius: 12,
+  },
+};
