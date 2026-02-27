@@ -4,3 +4,13 @@ body {
   background-color: #0b0f19;
   color: #f8fafc;
 }
+/* Fuerza estilo dark en selects (evita dropdown blanco con texto blanco) */
+.dark-select {
+  color-scheme: dark;
+}
+
+/* Fallback: algunos navegadores ignoran option classes */
+.dark-select option {
+  background: #18181b; /* zinc-900 */
+  color: #f4f4f5;      /* zinc-100 */
+}
