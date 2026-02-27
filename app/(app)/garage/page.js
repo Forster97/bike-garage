@@ -260,9 +260,6 @@ export default function GaragePage() {
                   </div>
 
                   <div style={styles.bikeActions}>
-                    <Link href={`/garage/${bike.id}`} style={styles.primaryLink}>
-                      Abrir
-                    </Link>
                     <Link href={`/garage/${bike.id}`} style={styles.secondaryLink}>
                       Ver detalles
                     </Link>
