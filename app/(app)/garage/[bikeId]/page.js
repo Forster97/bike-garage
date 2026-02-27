@@ -599,7 +599,7 @@ export default function BikeDetailPage() {
                               [p.id]: { ...row, category: e.target.value },
                             }))
                           }
-                          className="rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-primary/40"
+                          className="dark-select rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-primary/40"
                         >
                           {categories.map((c) => (
                             <option key={c} value={c}>
@@ -704,7 +704,7 @@ export default function BikeDetailPage() {
                     value={partCategory}
                     onChange={(e) => setPartCategory(e.target.value)}
                     style={{ colorScheme: "dark" }} // <-- clave en Chrome/Windows
-                    className="w-full rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-primary/40"
+                    className="dark-selectw-full rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-primary/40"
                   >
                     {categories.map((c) => (
                       <option
