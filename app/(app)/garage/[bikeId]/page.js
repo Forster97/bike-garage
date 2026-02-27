@@ -365,7 +365,7 @@ export default function BikeDetailPage() {
     setParts((prev) => prev.map((p) => (p.id === partId ? data : p)));
     setEditById((prev) => ({
       ...prev,
-      [partId]: { category: data.category, weight_g: data.weight_g ?? "" },
+      [partId]: { name: data.name ?? "", category: data.category, weight_g: data.weight_g ?? "" },
     }));
   };
 
@@ -647,14 +647,19 @@ export default function BikeDetailPage() {
           ) : (
             <div style={styles.grid}>
               {filteredParts.map((p) => {
+
                 const row = editById[p.id] || { name: p.name ?? "", category: p.category, weight_g: p.weight_g ?? "" };
                 const pct = totalWeightG > 0 ? ((Number(p.weight_g) || 0) / totalWeightG) * 100 : 0;
+                const isEditing = editingPartId === p.id;
+                
 
                 return (
                   <div key={p.id} style={styles.partCard}>
                     <div style={styles.partTop}>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={styles.partName}>{p.name}</div>
+                        <div style={styles.partName}>
+                          {isEditing ? (row.name ?? p.name) : p.name}
+                        </div>
 
                         {!isEditing ? (
                           <div style={styles.partMeta}>
