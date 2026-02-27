@@ -649,8 +649,8 @@ export default function BikeDetailPage() {
               {filteredParts.map((p) => {
 
                 const row = editById[p.id] || { name: p.name ?? "", category: p.category, weight_g: p.weight_g ?? "" };
-                const pct = totalWeightG > 0 ? ((Number(p.weight_g) || 0) / totalWeightG) * 100 : 0;
                 const isEditing = editingPartId === p.id;
+                const pct = totalWeightG > 0 ? ((Number(p.weight_g) || 0) / totalWeightG) * 100 : 0;
                 
 
                 return (
@@ -671,6 +671,7 @@ export default function BikeDetailPage() {
                         ) : (
                           <div style={styles.editRow}>
                             <input
+                              autoFocus
                               value={String(row.name ?? "")}
                               onChange={(e) =>
                                 setEditById((prev) => ({
@@ -678,9 +679,20 @@ export default function BikeDetailPage() {
                                   [p.id]: { ...row, name: e.target.value },
                                 }))
                               }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  savePart(p.id);
+                                  setEditingPartId(null);
+                                }
+                                if (e.key === "Escape") {
+                                  setEditingPartId(null);
+                                }
+                              }}
                               placeholder="Nombre"
                               style={{ ...styles.input, minWidth: 220 }}
                             />
+
                             <select
                               value={row.category}
                               onChange={(e) =>
@@ -706,7 +718,17 @@ export default function BikeDetailPage() {
                                   ...prev,
                                   [p.id]: { ...row, weight_g: e.target.value },
                                 }))
-                              }
+                                      }
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    savePart(p.id);
+                                    setEditingPartId(null);
+                                  }
+                                  if (e.key === "Escape") {
+                                    setEditingPartId(null);
+                                  }
+                              }}
                               placeholder="peso (g)"
                               inputMode="numeric"
                               style={{ ...styles.input, width: 140 }}
@@ -722,7 +744,9 @@ export default function BikeDetailPage() {
                               Guardar
                             </button>
 
-                            <button style={styles.secondaryBtn} onClick={() => setEditingPartId(null)}>
+                            <button 
+                              style={styles.secondaryBtn} 
+                              onClick={() => setEditingPartId(null)}>
                               Cancelar
                             </button>
                           </div>
