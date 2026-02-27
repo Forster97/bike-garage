@@ -463,8 +463,8 @@ export default function BikeDetailPage() {
               Historial
             </a>
 
-            <button style={styles.headerGhostBtn} onClick={() => setAddOpen(true)}>
-              + Componente
+            <button style={styles.headerGhostBtn} onClick={() => router.push("/garage")}>
+              ← Volver al Garage
             </button>
           </div>
         </div>

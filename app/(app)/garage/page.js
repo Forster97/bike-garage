@@ -130,7 +130,6 @@ export default function GaragePage() {
             </Link>
             <div>
               <div style={styles.brandName}>Bike Garage</div>
-              <div style={styles.brandTag}>Tu garage digital</div>
             </div>
           </div>
 
@@ -170,8 +169,7 @@ export default function GaragePage() {
             <div>
               <h1 style={styles.h1}>Tu Garage</h1>
               <p style={styles.lead}>
-                Crea tus bicicletas y entra a cada una para registrar componentes
-                y pesos.
+                Crea tus bicicletas, entra a cada una para registrar sus componentes
               </p>
             </div>
 
@@ -180,7 +178,6 @@ export default function GaragePage() {
                 <div style={styles.quickValue}>{bikes.length}</div>
                 <div style={styles.quickLabel}>Bicis</div>
               </div>
-              <div style={styles.quickSub}>Todo ordenado, sin Excel</div>
             </div>
           </div>
 
