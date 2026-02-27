@@ -588,9 +588,21 @@ const styles = {
 
   bikeActions: {
     display: "flex",
-    gap: 10,
-    marginTop: 12,
-    flexWrap: "wrap",
+    justifyContent: "center", // ✅ centra en mobile
+  },
+  secondaryLink: {
+    display: "inline-flex",
+    justifyContent: "center",
+    textDecoration: "none",
+    fontWeight: 800,
+    padding: "12px 14px",
+    borderRadius: 14,
+    color: "rgba(255,255,255,0.90)",
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    width: "100%",           // ✅ botón full width en mobile
+    maxWidth: 220,           // ✅ y queda “centrado” visualmente
+    textAlign: "center",
   },
 
   primaryLink: {
