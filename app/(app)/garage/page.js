@@ -240,53 +240,42 @@ export default function GaragePage() {
           ) : (
             <div style={styles.bikeGrid}>
               {bikes.map((bike) => (
-                <Link
-                  key={bike.id}
-                  href={`/garage/${bike.id}`}
-                  style={{ textDecoration: "none", display: "block", width: "100%" }}
-                  aria-label={`Abrir ${bike.name}`}
-                >
-                  <div style={styles.bikeCard} role="button" tabIndex={0}>
-                    <div style={styles.bikeTop}>
+                <div key={bike.id} style={styles.bikeCard}>
+                  {/* HEADER */}
+                  <div style={styles.bikeHeader}>
+                    <Link href={`/garage/${bike.id}`} style={styles.bikeLinkArea}>
                       <div style={styles.bikeLeft}>
-                        <div style={styles.bikeAvatar} aria-hidden="true">
-                          {(bike.name?.trim()?.[0] || "B").toUpperCase()}
+                        <div style={styles.bikeAvatar}>
+                          {(bike.name || "B").slice(0, 1).toUpperCase()}
                         </div>
 
-                        <div style={styles.bikeInfo}>
+                        <div style={{ minWidth: 0 }}>
                           <div style={styles.bikeName}>{bike.name}</div>
-                          <div style={styles.bikeDate}>
+                          <div style={styles.bikeMeta}>
                             Creada: {new Date(bike.created_at).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
+                    </Link>
 
-                      <div style={styles.bikeRight}>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault(); // evita navegación del Link
-                            e.stopPropagation(); // evita bubbling
-                            deleteBike(bike.id);
-                          }}
-                          style={styles.trashBtn}
-                          aria-label={`Eliminar ${bike.name}`}
-                          title="Eliminar"
-                        >
-                          🗑️
-                        </button>
-
-                        <div style={styles.chevron} aria-hidden="true">
-                          →
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={styles.bikeHint}>
-                      Toca para ver detalles y gestionar componentes
-                    </div>
+                    <button
+                      onClick={() => deleteBike(bike.id)}
+                      style={styles.iconBtn}
+                      aria-label="Eliminar bicicleta"
+                      title="Eliminar"
+                    >
+                      🗑
+                    </button>
                   </div>
-                </Link>
+
+                  {/* DIVIDER */}
+                  <div style={styles.bikeDivider} />
+
+                  {/* FOOTER (solo info/ayuda) */}
+                  <Link href={`/garage/${bike.id}`} style={styles.bikeFooterLink}>
+                    Toca para ver detalles
+                  </Link>
+                </div>
               ))}
             </div>
           )}
@@ -333,6 +322,20 @@ const styles = {
     background: "#070A12",
   },
 
+  bikeHeader: {
+  display: "flex",
+    alignItems: "center",          // ✅ alinea con el título (no con todo el card)
+    justifyContent: "space-between",
+    gap: 12,
+    padding: 14,
+  },
+
+  bikeLinkArea: {
+    textDecoration: "none",
+    flex: 1,
+    minWidth: 0,
+  },
+
   bgGlow: {
     position: "fixed",
     inset: 0,
@@ -351,6 +354,14 @@ const styles = {
     borderBottom: "1px solid rgba(255,255,255,0.08)",
   },
 
+  bikeFooterLink: {
+    display: "block",
+    padding: "12px 14px",
+    textDecoration: "none",
+    fontSize: 13,
+    color: "rgba(255,255,255,0.60)",
+  },
+
   headerInner: {
     maxWidth: 980,
     margin: "0 auto",
@@ -359,6 +370,11 @@ const styles = {
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
+  },
+
+  bikeDivider: {
+    height: 1,
+    background: "rgba(255,255,255,0.08)",
   },
 
   brand: { display: "flex", alignItems: "center", gap: 10 },
@@ -370,15 +386,29 @@ const styles = {
     gap: 12,
   },
 
+  iconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(0,0,0,0.20)",
+    color: "rgba(255,255,255,0.85)",
+    display: "grid",
+    placeItems: "center",
+  },
+
+  bikeMeta: {
+    marginTop: 4,
+    fontSize: 13,
+    color: "rgba(255,255,255,0.65)",
+  },
+
   bikeCard: {
-    width: "100%",
-    boxSizing: "border-box",
-    borderRadius: 18,
-    padding: 14,
-    background: "rgba(255,255,255,0.06)",
+    borderRadius: 22,
     border: "1px solid rgba(255,255,255,0.10)",
-    boxShadow: "0 18px 40px rgba(0,0,0,0.35)",
-    transition: "transform 120ms ease, border-color 120ms ease, background 120ms ease",
+    background: "rgba(255,255,255,0.06)",
+    boxShadow: "0 25px 60px rgba(0,0,0,0.35)",
+    overflow: "hidden",
   },
 
   bikeTop: {
@@ -396,29 +426,27 @@ const styles = {
   },
 
   bikeAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 16,
     display: "grid",
     placeItems: "center",
     fontWeight: 900,
     color: "rgba(255,255,255,0.92)",
     background: "rgba(255,255,255,0.10)",
-    border: "1px solid rgba(255,255,255,0.10)",
     flexShrink: 0,
   },
 
   bikeInfo: { minWidth: 0 },
 
   bikeName: {
-    fontSize: 18,
     fontWeight: 900,
-    color: "rgba(255,255,255,0.92)",
+    fontSize: 20,
+    color: "rgba(255,255,255,0.95)",
     lineHeight: 1.1,
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
-    maxWidth: "100%",
   },
 
   bikeDate: {
