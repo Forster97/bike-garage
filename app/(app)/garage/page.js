@@ -87,7 +87,9 @@ export default function GaragePage() {
         return;
       }
 
-      const { error } = await supabase.from("bikes").insert([{ name, user_id: uid }]);
+      const { error } = await supabase
+        .from("bikes")
+        .insert([{ name, user_id: uid }]);
       if (error) throw error;
 
       setNewBikeName("");
@@ -101,7 +103,9 @@ export default function GaragePage() {
   };
 
   const deleteBike = async (bikeId) => {
-    const ok = confirm("¿Eliminar esta bicicleta? Esto también eliminará sus componentes.");
+    const ok = confirm(
+      "¿Eliminar esta bicicleta? Esto también eliminará sus componentes."
+    );
     if (!ok) return;
 
     const { error } = await supabase.from("bikes").delete().eq("id", bikeId);
@@ -115,7 +119,7 @@ export default function GaragePage() {
       {/* Background glow (igual a landing) */}
       <div style={styles.bgGlow} aria-hidden="true" />
 
-      {/* Header (igual a landing, pero con acciones app) */}
+      {/* Header */}
       <header style={styles.header}>
         <div style={styles.headerInner}>
           <div style={styles.brand}>
@@ -136,7 +140,11 @@ export default function GaragePage() {
             </Link>
 
             {user?.email ? (
-              <div className="userChipHideMobile" style={styles.userChip} title={user?.email}>
+              <div
+                className="userChipHideMobile"
+                style={styles.userChip}
+                title={user?.email}
+              >
                 <span style={styles.userDot} aria-hidden="true" />
                 <span style={styles.userText}>{userLabel}</span>
                 <style jsx>{`
@@ -162,7 +170,8 @@ export default function GaragePage() {
             <div>
               <h1 style={styles.h1}>Tu Garage</h1>
               <p style={styles.lead}>
-                Crea tus bicicletas y entra a cada una para registrar componentes y pesos.
+                Crea tus bicicletas y entra a cada una para registrar componentes
+                y pesos.
               </p>
             </div>
 
@@ -175,12 +184,14 @@ export default function GaragePage() {
             </div>
           </div>
 
-          {/* Add bike card (look landing) */}
+          {/* Add bike card */}
           <div style={styles.card}>
             <div style={styles.cardHeader}>
               <div>
                 <div style={styles.cardTitle}>Agregar bicicleta</div>
-                <div style={styles.cardText}>Ej: Orbea Terra / Diverge / Gambler</div>
+                <div style={styles.cardText}>
+                  Ej: Orbea Terra / Diverge / Gambler
+                </div>
               </div>
               <div style={styles.cardBadge}>Nuevo</div>
             </div>
@@ -195,13 +206,22 @@ export default function GaragePage() {
                   if (e.key === "Enter") addBike();
                 }}
               />
+
+              {/* Placeholder color (solo esta vista) */}
+              <style jsx>{`
+                input::placeholder {
+                  color: rgba(255, 255, 255, 0.45);
+                }
+              `}</style>
+
               <button
                 onClick={addBike}
                 disabled={!newBikeName.trim() || adding}
                 style={{
                   ...styles.primaryBtn,
                   opacity: !newBikeName.trim() || adding ? 0.55 : 1,
-                  cursor: !newBikeName.trim() || adding ? "not-allowed" : "pointer",
+                  cursor:
+                    !newBikeName.trim() || adding ? "not-allowed" : "pointer",
                 }}
               >
                 {adding ? "Agregando..." : "Agregar"}
@@ -211,7 +231,8 @@ export default function GaragePage() {
             <div style={styles.tipRow}>
               <div style={styles.tipDot} aria-hidden="true" />
               <div style={styles.tipText}>
-                Tip: después podrás agregar tipo, año, talla y notas dentro de la bici.
+                Tip: después podrás agregar tipo, año, talla y notas dentro de la
+                bici.
               </div>
             </div>
           </div>
@@ -231,11 +252,17 @@ export default function GaragePage() {
             <div style={styles.empty}>
               <div style={styles.emptyIcon}>✨</div>
               <div style={styles.emptyTitle}>No tienes bicicletas aún</div>
-              <div style={styles.emptyText}>Agrega tu primera bici arriba para empezar.</div>
+              <div style={styles.emptyText}>
+                Agrega tu primera bici arriba para empezar.
+              </div>
 
               <div style={{ height: 10 }} />
 
-              <a href="#" onClick={(e) => e.preventDefault()} style={styles.emptyMini}>
+              <a
+                href="#"
+                onClick={(e) => e.preventDefault()}
+                style={styles.emptyMini}
+              >
                 Próximamente: mantenimiento + recordatorios
               </a>
             </div>
@@ -243,7 +270,6 @@ export default function GaragePage() {
             <div style={styles.bikeGrid}>
               {bikes.map((bike) => (
                 <div key={bike.id} style={styles.bikeCard}>
-                  {/* HEADER */}
                   <div style={styles.bikeHeader}>
                     <Link href={`/garage/${bike.id}`} style={styles.bikeLinkArea}>
                       <div style={styles.bikeLeft}>
@@ -254,7 +280,8 @@ export default function GaragePage() {
                         <div style={{ minWidth: 0 }}>
                           <div style={styles.bikeName}>{bike.name}</div>
                           <div style={styles.bikeMeta}>
-                            Creada: {new Date(bike.created_at).toLocaleDateString()}
+                            Creada:{" "}
+                            {new Date(bike.created_at).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
@@ -270,11 +297,12 @@ export default function GaragePage() {
                     </button>
                   </div>
 
-                  {/* DIVIDER */}
                   <div style={styles.bikeDivider} />
 
-                  {/* FOOTER (solo info/ayuda) */}
-                  <Link href={`/garage/${bike.id}`} style={styles.bikeFooterLink}>
+                  <Link
+                    href={`/garage/${bike.id}`}
+                    style={styles.bikeFooterLink}
+                  >
                     Toca para ver detalles
                   </Link>
                 </div>
@@ -283,7 +311,7 @@ export default function GaragePage() {
           )}
         </section>
 
-        {/* Footer mini (coherente con landing) */}
+        {/* Footer */}
         <footer style={styles.footer}>
           <div style={styles.footerInner}>
             <div style={styles.footerBrand}>
@@ -312,7 +340,7 @@ export default function GaragePage() {
 }
 
 /* =========================
-   Styles (match landing)
+   Styles
 ========================= */
 
 const styles = {
@@ -320,7 +348,7 @@ const styles = {
     fontFamily:
       'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"',
     minHeight: "100vh",
-    color: "#0b1220",
+    color: "rgba(255,255,255,0.92)",
     background: "#070A12",
   },
 
@@ -363,7 +391,8 @@ const styles = {
     fontWeight: 800,
     fontSize: 13,
     color: "white",
-    background: "linear-gradient(135deg, rgba(99,102,241,1), rgba(34,197,94,1))",
+    background:
+      "linear-gradient(135deg, rgba(99,102,241,1), rgba(34,197,94,1))",
     boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
   },
 
@@ -471,7 +500,7 @@ const styles = {
     borderRadius: 18,
     background: "rgba(255,255,255,0.06)",
     border: "1px solid rgba(255,255,255,0.10)",
-    transition: "all 0,2s ease",
+    transition: "all 0.2s ease",
     boxShadow: "0 18px 55px rgba(0,0,0,0.22)",
   },
 
@@ -514,6 +543,7 @@ const styles = {
     color: "rgba(255,255,255,0.92)",
     outline: "none",
     fontSize: 14,
+    caretColor: "rgba(255,255,255,0.92)",
   },
 
   primaryBtn: {
@@ -521,7 +551,7 @@ const styles = {
     fontWeight: 900,
     padding: "12px 14px",
     borderRadius: 14,
-    color: "#0b1220",
+    color: "#0b1220", // ✅ texto oscuro (botón claro)
     background:
       "linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.82))",
     boxShadow: "0 14px 30px rgba(0,0,0,0.35)",
@@ -732,7 +762,8 @@ const styles = {
     fontWeight: 900,
     fontSize: 12,
     color: "white",
-    background: "linear-gradient(135deg, rgba(99,102,241,1), rgba(34,197,94,1))",
+    background:
+      "linear-gradient(135deg, rgba(99,102,241,1), rgba(34,197,94,1))",
   },
 
   footerName: { fontWeight: 900, color: "rgba(255,255,255,0.92)" },
