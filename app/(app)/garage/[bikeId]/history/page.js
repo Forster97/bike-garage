@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "../../../../../lib/supabaseClient";
@@ -13,190 +14,143 @@ export default function BikeHistoryPage() {
   const [bike, setBike] = useState(null);
 
   useEffect(() => {
-    if (!bikeId) return;
-
     let cancelled = false;
 
     const load = async () => {
       setLoading(true);
-      try {
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData?.user) {
-          router.replace("/login");
-          return;
-        }
 
-        const [bikeRes, logsRes] = await Promise.all([
-          supabase.from("bikes").select("*").eq("id", bikeId).single(),
-          supabase
-            .from("part_logs")
-            .select("*")
-            .eq("bike_id", bikeId)
-            .order("created_at", { ascending: false }),
-        ]);
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) return router.replace("/login");
 
-        if (cancelled) return;
+      const { data: bikeData } = await supabase
+        .from("bikes")
+        .select("*")
+        .eq("id", bikeId)
+        .single();
 
-        setBike(bikeRes.data ?? null);
-        setLogs(logsRes.data ?? []);
-      } catch (err) {
-        console.error("History load crash:", err);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+      const { data: logsData } = await supabase
+        .from("part_logs")
+        .select("*")
+        .eq("bike_id", bikeId)
+        .order("created_at", { ascending: false });
+
+      if (cancelled) return;
+
+      setBike(bikeData || null);
+      setLogs(logsData || []);
+      setLoading(false);
     };
 
-    load();
+    if (bikeId) load();
+
     return () => {
       cancelled = true;
     };
   }, [bikeId, router]);
 
-  const stats = useMemo(() => {
-    const created = logs.filter((l) => l.action === "created").length;
-    const updated = logs.filter((l) => l.action === "updated").length;
-    const deleted = logs.filter((l) => l.action === "deleted").length;
-    return { created, updated, deleted, total: logs.length };
-  }, [logs]);
-
-  if (loading) return <div className="px-6 py-8 text-muted">Cargando…</div>;
+  const grouped = useMemo(() => groupLogsByDay(logs), [logs]);
 
   return (
-    <div className="space-y-5">
-      {/* Top bar */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => router.push(`/garage/${bikeId}`)}
-          className="inline-flex items-center justify-center rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-muted hover:bg-surface/80 hover:text-text transition"
-        >
-          ← Volver
-        </button>
+    <div style={styles.page}>
+      <div style={styles.bgGlow} aria-hidden="true" />
 
-        <div className="flex items-center gap-2">
-          <a
-            href="/settings/categories"
-            className="rounded-xl border border-border bg-surface/40 px-3 py-2 text-sm text-muted hover:bg-surface/70 hover:text-text transition"
-          >
-            Categorías
-          </a>
+      {/* Header (igual a landing) */}
+      <header style={styles.header}>
+        <div style={styles.headerInner}>
+          <div style={styles.brand}>
+            <div style={styles.logo} aria-hidden="true">
+              BG
+            </div>
+            <div>
+              <div style={styles.brandName}>Bike Garage</div>
+              <div style={styles.brandTag}>Tu garage digital</div>
+            </div>
+          </div>
+
+          <div style={styles.headerActions}>
+            <Link href={`/garage/${bikeId}`} style={styles.headerLink}>
+              Volver
+            </Link>
+            <Link href="/settings/categories" style={styles.headerCta}>
+              Categorías
+            </Link>
+          </div>
         </div>
-      </div>
+      </header>
 
-      {/* HERO */}
-      <div className="relative overflow-hidden rounded-xl2 border border-border bg-card/75 shadow-soft backdrop-blur-sm">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary2/10 via-transparent to-primary/10" />
-        <div className="relative p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <div className="text-xs text-muted">Historial</div>
-              <h1 className="mt-1 truncate text-2xl font-semibold tracking-tight">
-                {bike?.name ? bike.name : "Bicicleta"}
-              </h1>
-              <p className="mt-2 text-sm text-muted">
-                Registro de cambios de componentes (creado / actualizado / eliminado).
-              </p>
+      <main style={styles.main}>
+        <section style={styles.section}>
+          {/* Hero card */}
+          <div style={styles.heroCard}>
+            <div style={styles.heroTop}>
+              <div>
+                <div style={styles.kicker}>Historial</div>
+                <div style={styles.h1Like}>Cambios de componentes</div>
+                <div style={styles.leadSmall}>
+                  {bike?.name ? `Bici: ${bike.name}` : "—"}
+                </div>
+              </div>
+
+              <div style={styles.pillMuted}>
+                {logs.length} evento{logs.length === 1 ? "" : "s"}
+              </div>
             </div>
 
-            {/* Quick stats */}
-            <div className="rounded-xl2 border border-border bg-surface/40 p-4 text-left sm:text-right">
-              <div className="text-xs text-muted">Eventos</div>
-              <div className="mt-1 text-3xl sm:text-4xl font-semibold">{stats.total}</div>
-              <div className="mt-2 flex flex-wrap gap-2 sm:justify-end">
-                <Pill tone="good">+ {stats.created}</Pill>
-                <Pill tone="mid">~ {stats.updated}</Pill>
-                <Pill tone="bad">- {stats.deleted}</Pill>
+            <div style={styles.helperRow}>
+              <div style={styles.helperDot} />
+              <div style={styles.helperText}>
+                Aquí verás cuando creas, editas o eliminas componentes.
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Empty / List */}
-      {logs.length === 0 ? (
-        <div className="rounded-xl2 border border-border bg-card/75 p-6 shadow-soft backdrop-blur-sm">
-          <div className="text-lg font-semibold">Aún no hay historial</div>
-          <p className="mt-2 text-sm text-muted">
-            Cuando crees/edites/eliminés componentes, aparecerán los registros aquí.
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-3">
-          {logs.map((l) => {
-            const d = deltaNumber(l.old_weight_g, l.new_weight_g);
-            const tone = d == null ? "mid" : d > 0 ? "good" : d < 0 ? "bad" : "mid";
+          {loading ? (
+            <div style={styles.card}>
+              <div style={styles.cardTitle}>Cargando…</div>
+              <div style={styles.cardText}>Preparando historial.</div>
+            </div>
+          ) : logs.length === 0 ? (
+            <div style={styles.card}>
+              <div style={styles.cardTitle}>Aún no hay historial</div>
+              <div style={styles.cardText}>
+                Cuando crees/edites/eliminés componentes, aparecerán los registros aquí.
+              </div>
+            </div>
+          ) : (
+            <div style={styles.list}>
+              {Object.entries(grouped).map(([day, items]) => (
+                <div key={day} style={styles.dayBlock}>
+                  <div style={styles.dayTitle}>{day}</div>
 
-            return (
-              <div
-                key={l.id}
-                className="rounded-xl2 border border-border bg-card/75 p-4 shadow-soft backdrop-blur-sm transition hover:border-primary/35"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold">{labelAction(l.action)}</span>
-                      <Badge action={l.action} />
-                    </div>
+                  <div style={styles.dayList}>
+                    {items.map((l) => (
+                      <div key={l.id} style={styles.row}>
+                        <div style={styles.rowLeft}>
+                          <div style={styles.rowTitle}>{labelAction(l.action)}</div>
+                          <div style={styles.rowMeta}>
+                            {new Date(l.created_at).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </div>
+                        </div>
 
-                    <div className="mt-1 text-xs text-muted">
-                      {new Date(l.created_at).toLocaleString()}
-                    </div>
-
-                    <div className="mt-3 text-sm text-muted">
-                      <span className="text-text/90 font-medium">Peso:</span>{" "}
-                      {formatWeights(l.old_weight_g, l.new_weight_g)}
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <div className={deltaClass(tone)}>{formatDelta(l.old_weight_g, l.new_weight_g)}</div>
-                    <div className="mt-1 text-xs text-muted">Δ</div>
+                        <div style={styles.rowRight}>
+                          <div style={styles.delta}>{formatDelta(l.old_weight_g, l.new_weight_g)}</div>
+                          <div style={styles.weights}>{formatWeights(l.old_weight_g, l.new_weight_g)}</div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 }
-
-/* =========================
-   UI bits
-========================= */
-
-function Pill({ children, tone = "mid" }) {
-  const cls =
-    tone === "good"
-      ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
-      : tone === "bad"
-      ? "bg-rose-500/10 text-rose-300 border-rose-500/20"
-      : "bg-white/5 text-muted border-white/10";
-
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-semibold ${cls}`}>
-      {children}
-    </span>
-  );
-}
-
-function Badge({ action }) {
-  const base = "rounded-full border px-2 py-1 text-[11px] font-semibold";
-  if (action === "created") return <span className={`${base} bg-emerald-500/10 text-emerald-300 border-emerald-500/20`}>CREADO</span>;
-  if (action === "updated") return <span className={`${base} bg-indigo-500/10 text-indigo-300 border-indigo-500/20`}>EDITADO</span>;
-  if (action === "deleted") return <span className={`${base} bg-rose-500/10 text-rose-300 border-rose-500/20`}>ELIMINADO</span>;
-  return <span className={`${base} bg-white/5 text-muted border-white/10`}>EVENTO</span>;
-}
-
-function deltaClass(tone) {
-  if (tone === "good") return "text-emerald-300 font-semibold";
-  if (tone === "bad") return "text-rose-300 font-semibold";
-  return "text-text font-semibold";
-}
-
-/* =========================
-   Helpers
-========================= */
 
 function labelAction(a) {
   if (a === "created") return "Componente creado";
@@ -205,19 +159,15 @@ function labelAction(a) {
   return a || "Evento";
 }
 
-function deltaNumber(oldW, newW) {
+function formatDelta(oldW, newW) {
   const o = oldW == null ? null : Number(oldW);
   const n = newW == null ? null : Number(newW);
 
-  if (o == null && n == null) return null;
-  if (o == null && n != null) return n;
-  if (o != null && n == null) return -o;
-  return n - o;
-}
+  if (o == null && n == null) return "—";
+  if (o == null && n != null) return `+${n} g`;
+  if (o != null && n == null) return `-${o} g`;
 
-function formatDelta(oldW, newW) {
-  const d = deltaNumber(oldW, newW);
-  if (d == null) return "—";
+  const d = n - o;
   const sign = d > 0 ? "+" : "";
   return `${sign}${d} g`;
 }
@@ -227,3 +177,195 @@ function formatWeights(oldW, newW) {
   const n = newW == null ? "—" : `${newW} g`;
   return `${o} → ${n}`;
 }
+
+function groupLogsByDay(logs) {
+  const map = new Map();
+  for (const l of logs) {
+    const d = new Date(l.created_at);
+    const key = d.toLocaleDateString();
+    map.set(key, [...(map.get(key) || []), l]);
+  }
+  return Object.fromEntries(map.entries());
+}
+
+/* =========================
+   Styles (same as landing)
+========================= */
+
+const styles = {
+  page: {
+    fontFamily:
+      'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"',
+    minHeight: "100vh",
+    background: "#070A12",
+  },
+  bgGlow: {
+    position: "fixed",
+    inset: 0,
+    background:
+      "radial-gradient(800px 400px at 20% 0%, rgba(99,102,241,0.20), transparent 60%), radial-gradient(700px 350px at 100% 20%, rgba(34,197,94,0.14), transparent 55%), radial-gradient(600px 300px at 50% 100%, rgba(59,130,246,0.10), transparent 55%)",
+    pointerEvents: "none",
+    zIndex: 0,
+  },
+  header: {
+    position: "sticky",
+    top: 0,
+    zIndex: 20,
+    backdropFilter: "blur(10px)",
+    background: "rgba(7,10,18,0.70)",
+    borderBottom: "1px solid rgba(255,255,255,0.08)",
+  },
+  headerInner: {
+    maxWidth: 980,
+    margin: "0 auto",
+    padding: "12px 16px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  brand: { display: "flex", alignItems: "center", gap: 10 },
+  logo: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    display: "grid",
+    placeItems: "center",
+    fontWeight: 800,
+    fontSize: 13,
+    color: "white",
+    background:
+      "linear-gradient(135deg, rgba(99,102,241,1), rgba(34,197,94,1))",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+  },
+  brandName: { fontWeight: 700, color: "rgba(255,255,255,0.95)" },
+  brandTag: { fontSize: 12, color: "rgba(255,255,255,0.60)" },
+  headerActions: { display: "flex", alignItems: "center", gap: 10 },
+  headerLink: {
+    color: "rgba(255,255,255,0.78)",
+    textDecoration: "none",
+    fontSize: 14,
+    padding: "10px 10px",
+    borderRadius: 12,
+  },
+  headerCta: {
+    color: "#0b1220",
+    textDecoration: "none",
+    fontSize: 14,
+    fontWeight: 700,
+    padding: "10px 12px",
+    borderRadius: 12,
+    background: "rgba(255,255,255,0.92)",
+  },
+  main: { position: "relative", zIndex: 1 },
+  section: {
+    maxWidth: 980,
+    margin: "0 auto",
+    padding: "18px 16px 22px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+  },
+
+  heroCard: {
+    borderRadius: 22,
+    overflow: "hidden",
+    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.06)",
+    boxShadow: "0 25px 60px rgba(0,0,0,0.45)",
+    padding: 14,
+  },
+  heroTop: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+  kicker: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.65)",
+    marginBottom: 6,
+  },
+  h1Like: {
+    fontSize: 22,
+    fontWeight: 900,
+    color: "rgba(255,255,255,0.95)",
+    letterSpacing: -0.2,
+    lineHeight: 1.1,
+  },
+  leadSmall: {
+    marginTop: 6,
+    fontSize: 13,
+    color: "rgba(255,255,255,0.70)",
+  },
+  pillMuted: {
+    fontSize: 12,
+    fontWeight: 800,
+    color: "rgba(255,255,255,0.75)",
+    padding: "7px 10px",
+    borderRadius: 999,
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    whiteSpace: "nowrap",
+  },
+
+  helperRow: {
+    marginTop: 10,
+    display: "flex",
+    gap: 10,
+    alignItems: "flex-start",
+    paddingTop: 10,
+    borderTop: "1px solid rgba(255,255,255,0.10)",
+  },
+  helperDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    background: "rgba(99,102,241,0.70)",
+    marginTop: 3,
+    flexShrink: 0,
+  },
+  helperText: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.65)",
+    lineHeight: 1.45,
+  },
+
+  card: {
+    padding: 14,
+    borderRadius: 18,
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.10)",
+  },
+  cardTitle: { fontWeight: 900, color: "rgba(255,255,255,0.92)", marginBottom: 6 },
+  cardText: { color: "rgba(255,255,255,0.68)", lineHeight: 1.45 },
+
+  list: { display: "flex", flexDirection: "column", gap: 12 },
+  dayBlock: { display: "flex", flexDirection: "column", gap: 10 },
+  dayTitle: {
+    fontSize: 12,
+    fontWeight: 900,
+    color: "rgba(255,255,255,0.72)",
+    letterSpacing: 0.2,
+    textTransform: "uppercase",
+  },
+  dayList: { display: "flex", flexDirection: "column", gap: 10 },
+
+  row: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    padding: "12px 12px",
+    borderRadius: 16,
+    background: "rgba(0,0,0,0.22)",
+    border: "1px solid rgba(255,255,255,0.08)",
+  },
+  rowLeft: { display: "flex", flexDirection: "column", gap: 2, minWidth: 0 },
+  rowTitle: { fontWeight: 900, color: "rgba(255,255,255,0.92)", lineHeight: 1.1 },
+  rowMeta: { fontSize: 12, color: "rgba(255,255,255,0.60)" },
+  rowRight: { textAlign: "right", display: "flex", flexDirection: "column", gap: 2 },
+  delta: { fontWeight: 900, color: "rgba(255,255,255,0.92)" },
+  weights: { fontSize: 12, color: "rgba(255,255,255,0.60)" },
+};

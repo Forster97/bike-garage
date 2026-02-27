@@ -1,12 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
-
-/* =========================
-   Defaults
-========================= */
 
 const DEFAULT_CATEGORIES = [
   "Frame",
@@ -21,24 +18,7 @@ const DEFAULT_CATEGORIES = [
   "Other",
 ];
 
-/* =========================
-   Helpers
-========================= */
-
 const normalizeName = (s) => (s ?? "").trim();
-
-function cn(...classes) {
-  return classes.filter(Boolean).join(" ");
-}
-
-const BTN_PRIMARY =
-  "inline-flex items-center justify-center rounded-xl border border-primary/60 ring-1 ring-border/60 bg-primary px-4 py-2 text-sm font-semibold text-bg shadow-soft hover:brightness-110 hover:ring-border/80 transition disabled:opacity-60 disabled:cursor-not-allowed";
-
-const BTN_SECONDARY =
-  "inline-flex items-center justify-center rounded-xl border border-border bg-surface/60 px-4 py-2 text-sm text-muted hover:bg-surface/80 hover:text-text transition disabled:opacity-60 disabled:cursor-not-allowed";
-
-const INPUT =
-  "w-full rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-text placeholder:text-muted outline-none focus:ring-2 focus:ring-primary/40";
 
 export default function CategoriesPage() {
   const router = useRouter();
@@ -46,8 +26,8 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
 
-  const [custom, setCustom] = useState([]); // { id, name }
-  const [hidden, setHidden] = useState(() => new Set()); // Set<string>
+  const [custom, setCustom] = useState([]);
+  const [hidden, setHidden] = useState(() => new Set());
 
   const [newName, setNewName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -90,14 +70,6 @@ export default function CategoriesPage() {
 
     return unique;
   }, [custom, hidden]);
-
-  const stats = useMemo(() => {
-    return {
-      visibles: visibleList.length,
-      ocultas: hiddenList.length,
-      personalizadas: custom.length,
-    };
-  }, [visibleList.length, hiddenList.length, custom.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -198,10 +170,7 @@ export default function CategoriesPage() {
     const { data: authData, error: authErr } = await supabase.auth.getUser();
     const user = authData?.user;
 
-    if (authErr || !user) {
-      router.replace("/login");
-      return;
-    }
+    if (authErr || !user) return router.replace("/login");
 
     const n = normalizeName(name);
     if (!n) return;
@@ -229,10 +198,7 @@ export default function CategoriesPage() {
     const { data: authData, error: authErr } = await supabase.auth.getUser();
     const user = authData?.user;
 
-    if (authErr || !user) {
-      router.replace("/login");
-      return;
-    }
+    if (authErr || !user) return router.replace("/login");
 
     const n = normalizeName(name);
     if (!n) return;
@@ -261,10 +227,7 @@ export default function CategoriesPage() {
     const { data: authData, error: authErr } = await supabase.auth.getUser();
     const user = authData?.user;
 
-    if (authErr || !user) {
-      router.replace("/login");
-      return;
-    }
+    if (authErr || !user) return router.replace("/login");
 
     setCustom((prev) => prev.filter((r) => r.id !== row.id));
 
@@ -280,230 +243,464 @@ export default function CategoriesPage() {
     }
   };
 
-  if (loading) return <div className="px-6 py-8 text-muted">Cargando categorías…</div>;
-
   return (
-    <div className="space-y-5">
-      {/* Top bar */}
-      <div className="flex items-center justify-between">
-        <button onClick={() => router.push("/garage")} className={cn(BTN_SECONDARY, "px-3")}>
-          ← Garage
-        </button>
+    <div style={styles.page}>
+      <div style={styles.bgGlow} aria-hidden="true" />
 
-        <div className="text-sm text-muted truncate max-w-[55%]">{email}</div>
-      </div>
+      {/* Header (igual a landing) */}
+      <header style={styles.header}>
+        <div style={styles.headerInner}>
+          <div style={styles.brand}>
+            <div style={styles.logo} aria-hidden="true">
+              BG
+            </div>
+            <div>
+              <div style={styles.brandName}>Bike Garage</div>
+              <div style={styles.brandTag}>Tu garage digital</div>
+            </div>
+          </div>
 
-      {/* HERO */}
-      <div className="relative overflow-hidden rounded-xl2 border border-border bg-card/75 shadow-soft backdrop-blur-sm">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary2/10 via-transparent to-primary/10" />
-        <div className="relative p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <div className="text-xs text-muted">Ajustes</div>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight">Categorías</h1>
-              <p className="mt-2 text-sm text-muted">
-                Define qué aparece en tus componentes (y qué quieres ocultar).
-              </p>
+          <div style={styles.headerActions}>
+            <Link href="/garage" style={styles.headerLink}>
+              Garage
+            </Link>
+            <Link href="/garage" style={styles.headerCta}>
+              Volver
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <main style={styles.main}>
+        <section style={styles.section}>
+          {/* Hero card */}
+          <div style={styles.heroCard}>
+            <div style={styles.heroTop}>
+              <div>
+                <div style={styles.kicker}>Ajustes</div>
+                <div style={styles.h1Like}>Categorías</div>
+                <div style={styles.leadSmall}>
+                  Administra qué categorías aparecen en tus componentes.
+                </div>
+              </div>
+
+              <div style={styles.pillMuted}>{email || "—"}</div>
             </div>
 
-            <div className="rounded-xl2 border border-border bg-surface/40 p-4">
-              <div className="text-xs text-muted">Resumen</div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <Pill tone="good">{stats.visibles} visibles</Pill>
-                <Pill tone="mid">{stats.ocultas} ocultas</Pill>
-                <Pill tone="indigo">{stats.personalizadas} personalizadas</Pill>
+            <div style={styles.trustRow}>
+              <div style={styles.trustItem}>
+                <div style={styles.trustValue}>{visibleList.length}</div>
+                <div style={styles.trustLabel}>Visibles</div>
+              </div>
+              <div style={styles.trustDivider} />
+              <div style={styles.trustItem}>
+                <div style={styles.trustValue}>{hiddenList.length}</div>
+                <div style={styles.trustLabel}>Ocultas</div>
+              </div>
+              <div style={styles.trustDivider} />
+              <div style={styles.trustItem}>
+                <div style={styles.trustValue}>{custom.length}</div>
+                <div style={styles.trustLabel}>Personalizadas</div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {errorMsg ? (
-        <div className="rounded-xl2 border border-border bg-card/60 p-3 text-sm text-rose-300">
-          {errorMsg}
-        </div>
-      ) : null}
+          {errorMsg ? (
+            <div style={{ ...styles.card, borderColor: "rgba(244,63,94,0.25)", background: "rgba(244,63,94,0.08)" }}>
+              <div style={styles.cardTitle}>Error</div>
+              <div style={styles.cardText}>{errorMsg}</div>
+            </div>
+          ) : null}
 
-      {/* Add custom */}
-      <div className="rounded-xl2 border border-border bg-card/75 p-5 shadow-soft backdrop-blur-sm">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold">Agregar categoría</div>
-            <div className="mt-1 text-xs text-muted">No se agregan duplicadas (incluye defaults).</div>
-          </div>
-          <span className="rounded-full border border-border bg-surface/40 px-2 py-1 text-[11px] text-muted">
-            NUEVO
-          </span>
-        </div>
+          {/* Add custom */}
+          <div style={styles.card}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+              <div>
+                <div style={styles.cardTitle}>Agregar categoría</div>
+                <div style={styles.cardText}>No se agregan duplicadas (incluye defaults).</div>
+              </div>
+              <div style={styles.previewPill}>Nuevo</div>
+            </div>
 
-        <form onSubmit={addCustom} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <input
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="Ej: Suspension"
-            className={INPUT}
-          />
-          <button type="submit" disabled={saving || !newName.trim()} className={BTN_PRIMARY}>
-            {saving ? "Guardando…" : "Agregar"}
-          </button>
-        </form>
-      </div>
-
-      {/* Visibles */}
-      <Section
-        title="Visibles"
-        subtitle="Aparecen en los selects y en tus componentes."
-        emptyText="No tienes categorías visibles."
-      >
-        {visibleList.length ? (
-          <div className="flex flex-wrap gap-2">
-            {visibleList.map((name) => (
-              <Chip
-                key={`vis-${name}`}
-                label={name}
-                actionLabel="Ocultar"
-                onAction={() => hideCategory(name)}
+            <form onSubmit={addCustom} style={styles.formRow}>
+              <input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Ej: Suspension"
+                style={styles.input}
               />
-            ))}
+              <button
+                type="submit"
+                disabled={saving || !newName.trim()}
+                style={{
+                  ...styles.primaryBtn,
+                  opacity: saving || !newName.trim() ? 0.6 : 1,
+                }}
+              >
+                {saving ? "Guardando…" : "Agregar"}
+              </button>
+            </form>
           </div>
-        ) : null}
-      </Section>
 
-      {/* Ocultas */}
-      <Section
-        title="Ocultas"
-        subtitle="No aparecerán en tus selects."
-        emptyText="No tienes categorías ocultas."
-      >
-        {hiddenList.length ? (
-          <div className="flex flex-wrap gap-2">
-            {hiddenList.map((name) => (
-              <Chip
-                key={`hid-${name}`}
-                label={name}
-                actionLabel="Mostrar"
-                onAction={() => unhideCategory(name)}
-                tone="muted"
-              />
-            ))}
-          </div>
-        ) : null}
-      </Section>
+          {/* Visibles */}
+          <div style={styles.card}>
+            <div style={styles.cardTitle}>Visibles</div>
+            <div style={styles.cardText}>Aparecen en tus selects.</div>
 
-      {/* Personalizadas */}
-      <div className="rounded-xl2 border border-border bg-card/75 p-5 shadow-soft backdrop-blur-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm font-semibold">Personalizadas</div>
-            <div className="mt-1 text-xs text-muted">Puedes ocultarlas o eliminarlas.</div>
-          </div>
-        </div>
-
-        {custom.length === 0 ? (
-          <div className="mt-3 text-sm text-muted">Aún no agregas categorías personalizadas.</div>
-        ) : (
-          <div className="mt-4 space-y-2">
-            {custom.map((row) => {
-              const isHidden = hidden.has(row.name);
-              return (
-                <div
-                  key={row.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface/40 px-3 py-3"
-                >
-                  <div className="min-w-0">
-                    <div className="truncate font-semibold">{row.name}</div>
-                    <div className="mt-1 text-xs text-muted">
-                      {isHidden ? "Oculta" : "Visible"}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {!isHidden ? (
-                      <button onClick={() => hideCategory(row.name)} className={cn(BTN_SECONDARY, "px-3 py-2")}>
-                        Ocultar
-                      </button>
-                    ) : (
-                      <button onClick={() => unhideCategory(row.name)} className={cn(BTN_SECONDARY, "px-3 py-2")}>
-                        Mostrar
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => deleteCustom(row)}
-                      className="inline-flex items-center justify-center rounded-xl border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-sm font-semibold text-rose-300 hover:bg-rose-500/15 transition"
-                      title="Eliminar categoría personalizada"
-                    >
-                      Eliminar
+            {loading ? (
+              <div style={{ marginTop: 10, color: "rgba(255,255,255,0.65)" }}>Cargando…</div>
+            ) : visibleList.length === 0 ? (
+              <div style={{ marginTop: 10, color: "rgba(255,255,255,0.65)" }}>
+                No tienes categorías visibles.
+              </div>
+            ) : (
+              <div style={styles.chipsWrap}>
+                {visibleList.map((name) => (
+                  <div key={`vis-${name}`} style={styles.chip}>
+                    <span style={styles.chipText}>{name}</span>
+                    <button onClick={() => hideCategory(name)} style={styles.chipBtn}>
+                      Ocultar
                     </button>
                   </div>
-                </div>
-              );
-            })}
+                ))}
+              </div>
+            )}
           </div>
-        )}
 
-        <div className="mt-3 text-xs text-muted">
-          Nota: eliminar solo borra la categoría personalizada (no toca defaults).
-        </div>
-      </div>
+          {/* Ocultas */}
+          <div style={styles.card}>
+            <div style={styles.cardTitle}>Ocultas</div>
+            <div style={styles.cardText}>No aparecerán en tus selects.</div>
+
+            {hiddenList.length === 0 ? (
+              <div style={{ marginTop: 10, color: "rgba(255,255,255,0.65)" }}>
+                No tienes categorías ocultas.
+              </div>
+            ) : (
+              <div style={styles.chipsWrap}>
+                {hiddenList.map((name) => (
+                  <div key={`hid-${name}`} style={{ ...styles.chip, background: "rgba(255,255,255,0.06)" }}>
+                    <span style={styles.chipText}>{name}</span>
+                    <button onClick={() => unhideCategory(name)} style={styles.chipBtn}>
+                      Mostrar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Personalizadas */}
+          <div style={styles.card}>
+            <div style={styles.cardTitle}>Personalizadas</div>
+            <div style={styles.cardText}>Puedes ocultarlas o eliminarlas.</div>
+
+            {custom.length === 0 ? (
+              <div style={{ marginTop: 10, color: "rgba(255,255,255,0.65)" }}>
+                Aún no agregas categorías personalizadas.
+              </div>
+            ) : (
+              <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                {custom.map((row) => {
+                  const isHidden = hidden.has(row.name);
+                  return (
+                    <div key={row.id} style={styles.row}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={styles.rowTitle}>{row.name}</div>
+                        <div style={styles.rowMeta}>{isHidden ? "Oculta" : "Visible"}</div>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <button
+                          onClick={() => (isHidden ? unhideCategory(row.name) : hideCategory(row.name))}
+                          style={styles.secondaryBtn}
+                        >
+                          {isHidden ? "Mostrar" : "Ocultar"}
+                        </button>
+                        <button onClick={() => deleteCustom(row)} style={styles.dangerBtn}>
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div style={{ marginTop: 10, fontSize: 12, color: "rgba(255,255,255,0.60)" }}>
+              Nota: eliminar solo borra la categoría personalizada (no toca defaults).
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
 
 /* =========================
-   Small UI Components
+   Styles (same as landing)
 ========================= */
 
-function Pill({ children, tone = "mid" }) {
-  const cls =
-    tone === "good"
-      ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
-      : tone === "indigo"
-      ? "bg-indigo-500/10 text-indigo-300 border-indigo-500/20"
-      : "bg-white/5 text-muted border-white/10";
+const styles = {
+  page: {
+    fontFamily:
+      'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"',
+    minHeight: "100vh",
+    background: "#070A12",
+  },
 
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-semibold ${cls}`}>
-      {children}
-    </span>
-  );
-}
+  bgGlow: {
+    position: "fixed",
+    inset: 0,
+    background:
+      "radial-gradient(800px 400px at 20% 0%, rgba(99,102,241,0.20), transparent 60%), radial-gradient(700px 350px at 100% 20%, rgba(34,197,94,0.14), transparent 55%), radial-gradient(600px 300px at 50% 100%, rgba(59,130,246,0.10), transparent 55%)",
+    pointerEvents: "none",
+    zIndex: 0,
+  },
 
-function Section({ title, subtitle, emptyText, children }) {
-  const hasContent = !!children;
-  return (
-    <div className="rounded-xl2 border border-border bg-card/75 p-5 shadow-soft backdrop-blur-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold">{title}</div>
-          <div className="mt-1 text-xs text-muted">{subtitle}</div>
-        </div>
-      </div>
+  header: {
+    position: "sticky",
+    top: 0,
+    zIndex: 20,
+    backdropFilter: "blur(10px)",
+    background: "rgba(7,10,18,0.70)",
+    borderBottom: "1px solid rgba(255,255,255,0.08)",
+  },
 
-      <div className="mt-4">
-        {hasContent ? children : <div className="text-sm text-muted">{emptyText}</div>}
-      </div>
-    </div>
-  );
-}
+  headerInner: {
+    maxWidth: 980,
+    margin: "0 auto",
+    padding: "12px 16px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
 
-function Chip({ label, actionLabel, onAction, tone = "default" }) {
-  const base = "flex items-center gap-2 rounded-xl border px-3 py-2 text-sm";
-  const skin =
-    tone === "muted"
-      ? "border-border bg-surface/30"
-      : "border-border bg-surface/40";
+  brand: { display: "flex", alignItems: "center", gap: 10 },
 
-  return (
-    <div className={cn(base, skin)}>
-      <span className="text-text">{label}</span>
-      <button
-        onClick={onAction}
-        className="rounded-lg px-2 py-1 text-xs text-muted hover:bg-surface/80 hover:text-text transition"
-        title={actionLabel}
-      >
-        {actionLabel}
-      </button>
-    </div>
-  );
-}
+  logo: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    display: "grid",
+    placeItems: "center",
+    fontWeight: 800,
+    fontSize: 13,
+    color: "white",
+    background:
+      "linear-gradient(135deg, rgba(99,102,241,1), rgba(34,197,94,1))",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+  },
+
+  brandName: { fontWeight: 700, color: "rgba(255,255,255,0.95)" },
+  brandTag: { fontSize: 12, color: "rgba(255,255,255,0.60)" },
+
+  headerActions: { display: "flex", alignItems: "center", gap: 10 },
+
+  headerLink: {
+    color: "rgba(255,255,255,0.78)",
+    textDecoration: "none",
+    fontSize: 14,
+    padding: "10px 10px",
+    borderRadius: 12,
+  },
+
+  headerCta: {
+    color: "#0b1220",
+    textDecoration: "none",
+    fontSize: 14,
+    fontWeight: 700,
+    padding: "10px 12px",
+    borderRadius: 12,
+    background: "rgba(255,255,255,0.92)",
+  },
+
+  main: { position: "relative", zIndex: 1 },
+
+  section: {
+    maxWidth: 980,
+    margin: "0 auto",
+    padding: "18px 16px 22px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+  },
+
+  heroCard: {
+    borderRadius: 22,
+    overflow: "hidden",
+    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.06)",
+    boxShadow: "0 25px 60px rgba(0,0,0,0.45)",
+    padding: 14,
+  },
+
+  heroTop: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+
+  kicker: { fontSize: 12, color: "rgba(255,255,255,0.65)", marginBottom: 6 },
+
+  h1Like: {
+    fontSize: 22,
+    fontWeight: 900,
+    color: "rgba(255,255,255,0.95)",
+    letterSpacing: -0.2,
+    lineHeight: 1.1,
+  },
+
+  leadSmall: { marginTop: 6, fontSize: 13, color: "rgba(255,255,255,0.70)" },
+
+  pillMuted: {
+    fontSize: 12,
+    fontWeight: 800,
+    color: "rgba(255,255,255,0.75)",
+    padding: "7px 10px",
+    borderRadius: 999,
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    whiteSpace: "nowrap",
+    maxWidth: "100%",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+
+  trustRow: {
+    marginTop: 12,
+    display: "grid",
+    gridTemplateColumns: "1fr auto 1fr auto 1fr",
+    alignItems: "center",
+    gap: 12,
+    padding: "12px 12px",
+    borderRadius: 16,
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.10)",
+  },
+
+  trustItem: { display: "flex", flexDirection: "column", gap: 2 },
+  trustValue: { fontWeight: 900, fontSize: 16, color: "rgba(255,255,255,0.92)" },
+  trustLabel: { fontSize: 12, color: "rgba(255,255,255,0.65)" },
+  trustDivider: { width: 1, height: 26, background: "rgba(255,255,255,0.12)" },
+
+  card: {
+    padding: 14,
+    borderRadius: 18,
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.10)",
+  },
+
+  cardTitle: { fontWeight: 900, color: "rgba(255,255,255,0.92)", marginBottom: 6 },
+  cardText: { color: "rgba(255,255,255,0.68)", lineHeight: 1.45 },
+
+  formRow: {
+    marginTop: 10,
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    alignItems: "center",
+  },
+
+  input: {
+    flex: 1,
+    minWidth: 220,
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(0,0,0,0.22)",
+    color: "rgba(255,255,255,0.92)",
+    padding: "12px 12px",
+    outline: "none",
+  },
+
+  primaryBtn: {
+    borderRadius: 14,
+    padding: "12px 14px",
+    fontWeight: 900,
+    color: "#0b1220",
+    background: "rgba(255,255,255,0.92)",
+    border: "1px solid rgba(255,255,255,0.18)",
+    cursor: "pointer",
+  },
+
+  secondaryBtn: {
+    borderRadius: 14,
+    padding: "10px 12px",
+    fontWeight: 800,
+    color: "rgba(255,255,255,0.88)",
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    cursor: "pointer",
+  },
+
+  dangerBtn: {
+    borderRadius: 14,
+    padding: "10px 12px",
+    fontWeight: 900,
+    color: "rgba(255,255,255,0.92)",
+    background: "rgba(244,63,94,0.14)",
+    border: "1px solid rgba(244,63,94,0.22)",
+    cursor: "pointer",
+  },
+
+  chipsWrap: {
+    marginTop: 12,
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+
+  chip: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "10px 10px",
+    borderRadius: 16,
+    background: "rgba(0,0,0,0.22)",
+    border: "1px solid rgba(255,255,255,0.08)",
+  },
+
+  chipText: {
+    fontWeight: 900,
+    color: "rgba(255,255,255,0.90)",
+  },
+
+  chipBtn: {
+    fontSize: 12,
+    fontWeight: 900,
+    color: "rgba(255,255,255,0.90)",
+    padding: "7px 10px",
+    borderRadius: 999,
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    cursor: "pointer",
+  },
+
+  previewPill: {
+    fontSize: 12,
+    fontWeight: 800,
+    color: "rgba(255,255,255,0.90)",
+    padding: "7px 10px",
+    borderRadius: 999,
+    background: "rgba(34,197,94,0.18)",
+    border: "1px solid rgba(34,197,94,0.25)",
+    whiteSpace: "nowrap",
+  },
+
+  row: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    padding: "12px 12px",
+    borderRadius: 16,
+    background: "rgba(0,0,0,0.22)",
+    border: "1px solid rgba(255,255,255,0.08)",
+  },
+
+  rowTitle: { fontWeight: 900, color: "rgba(255,255,255,0.92)", lineHeight: 1.1 },
+  rowMeta: { fontSize: 12, color: "rgba(255,255,255,0.60)", marginTop: 2 },
+};
