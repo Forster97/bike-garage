@@ -50,7 +50,7 @@ export default function AppGroupLayout({ children }) {
   const isCategories = pathname?.startsWith("/settings/categories");
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen bg-bg text-text">
       {/* Glow de fondo */}
       <BackgroundGlow />
 
