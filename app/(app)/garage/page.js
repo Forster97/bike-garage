@@ -1,5 +1,6 @@
 "use client";
 export const dynamic = "force-dynamic";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
@@ -12,27 +13,6 @@ export default function GaragePage() {
   const [bikes, setBikes] = useState([]);
   const [newBikeName, setNewBikeName] = useState("");
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!data?.user) return router.replace("/login");
-
-      setUser(data.user);
-
-      await refreshBikes(data.user.id);
-
-      setBikes(bikesData || []);
-      setLoading(false);
-    };
-
-    load();
-  }, [router]);
-
-  const logout = async () => {
-    await supabase.auth.signOut();
-    router.replace("/login");
-  };
 
   const refreshBikes = async (uid) => {
     const { data, error } = await supabase
@@ -50,12 +30,47 @@ export default function GaragePage() {
     setBikes(data || []);
   };
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error) throw error;
+
+        if (!data?.user) {
+          router.replace("/login");
+          return;
+        }
+
+        if (cancelled) return;
+        setUser(data.user);
+
+        await refreshBikes(data.user.id);
+      } catch (err) {
+        console.error("Garage load crash:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
+  const logout = async () => {
+    await supabase.auth.signOut();
+    router.replace("/login");
+  };
+
   const addBike = async () => {
     const name = newBikeName.trim();
     if (!name) return;
 
     try {
-      // Asegura usuario REAL en el momento del click (evita user null)
       const { data: userRes, error: userErr } = await supabase.auth.getUser();
       const uid = userRes?.user?.id;
 
@@ -64,10 +79,7 @@ export default function GaragePage() {
         return;
       }
 
-      const { error } = await supabase.from("bikes").insert([
-        { name, user_id: uid },
-      ]);
-
+      const { error } = await supabase.from("bikes").insert([{ name, user_id: uid }]);
       if (error) {
         console.error("addBike insert error:", error);
         alert(error.message);
@@ -87,7 +99,6 @@ export default function GaragePage() {
     if (!ok) return;
 
     const { error } = await supabase.from("bikes").delete().eq("id", bikeId);
-
     if (error) return alert(error.message);
 
     setBikes((prev) => prev.filter((b) => b.id !== bikeId));
@@ -111,7 +122,7 @@ export default function GaragePage() {
 
       <div className="h-px w-full bg-border/70" />
 
-      {/* Add bike (mobile-first) */}
+      {/* Add bike */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
           value={newBikeName}
@@ -122,7 +133,8 @@ export default function GaragePage() {
 
         <button
           onClick={addBike}
-          className="w-full sm:w-auto rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-bg hover:brightness-110 transition"
+          disabled={!newBikeName.trim()}
+          className="w-full sm:w-auto rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-bg hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Agregar
         </button>
@@ -152,7 +164,7 @@ export default function GaragePage() {
                 </Link>
 
                 <p className="mt-1 text-sm text-muted">
-                  Creada: {new Date(bike.created_at).toLocaleDateString()}
+                  Creada: {bike.created_at ? new Date(bike.created_at).toLocaleDateString() : "—"}
                 </p>
               </div>
 
