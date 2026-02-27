@@ -379,7 +379,6 @@ export default function BikeDetailPage() {
               <div style={styles.logo}>BG</div>
               <div>
                 <div style={styles.brandName}>Bike Garage</div>
-                <div style={styles.brandTag}>Tu garage digital</div>
               </div>
             </div>
             <div style={styles.headerActions}>
@@ -413,7 +412,6 @@ export default function BikeDetailPage() {
               <div style={styles.logo}>BG</div>
               <div>
                 <div style={styles.brandName}>Bike Garage</div>
-                <div style={styles.brandTag}>Tu garage digital</div>
               </div>
             </div>
             <div style={styles.headerActions}>
@@ -456,21 +454,13 @@ export default function BikeDetailPage() {
             </div>
             <div>
               <div style={styles.brandName}>Bike Garage</div>
-              <div style={styles.brandTag}>Tu garage digital</div>
             </div>
           </div>
 
           <div style={styles.headerActions}>
-            <button style={styles.headerLinkBtn} onClick={() => router.push("/garage")}>
-              ← Garage
-            </button>
 
             <a href={`/garage/${bikeId}/history`} style={styles.headerLink}>
               Historial
-            </a>
-
-            <a href="/settings/categories" style={styles.headerLink}>
-              Categorías
             </a>
 
             <button style={styles.headerGhostBtn} onClick={() => setAddOpen(true)}>
@@ -630,7 +620,7 @@ export default function BikeDetailPage() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por nombre o categoría…"
+              placeholder="Buscar"
               style={{ ...styles.input, minWidth: 220 }}
             />
 
