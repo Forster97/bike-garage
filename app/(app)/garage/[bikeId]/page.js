@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
@@ -63,10 +65,6 @@ function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
 
-function cn(...classes) {
-  return classes.filter(Boolean).join(" ");
-}
-
 /* =========================
    Component
 ========================= */
@@ -94,7 +92,7 @@ export default function BikeDetailPage() {
 
   // inline edit parts
   const [editingPartId, setEditingPartId] = useState(null);
-  const [editById, setEditById] = useState({}); // { [partId]: { category, weight_g } }
+  const [editById, setEditById] = useState({});
 
   // edit bike
   const [bikeEditMode, setBikeEditMode] = useState(false);
@@ -116,6 +114,11 @@ export default function BikeDetailPage() {
       .sort((a, b) => b.grams - a.grams);
   }, [parts]);
 
+  const topCategory = useMemo(() => {
+    if (!byCategory.length) return "—";
+    return byCategory[0]?.cat ?? "—";
+  }, [byCategory]);
+
   const filteredParts = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return parts;
@@ -125,17 +128,6 @@ export default function BikeDetailPage() {
       return n.includes(q) || c.includes(q);
     });
   }, [parts, query]);
-
-  /* =========================
-     Shared button styles
-  ========================= */
-
-  // Primario con borde + ring + sombra para que NO desaparezca.
-  const BTN_PRIMARY =
-    "inline-flex items-center justify-center rounded-xl border border-primary/60 ring-1 ring-border/60 bg-primary px-4 py-2 text-sm font-semibold text-bg shadow-soft hover:brightness-110 hover:ring-border/80 transition";
-
-  const BTN_SECONDARY =
-    "inline-flex items-center justify-center rounded-xl border border-border bg-surface/60 px-4 py-2 text-sm text-muted hover:bg-surface/80 hover:text-text transition";
 
   /* =========================
      Auth / Logging
@@ -162,7 +154,6 @@ export default function BikeDetailPage() {
         new_weight_g: newW ?? null,
       },
     ]);
-
     if (error) console.error("part_logs insert error:", error);
   };
 
@@ -172,55 +163,57 @@ export default function BikeDetailPage() {
 
   useEffect(() => {
     if (!bikeId) return;
+    let cancelled = false;
 
     const load = async () => {
       setLoading(true);
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData?.user) return router.replace("/login");
 
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData?.user) return router.replace("/login");
+        const [catsRes, hiddenRes, bikeRes, partsRes] = await Promise.all([
+          supabase.from("categories").select("name").order("created_at", { ascending: true }),
+          supabase.from("category_hidden").select("name"),
+          supabase.from("bikes").select("*").eq("id", bikeId).single(),
+          supabase.from("parts").select("*").eq("bike_id", bikeId).order("created_at", { ascending: false }),
+        ]);
 
-      const [catsRes, hiddenRes, bikeRes, partsRes] = await Promise.all([
-        supabase.from("categories").select("name").order("created_at", { ascending: true }),
-        supabase.from("category_hidden").select("name"),
-        supabase.from("bikes").select("*").eq("id", bikeId).single(),
-        supabase.from("parts").select("*").eq("bike_id", bikeId).order("created_at", { ascending: false }),
-      ]);
+        if (cancelled) return;
 
-      if (bikeRes.error) {
-        setBike(null);
-        setLoading(false);
-        return;
+        if (bikeRes.error) {
+          setBike(null);
+          return;
+        }
+
+        setBike(bikeRes.data);
+        setBikeDraft(draftFromBike(bikeRes.data));
+
+        const customCats = (catsRes.data || []).map((c) => c.name);
+        const hidden = new Set((hiddenRes.data || []).map((h) => h.name));
+
+        const merged = uniq([...DEFAULT_CATEGORIES, ...customCats]).filter((n) => !hidden.has(n));
+        const finalCats = merged.length > 0 ? merged : DEFAULT_CATEGORIES;
+        setCategories(finalCats);
+
+        if (finalCats.length > 0 && !finalCats.includes(partCategory)) setPartCategory(finalCats[0]);
+
+        const rows = partsRes.data || [];
+        setParts(rows);
+
+        const nextEdit = {};
+        for (const p of rows) nextEdit[p.id] = { category: p.category, weight_g: p.weight_g ?? "" };
+        setEditById(nextEdit);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      setBike(bikeRes.data);
-      setBikeDraft(draftFromBike(bikeRes.data));
-
-      const customCats = (catsRes.data || []).map((c) => c.name);
-      const hidden = new Set((hiddenRes.data || []).map((h) => h.name));
-
-      const merged = uniq([...DEFAULT_CATEGORIES, ...customCats]).filter((n) => !hidden.has(n));
-      const finalCats = merged.length > 0 ? merged : DEFAULT_CATEGORIES;
-      setCategories(finalCats);
-
-      if (finalCats.length > 0 && !finalCats.includes(partCategory)) {
-        setPartCategory(finalCats[0]);
-      }
-
-      const rows = partsRes.data || [];
-      setParts(rows);
-
-      const nextEdit = {};
-      for (const p of rows) {
-        nextEdit[p.id] = { category: p.category, weight_g: p.weight_g ?? "" };
-      }
-      setEditById(nextEdit);
-
-      setLoading(false);
     };
 
     load();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bikeId, router]);
+  }, [bikeId]);
 
   /* =========================
      Bike Editing
@@ -259,7 +252,6 @@ export default function BikeDetailPage() {
 
   const addPart = async (e) => {
     e?.preventDefault?.();
-
     if (!partName.trim()) return alert("Ponle un nombre al componente.");
 
     const w = parseNullableNumber(partWeight);
@@ -377,381 +369,856 @@ export default function BikeDetailPage() {
      Render
   ========================= */
 
-  if (loading) return <div className="text-muted">Cargando...</div>;
-
-  if (!bike) {
+  if (loading) {
     return (
-      <div className="space-y-4">
-        <button onClick={() => router.push("/garage")} className={cn(BTN_SECONDARY, "px-3")}>
-          ← Volver
-        </button>
+      <div style={styles.page}>
+        <div style={styles.bgGlow} aria-hidden="true" />
+        <header style={styles.header}>
+          <div style={styles.headerInner}>
+            <div style={styles.brand}>
+              <div style={styles.logo}>BG</div>
+              <div>
+                <div style={styles.brandName}>Bike Garage</div>
+                <div style={styles.brandTag}>Tu garage digital</div>
+              </div>
+            </div>
+            <div style={styles.headerActions}>
+              <button style={styles.headerGhostBtn} onClick={() => router.push("/garage")}>
+                ← Garage
+              </button>
+            </div>
+          </div>
+        </header>
 
-        <div className="rounded-xl2 border border-border bg-card p-5 shadow-soft">
-          <div className="text-lg font-semibold">No encontré esta bicicleta</div>
-          <p className="mt-1 text-sm text-muted">Puede que no exista o no tengas permisos.</p>
-        </div>
+        <main style={styles.main}>
+          <section style={styles.hero}>
+            <div style={styles.card}>
+              <div style={styles.skelLine1} />
+              <div style={styles.skelLine2} />
+              <div style={styles.skelBtn} />
+            </div>
+          </section>
+        </main>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-5">
-      {/* Top bar */}
-      <div className="flex items-center justify-between">
-        <button onClick={() => router.push("/garage")} className={cn(BTN_SECONDARY, "px-3")}>
-          ← Garage
-        </button>
+  if (!bike) {
+    return (
+      <div style={styles.page}>
+        <div style={styles.bgGlow} aria-hidden="true" />
+        <header style={styles.header}>
+          <div style={styles.headerInner}>
+            <div style={styles.brand}>
+              <div style={styles.logo}>BG</div>
+              <div>
+                <div style={styles.brandName}>Bike Garage</div>
+                <div style={styles.brandTag}>Tu garage digital</div>
+              </div>
+            </div>
+            <div style={styles.headerActions}>
+              <button style={styles.headerGhostBtn} onClick={() => router.push("/garage")}>
+                ← Garage
+              </button>
+            </div>
+          </div>
+        </header>
 
-        <div className="flex items-center gap-2">
-          <a
-            href={`/garage/${bikeId}/history`}
-            className="rounded-xl border border-border bg-surface/40 px-3 py-2 text-sm text-muted hover:bg-surface/70 hover:text-text transition"
-          >
-            Historial
-          </a>
-          <a
-            href="/settings/categories"
-            className="rounded-xl border border-border bg-surface/40 px-3 py-2 text-sm text-muted hover:bg-surface/70 hover:text-text transition"
-          >
-            Categorías
-          </a>
-        </div>
+        <main style={styles.main}>
+          <section style={styles.hero}>
+            <div style={styles.empty}>
+              <div style={styles.emptyIcon}>🤕</div>
+              <div style={styles.emptyTitle}>No encontré esta bicicleta</div>
+              <div style={styles.emptyText}>Puede que no exista o no tengas permisos.</div>
+              <div style={{ height: 10 }} />
+              <button style={styles.primaryBtn} onClick={() => router.push("/garage")}>
+                Volver al Garage
+              </button>
+            </div>
+          </section>
+        </main>
       </div>
+    );
+  }
 
-      {/* HERO */}
-      <div className="relative overflow-hidden rounded-xl2 border border-border bg-card/75 shadow-soft backdrop-blur-sm">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary2/10 via-transparent to-primary/10" />
-        <div className="relative p-5">
-          {!bikeEditMode ? (
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <div className="text-xs text-muted">Bike</div>
-                <div className="mt-1 flex items-center gap-2">
-                  <h1 className="truncate text-2xl font-semibold tracking-tight">{bike.name}</h1>
-                  <button
-                    onClick={() => setBikeEditMode(true)}
-                    className="rounded-lg border border-border bg-surface/40 px-2 py-1 text-sm text-muted hover:bg-surface/70 hover:text-text transition"
-                    title="Editar bici"
-                  >
-                    ✏️
-                  </button>
-                </div>
+  const partCount = parts.length;
 
-                <div className="mt-2 text-sm text-muted">
-                  {parts.length} componente{parts.length === 1 ? "" : "s"} •{" "}
-                  <span className="text-text/90">Peso total</span>{" "}
-                  <span className="font-semibold text-text">{formatKgFromGrams(totalWeightG)}</span>
-                </div>
+  return (
+    <div style={styles.page}>
+      <div style={styles.bgGlow} aria-hidden="true" />
 
-                <div className="mt-2 text-xs text-muted">
-                  {bike.type ? `${bike.type}` : "—"} {bike.year ? `• ${bike.year}` : ""}{" "}
-                  {bike.size ? `• Talla ${bike.size}` : ""} {bike.notes ? `• ${bike.notes}` : ""}
-                </div>
-              </div>
-
-              <div className="rounded-xl2 border border-border bg-surface/40 p-4 text-left sm:text-right">
-                <div className="text-xs text-muted">Peso Total</div>
-                <div className="mt-1 text-3xl sm:text-4xl font-semibold">{formatKgFromGrams(totalWeightG)}</div>
-                <div className="mt-1 text-xs text-muted">({totalWeightG.toFixed(0)} g)</div>
-              </div>
+      {/* Header (landing style) */}
+      <header style={styles.header}>
+        <div style={styles.headerInner}>
+          <div style={styles.brand}>
+            <div style={styles.logo} aria-hidden="true">
+              BG
             </div>
-          ) : (
-            <div className="grid gap-3">
-              <div className="grid gap-1">
-                <div className="text-xs text-muted">Nombre</div>
-                <input
-                  value={bikeDraft.name}
-                  onChange={(e) => setBikeDraft((p) => ({ ...p, name: e.target.value }))}
-                  className="w-full rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-text placeholder:text-muted outline-none focus:ring-2 focus:ring-primary/40"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Field label="Tipo">
-                  <input
-                    value={bikeDraft.type}
-                    onChange={(e) => setBikeDraft((p) => ({ ...p, type: e.target.value }))}
-                    className="w-full rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-text placeholder:text-muted outline-none focus:ring-2 focus:ring-primary/40"
-                    placeholder="Gravel / MTB / Ruta..."
-                  />
-                </Field>
-
-                <Field label="Año">
-                  <input
-                    value={bikeDraft.year}
-                    onChange={(e) => setBikeDraft((p) => ({ ...p, year: e.target.value }))}
-                    className="w-full rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-text placeholder:text-muted outline-none focus:ring-2 focus:ring-primary/40"
-                    placeholder="2021"
-                    inputMode="numeric"
-                  />
-                </Field>
-
-                <Field label="Talla">
-                  <input
-                    value={bikeDraft.size}
-                    onChange={(e) => setBikeDraft((p) => ({ ...p, size: e.target.value }))}
-                    className="w-full rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-text placeholder:text-muted outline-none focus:ring-2 focus:ring-primary/40"
-                    placeholder="S / M / 54..."
-                  />
-                </Field>
-
-                <Field label="Notas">
-                  <input
-                    value={bikeDraft.notes}
-                    onChange={(e) => setBikeDraft((p) => ({ ...p, notes: e.target.value }))}
-                    className="w-full rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-text placeholder:text-muted outline-none focus:ring-2 focus:ring-primary/40"
-                    placeholder="Ej: tubeless 45mm, Rival 1x..."
-                  />
-                </Field>
-              </div>
-
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <button onClick={saveBike} className={cn(BTN_PRIMARY, "w-full sm:w-auto")}>
-                  Guardar
-                </button>
-                <button onClick={cancelBikeEdit} className={cn(BTN_SECONDARY, "w-full sm:w-auto")}>
-                  Cancelar
-                </button>
-              </div>
+            <div>
+              <div style={styles.brandName}>Bike Garage</div>
+              <div style={styles.brandTag}>Tu garage digital</div>
             </div>
-          )}
+          </div>
 
-          {/* Distribution bars */}
-          <div className="mt-5">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="text-sm font-medium">Distribución de peso</div>
-              <div className="text-xs text-muted">Top categorías</div>
-            </div>
+          <div style={styles.headerActions}>
+            <button style={styles.headerLinkBtn} onClick={() => router.push("/garage")}>
+              ← Garage
+            </button>
 
-            <div className="space-y-2">
-              {(byCategory.length ? byCategory.slice(0, 6) : [{ cat: "No parts", grams: 0 }]).map((row) => {
-                const pct = totalWeightG > 0 ? (row.grams / totalWeightG) * 100 : 0;
-                return (
-                  <div key={row.cat} className="grid grid-cols-[120px_1fr_70px] items-center gap-3">
-                    <div className="truncate text-xs text-muted">{row.cat}</div>
-                    <div className="h-2 overflow-hidden rounded-full bg-surface/60">
-                      <div
-                        className="h-full rounded-full bg-primary/90"
-                        style={{ width: `${clamp(pct, 0, 100)}%` }}
+            <a href={`/garage/${bikeId}/history`} style={styles.headerLink}>
+              Historial
+            </a>
+
+            <a href="/settings/categories" style={styles.headerLink}>
+              Categorías
+            </a>
+
+            <button style={styles.headerGhostBtn} onClick={() => setAddOpen(true)}>
+              + Componente
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main style={styles.main}>
+        <section style={styles.hero}>
+          {/* Hero card */}
+          <div style={styles.heroCard}>
+            <div style={styles.heroTop}>
+              <div style={{ minWidth: 0 }}>
+                {!bikeEditMode ? (
+                  <>
+                    <div style={styles.heroKicker}>Bike</div>
+                    <div style={styles.heroTitleRow}>
+                      <h1 style={styles.heroTitle}>{bike.name}</h1>
+                      <button
+                        onClick={() => setBikeEditMode(true)}
+                        style={styles.iconBtn}
+                        title="Editar bici"
+                        aria-label="Editar bici"
+                      >
+                        ✏️
+                      </button>
+                    </div>
+
+                    <div style={styles.heroMeta}>
+                      <span style={styles.heroMetaStrong}>{formatKgFromGrams(totalWeightG)}</span>{" "}
+                      <span style={styles.heroMetaSoft}>({totalWeightG.toFixed(0)} g)</span>
+                      <span style={styles.heroDot} />
+                      <span style={styles.heroMetaSoft}>
+                        {partCount} componente{partCount === 1 ? "" : "s"}
+                      </span>
+                      <span style={styles.heroDot} />
+                      <span style={styles.heroMetaSoft}>Top: {topCategory}</span>
+                    </div>
+
+                    <div style={styles.heroSubMeta}>
+                      {bike.type ? `${bike.type}` : "—"}
+                      {bike.year ? ` • ${bike.year}` : ""}
+                      {bike.size ? ` • Talla ${bike.size}` : ""}
+                      {bike.notes ? ` • ${bike.notes}` : ""}
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ display: "grid", gap: 10 }}>
+                    <div style={styles.field}>
+                      <div style={styles.label}>Nombre</div>
+                      <input
+                        value={bikeDraft.name}
+                        onChange={(e) => setBikeDraft((p) => ({ ...p, name: e.target.value }))}
+                        style={styles.input}
                       />
                     </div>
-                    <div className="text-right text-xs text-muted">{row.grams.toFixed(0)} g</div>
+
+                    <div style={styles.grid2}>
+                      <div style={styles.field}>
+                        <div style={styles.label}>Tipo</div>
+                        <input
+                          value={bikeDraft.type}
+                          onChange={(e) => setBikeDraft((p) => ({ ...p, type: e.target.value }))}
+                          style={styles.input}
+                          placeholder="Gravel / MTB / Ruta..."
+                        />
+                      </div>
+
+                      <div style={styles.field}>
+                        <div style={styles.label}>Año</div>
+                        <input
+                          value={bikeDraft.year}
+                          onChange={(e) => setBikeDraft((p) => ({ ...p, year: e.target.value }))}
+                          style={styles.input}
+                          placeholder="2021"
+                          inputMode="numeric"
+                        />
+                      </div>
+
+                      <div style={styles.field}>
+                        <div style={styles.label}>Talla</div>
+                        <input
+                          value={bikeDraft.size}
+                          onChange={(e) => setBikeDraft((p) => ({ ...p, size: e.target.value }))}
+                          style={styles.input}
+                          placeholder="S / M / 54..."
+                        />
+                      </div>
+
+                      <div style={styles.field}>
+                        <div style={styles.label}>Notas</div>
+                        <input
+                          value={bikeDraft.notes}
+                          onChange={(e) => setBikeDraft((p) => ({ ...p, notes: e.target.value }))}
+                          style={styles.input}
+                          placeholder="Ej: tubeless 45mm, Rival 1x..."
+                        />
+                      </div>
+                    </div>
+
+                    <div style={styles.btnRow}>
+                      <button
+                        style={styles.primaryBtn}
+                        onClick={saveBike}
+                      >
+                        Guardar
+                      </button>
+
+                      <button
+                        style={styles.secondaryBtn}
+                        onClick={cancelBikeEdit}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {!bikeEditMode ? (
+                <div style={styles.heroPill}>
+                  <div style={styles.heroPillTitle}>Peso Total</div>
+                  <div style={styles.heroPillValue}>{formatKgFromGrams(totalWeightG)}</div>
+                  <div style={styles.heroPillSub}>({totalWeightG.toFixed(0)} g)</div>
+                </div>
+              ) : null}
+            </div>
+
+            {/* Distribución */}
+            <div style={{ marginTop: 14 }}>
+              <div style={styles.sectionTop}>
+                <div style={styles.sectionTitle}>Distribución de peso</div>
+                <div style={styles.sectionHint}>Top categorías</div>
+              </div>
+
+              <div style={{ display: "grid", gap: 10 }}>
+                {(byCategory.length ? byCategory.slice(0, 6) : [{ cat: "No parts", grams: 0 }]).map((row) => {
+                  const pct = totalWeightG > 0 ? (row.grams / totalWeightG) * 100 : 0;
+                  return (
+                    <div key={row.cat} style={styles.distRow}>
+                      <div style={styles.distCat}>{row.cat}</div>
+                      <div style={styles.distTrack}>
+                        <div style={{ ...styles.distFill, width: `${clamp(pct, 0, 100)}%` }} />
+                      </div>
+                      <div style={styles.distVal}>{row.grams.toFixed(0)} g</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div style={styles.actionsRow}>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar por nombre o categoría…"
+              style={{ ...styles.input, minWidth: 220 }}
+            />
+
+            <button style={styles.primaryBtn} onClick={() => setAddOpen(true)}>
+              + Agregar componente
+            </button>
+          </div>
+
+          {/* Parts list */}
+          {filteredParts.length === 0 ? (
+            <div style={styles.empty}>
+              <div style={styles.emptyIcon}>🧩</div>
+              <div style={styles.emptyTitle}>Sin componentes</div>
+              <div style={styles.emptyText}>Agrega tus piezas y verás el peso total automáticamente.</div>
+              <div style={{ height: 10 }} />
+              <button style={styles.primaryBtn} onClick={() => setAddOpen(true)}>
+                Agregar primero
+              </button>
+            </div>
+          ) : (
+            <div style={styles.grid}>
+              {filteredParts.map((p) => {
+                const row = editById[p.id] || { category: p.category, weight_g: p.weight_g ?? "" };
+                const isEditing = editingPartId === p.id;
+                const pct = totalWeightG > 0 ? ((Number(p.weight_g) || 0) / totalWeightG) * 100 : 0;
+
+                return (
+                  <div key={p.id} style={styles.partCard}>
+                    <div style={styles.partTop}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={styles.partName}>{p.name}</div>
+
+                        {!isEditing ? (
+                          <div style={styles.partMeta}>
+                            {p.category} • {p.weight_g ?? "—"} g
+                            {p.weight_g != null ? (
+                              <span style={styles.partMetaSoft}> • {pct.toFixed(1)}%</span>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <div style={styles.editRow}>
+                            <select
+                              value={row.category}
+                              onChange={(e) =>
+                                setEditById((prev) => ({
+                                  ...prev,
+                                  [p.id]: { ...row, category: e.target.value },
+                                }))
+                              }
+                              className="dark-select"
+                              style={{ ...styles.input, padding: "10px 12px" }}
+                            >
+                              {categories.map((c) => (
+                                <option key={c} value={c}>
+                                  {c}
+                                </option>
+                              ))}
+                            </select>
+
+                            <input
+                              value={String(row.weight_g ?? "")}
+                              onChange={(e) =>
+                                setEditById((prev) => ({
+                                  ...prev,
+                                  [p.id]: { ...row, weight_g: e.target.value },
+                                }))
+                              }
+                              placeholder="peso (g)"
+                              inputMode="numeric"
+                              style={{ ...styles.input, width: 140 }}
+                            />
+
+                            <button
+                              style={styles.primaryBtn}
+                              onClick={async () => {
+                                await savePart(p.id);
+                                setEditingPartId(null);
+                              }}
+                            >
+                              Guardar
+                            </button>
+
+                            <button style={styles.secondaryBtn} onClick={() => setEditingPartId(null)}>
+                              Cancelar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={styles.partBtns}>
+                        {!isEditing ? (
+                          <button style={styles.secondaryBtn} onClick={() => setEditingPartId(p.id)}>
+                            Editar
+                          </button>
+                        ) : null}
+
+                        <button style={styles.ghostBtn} onClick={() => deletePart(p.id)}>
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
             </div>
-          </div>
-        </div>
-      </div>
+          )}
 
-      {/* Actions */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="w-full sm:max-w-md">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por nombre o categoría…"
-            className="w-full rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-text placeholder:text-muted outline-none focus:ring-2 focus:ring-primary/40"
-          />
-        </div>
+          {/* Floating Action Button (solo móvil) */}
+          <button
+            onClick={() => setAddOpen(true)}
+            style={styles.fab}
+            aria-label="Agregar componente"
+            title="Agregar componente"
+          >
+            +
+          </button>
+        </section>
 
-        <button onClick={() => setAddOpen(true)} className={cn(BTN_PRIMARY, "w-full sm:w-auto")}>
-          + Agregar componente
-        </button>
-      </div>
+        {/* Add Modal */}
+        {addOpen ? (
+          <div style={styles.modalWrap}>
+            <div style={styles.modalOverlay} onClick={() => setAddOpen(false)} />
+            <div style={styles.modal}>
+              <div style={styles.modalHeader}>
+                <div style={styles.modalTitle}>Agregar componente</div>
+                <button style={styles.iconBtn} onClick={() => setAddOpen(false)} aria-label="Cerrar">
+                  ✕
+                </button>
+              </div>
 
-      {/* Parts list */}
-      <div className="grid gap-3">
-        {filteredParts.length === 0 ? (
-          <div className="rounded-xl2 border border-border bg-card p-5 shadow-soft">
-            <div className="font-semibold">Sin componentes</div>
-            <div className="mt-1 text-sm text-muted">
-              Agrega tus piezas y verás el peso total automáticamente.
-            </div>
-          </div>
-        ) : (
-          filteredParts.map((p) => {
-            const row = editById[p.id] || { category: p.category, weight_g: p.weight_g ?? "" };
-            const isEditing = editingPartId === p.id;
-            const pct = totalWeightG > 0 ? ((Number(p.weight_g) || 0) / totalWeightG) * 100 : 0;
+              <form onSubmit={addPart} style={{ display: "grid", gap: 12, marginTop: 12 }}>
+                <div style={styles.field}>
+                  <div style={styles.label}>Nombre</div>
+                  <input
+                    value={partName}
+                    onChange={(e) => setPartName(e.target.value)}
+                    placeholder="Ej: Cassette 11-42"
+                    style={styles.input}
+                  />
+                </div>
 
-            return (
-              <div
-                key={p.id}
-                className={cn("rounded-xl2 border border-border bg-card p-4 shadow-soft transition", "hover:border-primary/35")}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold">{p.name}</div>
-
-                    {!isEditing ? (
-                      <div className="mt-1 text-sm text-muted">
-                        {p.category} • {p.weight_g ?? "—"} g{" "}
-                        {p.weight_g != null ? <span className="text-muted">• {pct.toFixed(1)}%</span> : null}
-                      </div>
-                    ) : (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <select
-                          value={row.category}
-                          onChange={(e) =>
-                            setEditById((prev) => ({
-                              ...prev,
-                              [p.id]: { ...row, category: e.target.value },
-                            }))
-                          }
-                          className="dark-select rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-primary/40"
-                        >
-                          {categories.map((c) => (
-                            <option key={c} value={c}>
-                              {c}
-                            </option>
-                          ))}
-                        </select>
-
-                        <input
-                          value={String(row.weight_g ?? "")}
-                          onChange={(e) =>
-                            setEditById((prev) => ({
-                              ...prev,
-                              [p.id]: { ...row, weight_g: e.target.value },
-                            }))
-                          }
-                          placeholder="peso (g)"
-                          inputMode="numeric"
-                          className="w-40 rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-text placeholder:text-muted outline-none focus:ring-2 focus:ring-primary/40"
-                        />
-
-                        <button
-                          onClick={async () => {
-                            await savePart(p.id);
-                            setEditingPartId(null);
-                          }}
-                          className={BTN_PRIMARY}
-                        >
-                          Guardar
-                        </button>
-
-                        <button onClick={() => setEditingPartId(null)} className={BTN_SECONDARY}>
-                          Cancelar
-                        </button>
-                      </div>
-                    )}
+                <div style={styles.grid2}>
+                  <div style={styles.field}>
+                    <div style={styles.label}>Categoría</div>
+                    <select
+                      value={partCategory}
+                      onChange={(e) => setPartCategory(e.target.value)}
+                      className="dark-select"
+                      style={styles.input}
+                    >
+                      {categories.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    {!isEditing && (
-                      <button
-                        onClick={() => setEditingPartId(p.id)}
-                        className="rounded-xl border border-border bg-surface/40 px-3 py-2 text-sm text-muted hover:bg-surface/70 hover:text-text transition"
-                      >
-                        Editar
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => deletePart(p.id)}
-                      className="rounded-xl border border-border bg-surface/40 px-3 py-2 text-sm text-muted hover:bg-surface/70 hover:text-text transition"
-                    >
-                      Eliminar
-                    </button>
+                  <div style={styles.field}>
+                    <div style={styles.label}>Peso (g)</div>
+                    <input
+                      value={partWeight}
+                      onChange={(e) => setPartWeight(e.target.value)}
+                      placeholder="Ej: 342"
+                      inputMode="numeric"
+                      style={styles.input}
+                    />
                   </div>
                 </div>
-              </div>
-            );
-          })
-        )}
-      </div>
 
-      {/* Floating Action Button (solo móvil) */}
-      <button
-        onClick={() => setAddOpen(true)}
-        className="sm:hidden fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-bg shadow-soft hover:brightness-110 active:scale-[0.98]"
-        aria-label="Add component"
-        title="Add component"
-      >
-        <span className="text-2xl leading-none">+</span>
-      </button>
+                <div style={styles.btnRowRight}>
+                  <button type="button" style={styles.secondaryBtn} onClick={() => setAddOpen(false)}>
+                    Cancelar
+                  </button>
+                  <button type="submit" style={styles.primaryBtn}>
+                    Guardar
+                  </button>
+                </div>
 
-      {/* Add Modal */}
-      {addOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setAddOpen(false)} />
-          <div className="relative w-full max-w-lg rounded-xl2 border border-border bg-card/90 p-4 shadow-soft backdrop-blur-md">
-            <div className="flex items-center justify-between border-b border-border/60 pb-3">
-              <div className="text-base font-semibold">Agregar componente</div>
-              <button
-                onClick={() => setAddOpen(false)}
-                className="rounded-lg px-2 py-1 text-muted hover:bg-surface/70 hover:text-text transition"
-                aria-label="Cerrar"
-              >
-                ✕
-              </button>
+                <div style={styles.tipRow}>
+                  <div style={styles.tipDot} aria-hidden="true" />
+                  <div style={styles.tipText}>Tip: si no sabes el peso aún, déjalo vacío.</div>
+                </div>
+              </form>
             </div>
-
-            <form onSubmit={addPart} className="mt-4 space-y-4">
-              <Field label="Nombre">
-                <input
-                  value={partName}
-                  onChange={(e) => setPartName(e.target.value)}
-                  placeholder="Ej: Cassette 11-42"
-                  className="w-full rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-text placeholder:text-muted outline-none focus:ring-2 focus:ring-primary/40"
-                />
-              </Field>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Field label="Categoría">
-                  <select
-                    value={partCategory}
-                    onChange={(e) => setPartCategory(e.target.value)}
-                    style={{ colorScheme: "dark" }} // <-- clave en Chrome/Windows
-                    className="dark-selectw-full rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-primary/40"
-                  >
-                    {categories.map((c) => (
-                      <option
-                        key={c}
-                        value={c}
-                        className="bg-zinc-900 text-zinc-100" // <-- ayuda cuando el navegador sí lo respeta
-                      >
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-
-                <Field label="Peso (g)">
-                  <input
-                    value={partWeight}
-                    onChange={(e) => setPartWeight(e.target.value)}
-                    placeholder="Ej: 342"
-                    inputMode="numeric"
-                    className="w-full rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-text placeholder:text-muted outline-none focus:ring-2 focus:ring-primary/40"
-                  />
-                </Field>
-              </div>
-
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-2 pt-2">
-                <button type="button" onClick={() => setAddOpen(false)} className={cn(BTN_SECONDARY, "w-full sm:w-auto")}>
-                  Cancelar
-                </button>
-                <button type="submit" className={cn(BTN_PRIMARY, "w-full sm:w-auto")}>
-                  Guardar
-                </button>
-              </div>
-
-              <div className="text-xs text-muted">Tip: si no sabes el peso aún, déjalo vacío.</div>
-            </form>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </main>
     </div>
   );
 }
 
-function Field({ label, children }) {
-  return (
-    <div className="grid gap-1">
-      <div className="text-xs text-muted">{label}</div>
-      {children}
-    </div>
-  );
+/* =========================
+   Styles (match landing)
+========================= */
+
+const styles = {
+  page: {
+    fontFamily:
+      'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"',
+    minHeight: "100vh",
+    background: "#070A12",
+  },
+
+  bgGlow: {
+    position: "fixed",
+    inset: 0,
+    background:
+      "radial-gradient(800px 400px at 20% 0%, rgba(99,102,241,0.20), transparent 60%), radial-gradient(700px 350px at 100% 20%, rgba(34,197,94,0.14), transparent 55%), radial-gradient(600px 300px at 50% 100%, rgba(59,130,246,0.10), transparent 55%)",
+    pointerEvents: "none",
+    zIndex: 0,
+  },
+
+  header: {
+    position: "sticky",
+    top: 0,
+    zIndex: 20,
+    backdropFilter: "blur(10px)",
+    background: "rgba(7,10,18,0.70)",
+    borderBottom: "1px solid rgba(255,255,255,0.08)",
+  },
+
+  headerInner: {
+    maxWidth: 980,
+    margin: "0 auto",
+    padding: "12px 16px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  brand: { display: "flex", alignItems: "center", gap: 10 },
+
+  logo: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    display: "grid",
+    placeItems: "center",
+    fontWeight: 800,
+    fontSize: 13,
+    color: "white",
+    background: "linear-gradient(135deg, rgba(99,102,241,1), rgba(34,197,94,1))",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+  },
+
+  brandName: { fontWeight: 700, color: "rgba(255,255,255,0.95)" },
+  brandTag: { fontSize: 12, color: "rgba(255,255,255,0.60)" },
+
+  headerActions: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
+
+  headerLink: {
+    color: "rgba(255,255,255,0.78)",
+    textDecoration: "none",
+    fontSize: 14,
+    padding: "10px 10px",
+    borderRadius: 12,
+  },
+
+  headerLinkBtn: {
+    appearance: "none",
+    border: 0,
+    background: "transparent",
+    color: "rgba(255,255,255,0.78)",
+    fontSize: 14,
+    padding: "10px 10px",
+    borderRadius: 12,
+    cursor: "pointer",
+  },
+
+  headerGhostBtn: {
+    appearance: "none",
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.06)",
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 14,
+    fontWeight: 800,
+    padding: "10px 12px",
+    borderRadius: 12,
+    cursor: "pointer",
+  },
+
+  main: { position: "relative", zIndex: 1 },
+
+  hero: {
+    maxWidth: 980,
+    margin: "0 auto",
+    padding: "18px 16px 24px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 14,
+  },
+
+  heroCard: {
+    borderRadius: 22,
+    overflow: "hidden",
+    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.06)",
+    boxShadow: "0 25px 60px rgba(0,0,0,0.35)",
+    padding: 14,
+  },
+
+  heroTop: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 14,
+    flexWrap: "wrap",
+  },
+
+  heroKicker: { fontSize: 12, color: "rgba(255,255,255,0.65)" },
+
+  heroTitleRow: { display: "flex", alignItems: "center", gap: 8, marginTop: 6 },
+
+  heroTitle: {
+    margin: 0,
+    fontSize: 26,
+    lineHeight: 1.05,
+    letterSpacing: -0.6,
+    color: "rgba(255,255,255,0.96)",
+    maxWidth: 640,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+
+  heroMeta: {
+    marginTop: 10,
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+
+  heroMetaStrong: { fontWeight: 900, color: "rgba(255,255,255,0.92)" },
+  heroMetaSoft: { color: "rgba(255,255,255,0.65)", fontSize: 13 },
+
+  heroDot: { width: 4, height: 4, borderRadius: 999, background: "rgba(255,255,255,0.25)" },
+
+  heroSubMeta: { marginTop: 8, fontSize: 12, color: "rgba(255,255,255,0.62)" },
+
+  heroPill: {
+    borderRadius: 18,
+    padding: "12px 12px",
+    background: "rgba(0,0,0,0.22)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    minWidth: 200,
+  },
+
+  heroPillTitle: { fontSize: 12, color: "rgba(255,255,255,0.65)" },
+  heroPillValue: { marginTop: 6, fontWeight: 900, fontSize: 24, color: "rgba(255,255,255,0.92)" },
+  heroPillSub: { marginTop: 4, fontSize: 12, color: "rgba(255,255,255,0.60)" },
+
+  sectionTop: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    marginBottom: 10,
+  },
+
+  sectionTitle: { fontWeight: 900, color: "rgba(255,255,255,0.92)" },
+  sectionHint: { fontSize: 12, color: "rgba(255,255,255,0.60)" },
+
+  distRow: {
+    display: "grid",
+    gridTemplateColumns: "120px 1fr 70px",
+    gap: 10,
+    alignItems: "center",
+  },
+
+  distCat: { fontSize: 12, color: "rgba(255,255,255,0.70)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+
+  distTrack: {
+    height: 8,
+    borderRadius: 99,
+    overflow: "hidden",
+    background: "rgba(0,0,0,0.22)",
+    border: "1px solid rgba(255,255,255,0.08)",
+  },
+
+  distFill: {
+    height: "100%",
+    borderRadius: 99,
+    background: "linear-gradient(135deg, rgba(99,102,241,0.85), rgba(34,197,94,0.75))",
+  },
+
+  distVal: { textAlign: "right", fontSize: 12, color: "rgba(255,255,255,0.60)" },
+
+  actionsRow: {
+    display: "flex",
+    gap: 10,
+    alignItems: "center",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    marginTop: 2,
+  },
+
+  grid: {
+    marginTop: 2,
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: 10,
+  },
+
+  partCard: {
+    padding: 14,
+    borderRadius: 18,
+    background: "rgba(0,0,0,0.22)",
+    border: "1px solid rgba(255,255,255,0.08)",
+  },
+
+  partTop: { display: "flex", alignItems: "flex-start", gap: 12 },
+
+  partName: {
+    fontWeight: 900,
+    color: "rgba(255,255,255,0.92)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+
+  partMeta: { marginTop: 6, fontSize: 13, color: "rgba(255,255,255,0.70)" },
+  partMetaSoft: { color: "rgba(255,255,255,0.60)" },
+
+  partBtns: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" },
+
+  editRow: { marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" },
+
+  field: { display: "grid", gap: 6 },
+
+  label: { fontSize: 12, color: "rgba(255,255,255,0.65)" },
+
+  input: {
+    padding: "12px 12px",
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(0,0,0,0.22)",
+    color: "rgba(255,255,255,0.92)",
+    outline: "none",
+    fontSize: 14,
+  },
+
+  primaryBtn: {
+    border: 0,
+    fontWeight: 900,
+    padding: "12px 14px",
+    borderRadius: 14,
+    color: "#0b1220",
+    background:
+      "linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.82))",
+    boxShadow: "0 14px 30px rgba(0,0,0,0.35)",
+    cursor: "pointer",
+  },
+
+  secondaryBtn: {
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.06)",
+    color: "rgba(255,255,255,0.88)",
+    fontWeight: 900,
+    padding: "12px 14px",
+    borderRadius: 14,
+    cursor: "pointer",
+  },
+
+  ghostBtn: {
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.04)",
+    color: "rgba(255,255,255,0.82)",
+    fontWeight: 900,
+    padding: "12px 14px",
+    borderRadius: 14,
+    cursor: "pointer",
+  },
+
+  iconBtn: {
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.06)",
+    color: "rgba(255,255,255,0.88)",
+    fontWeight: 900,
+    padding: "8px 10px",
+    borderRadius: 12,
+    cursor: "pointer",
+  },
+
+  btnRow: { display: "flex", gap: 10, flexWrap: "wrap" },
+  btnRowRight: { display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" },
+
+  grid2: { display: "grid", gridTemplateColumns: "1fr", gap: 10 },
+
+  empty: {
+    padding: "18px 14px",
+    borderRadius: 18,
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.10)",
+    textAlign: "center",
+  },
+
+  emptyIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    display: "grid",
+    placeItems: "center",
+    margin: "0 auto 10px",
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    color: "rgba(255,255,255,0.92)",
+    fontSize: 18,
+    fontWeight: 900,
+  },
+
+  emptyTitle: { fontWeight: 900, color: "rgba(255,255,255,0.92)" },
+  emptyText: { marginTop: 6, color: "rgba(255,255,255,0.68)", fontSize: 13 },
+
+  fab: {
+    position: "fixed",
+    right: 18,
+    bottom: 18,
+    width: 56,
+    height: 56,
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background:
+      "linear-gradient(135deg, rgba(99,102,241,0.65), rgba(34,197,94,0.55))",
+    color: "rgba(255,255,255,0.95)",
+    fontWeight: 900,
+    fontSize: 26,
+    boxShadow: "0 18px 55px rgba(0,0,0,0.45)",
+    cursor: "pointer",
+  },
+
+  modalWrap: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 50,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
+
+  modalOverlay: { position: "absolute", inset: 0, background: "rgba(0,0,0,0.60)" },
+
+  modal: {
+    position: "relative",
+    width: "100%",
+    maxWidth: 720,
+    borderRadius: 22,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(7,10,18,0.90)",
+    backdropFilter: "blur(12px)",
+    boxShadow: "0 25px 70px rgba(0,0,0,0.55)",
+    padding: 14,
+  },
+
+  modalHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    paddingBottom: 10,
+    borderBottom: "1px solid rgba(255,255,255,0.10)",
+  },
+
+  modalTitle: { fontWeight: 900, color: "rgba(255,255,255,0.92)" },
+
+  tipRow: { display: "flex", gap: 8, alignItems: "center", color: "rgba(255,255,255,0.65)", fontSize: 12 },
+
+  tipDot: { width: 8, height: 8, borderRadius: 99, background: "rgba(99,102,241,0.75)" },
+  tipText: { lineHeight: 1.4 },
+
+  // skeleton
+  card: {
+    padding: 14,
+    borderRadius: 18,
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.10)",
+    boxShadow: "0 18px 55px rgba(0,0,0,0.22)",
+  },
+
+  skelLine1: { height: 14, width: "70%", borderRadius: 999, background: "rgba(255,255,255,0.10)" },
+  skelLine2: { height: 12, width: "45%", borderRadius: 999, background: "rgba(255,255,255,0.08)", marginTop: 10 },
+  skelBtn: { height: 40, width: "100%", borderRadius: 14, background: "rgba(255,255,255,0.10)", marginTop: 14 },
+};
+
+/* Responsive tweak: 2 columnas en pantallas grandes */
+if (typeof window !== "undefined") {
+  // Nada aquí — lo dejamos SSR-safe.
 }
