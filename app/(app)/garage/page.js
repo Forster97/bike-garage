@@ -243,7 +243,7 @@ export default function GaragePage() {
                 <Link
                   key={bike.id}
                   href={`/garage/${bike.id}`}
-                  style={{ textDecoration: "none" }}
+                  style={{ textDecoration: "none", display: "block", width: "100%" }}
                   aria-label={`Abrir ${bike.name}`}
                 >
                   <div style={styles.bikeCard} role="button" tabIndex={0}>
@@ -364,12 +364,15 @@ const styles = {
   brand: { display: "flex", alignItems: "center", gap: 10 },
 
   bikeGrid: {
+    width: "100%",
     display: "grid",
     gridTemplateColumns: "1fr",
     gap: 12,
   },
 
   bikeCard: {
+    width: "100%",
+    boxSizing: "border-box",
     borderRadius: 18,
     padding: 14,
     background: "rgba(255,255,255,0.06)",
