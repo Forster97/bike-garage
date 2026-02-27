@@ -55,7 +55,7 @@ export default function BikeHistoryPage() {
         <div className="rounded-xl2 border border-border bg-card p-5 shadow-soft">
           <div className="font-semibold">Aún no hay historial</div>
           <p className="mt-1 text-sm text-muted">
-            Cuando crees/edites/eliminés componentes, aparecerán registros aquí.
+            Cuando crees/edites/eliminés componentes, aparecerán los registros aquí.
           </p>
         </div>
       ) : (

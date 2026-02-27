@@ -80,8 +80,7 @@ export default function LoginPage() {
               Bienvenido de vuelta
             </h1>
             <p className="mt-2 text-sm text-zinc-300">
-              Inicia sesión para ver tu garage y llevar el control de tus
-              componentes.
+              Inicia sesión para ver tu garage y llevar el control de tus bicicletas.
             </p>
           </div>
 
@@ -101,7 +100,7 @@ export default function LoginPage() {
                 />
                 {email.length > 0 && !isValidEmail(email) ? (
                   <p className="text-xs text-amber-300">
-                    Escribe un email válido.
+                    Ingrese un email válido.
                   </p>
                 ) : null}
               </div>
@@ -165,10 +164,6 @@ export default function LoginPage() {
                 >
                   ← Volver
                 </button>
-
-                <p className="text-xs text-zinc-400">
-                  Tip: revisa variables en Vercel si falla Auth.
-                </p>
               </div>
             </form>
           </div>

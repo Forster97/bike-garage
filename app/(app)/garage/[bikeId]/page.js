@@ -450,7 +450,7 @@ export default function BikeDetailPage() {
               </div>
 
               <div className="rounded-xl2 border border-border bg-surface/40 p-4 text-left sm:text-right">
-                <div className="text-xs text-muted">Total weight</div>
+                <div className="text-xs text-muted">Peso Total</div>
                 <div className="mt-1 text-3xl sm:text-4xl font-semibold">{formatKgFromGrams(totalWeightG)}</div>
                 <div className="mt-1 text-xs text-muted">({totalWeightG.toFixed(0)} g)</div>
               </div>
@@ -520,7 +520,7 @@ export default function BikeDetailPage() {
           <div className="mt-5">
             <div className="mb-2 flex items-center justify-between">
               <div className="text-sm font-medium">Distribución de peso</div>
-              <div className="text-xs text-muted">top categorías</div>
+              <div className="text-xs text-muted">Top categorías</div>
             </div>
 
             <div className="space-y-2">

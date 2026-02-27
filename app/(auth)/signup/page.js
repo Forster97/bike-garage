@@ -96,9 +96,6 @@ export default function SignupPage() {
             <h1 className="mt-4 text-3xl font-semibold tracking-tight">
               Crear cuenta
             </h1>
-            <p className="mt-2 text-sm text-zinc-300">
-              Crea tu garage en 30 segundos.
-            </p>
           </div>
 
           {/* Card */}
@@ -117,7 +114,7 @@ export default function SignupPage() {
                 />
                 {emailTouched && !isValidEmail(email) ? (
                   <p className="text-xs text-amber-300">
-                    Escribe un email válido.
+                    Ingrese un email válido.
                   </p>
                 ) : null}
               </div>
@@ -211,7 +208,7 @@ export default function SignupPage() {
               <p className="pt-1 text-sm text-zinc-400">
                 ¿Ya tienes cuenta?{" "}
                 <Link href="/login" className="text-emerald-300 hover:underline">
-                  Volver a login
+                  Ir al login
                 </Link>
               </p>
             </form>
