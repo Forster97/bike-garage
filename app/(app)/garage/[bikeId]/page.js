@@ -201,7 +201,8 @@ export default function BikeDetailPage() {
         setParts(rows);
 
         const nextEdit = {};
-        for (const p of rows) nextEdit[p.id] = { category: p.category, weight_g: p.weight_g ?? "" };
+        for (const p of rows) 
+          nextEdit[p.id] = { name: p.name ?? "", category: p.category, weight_g: p.weight_g ?? "" };
         setEditById(nextEdit);
       } finally {
         if (!cancelled) setLoading(false);
@@ -288,7 +289,7 @@ export default function BikeDetailPage() {
     setParts((prev) => [data, ...prev]);
     setEditById((prev) => ({
       ...prev,
-      [data.id]: { category: data.category, weight_g: data.weight_g ?? "" },
+      [data.id]: { name: data.name ?? "", category: data.category, weight_g: data.weight_g ?? "" },
     }));
 
     setPartName("");
@@ -330,6 +331,9 @@ export default function BikeDetailPage() {
   const savePart = async (partId) => {
     const row = editById[partId];
     if (!row) return;
+    
+    const nextName = (row.name ?? "").trim();
+    if (!nextName) return alert("Nombre inválido.");
 
     const userId = await getUserIdOrRedirect();
     if (!userId) return;
@@ -342,7 +346,7 @@ export default function BikeDetailPage() {
 
     const { data, error } = await supabase
       .from("parts")
-      .update({ category: row.category, weight_g: w })
+      .update({ name: nextName, category: row.category, weight_g: w })
       .eq("id", partId)
       .select("*")
       .single();
@@ -643,8 +647,7 @@ export default function BikeDetailPage() {
           ) : (
             <div style={styles.grid}>
               {filteredParts.map((p) => {
-                const row = editById[p.id] || { category: p.category, weight_g: p.weight_g ?? "" };
-                const isEditing = editingPartId === p.id;
+                const row = editById[p.id] || { name: p.name ?? "", category: p.category, weight_g: p.weight_g ?? "" };
                 const pct = totalWeightG > 0 ? ((Number(p.weight_g) || 0) / totalWeightG) * 100 : 0;
 
                 return (
@@ -662,6 +665,17 @@ export default function BikeDetailPage() {
                           </div>
                         ) : (
                           <div style={styles.editRow}>
+                            <input
+                              value={String(row.name ?? "")}
+                              onChange={(e) =>
+                                setEditById((prev) => ({
+                                  ...prev,
+                                  [p.id]: { ...row, name: e.target.value },
+                                }))
+                              }
+                              placeholder="Nombre"
+                              style={{ ...styles.input, minWidth: 220 }}
+                            />
                             <select
                               value={row.category}
                               onChange={(e) =>
