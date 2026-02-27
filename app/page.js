@@ -23,7 +23,7 @@ export default function Home() {
             <Link href="/login" style={styles.headerLink}>
               Iniciar sesión
             </Link>
-            <Link href="/login" style={styles.headerCta}>
+            <Link href="/signup" style={styles.headerCta}>
               Empezar
             </Link>
           </div>
