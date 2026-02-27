@@ -37,3 +37,7 @@ select.dark-select option {
   transform: scale(0.98);
   border-color: rgba(99,102,241,0.4);
 }
+
+input, select, textarea {
+  color-scheme: dark;
+}
