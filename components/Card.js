@@ -1,12 +1,12 @@
-export default function Card({ children }) {
+export default function Card({ className = "", children }) {
   return (
-    <div style={{
-      border: "1px solid #eee",
-      borderRadius: 16,
-      padding: 14,
-      boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-      background: "#fff"
-    }}>
+    <div
+      className={[
+        "rounded-2xl border border-border bg-surface/60 text-text shadow-soft backdrop-blur",
+        "p-4",
+        className,
+      ].join(" ")}
+    >
       {children}
     </div>
   );
