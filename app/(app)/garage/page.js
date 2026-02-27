@@ -20,10 +20,7 @@ export default function GaragePage() {
 
       setUser(data.user);
 
-      const { data: bikesData } = await supabase
-        .from("bikes")
-        .select("*")
-        .order("created_at", { ascending: false });
+      await refreshBikes(data.user.id);
 
       setBikes(bikesData || []);
       setLoading(false);
@@ -37,11 +34,19 @@ export default function GaragePage() {
     router.replace("/login");
   };
 
-  const refreshBikes = async () => {
-    const { data } = await supabase
+  const refreshBikes = async (uid) => {
+    const { data, error } = await supabase
       .from("bikes")
       .select("*")
+      .eq("user_id", uid)
       .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("refreshBikes error:", error);
+      alert(error.message);
+      return;
+    }
+
     setBikes(data || []);
   };
 
@@ -49,17 +54,32 @@ export default function GaragePage() {
     const name = newBikeName.trim();
     if (!name) return;
 
-    const { error } = await supabase.from("bikes").insert([
-      {
-        name,
-        user_id: user.id,
-      },
-    ]);
+    try {
+      // Asegura usuario REAL en el momento del click (evita user null)
+      const { data: userRes, error: userErr } = await supabase.auth.getUser();
+      const uid = userRes?.user?.id;
 
-    if (error) return alert(error.message);
+      if (userErr || !uid) {
+        router.replace("/login");
+        return;
+      }
 
-    setNewBikeName("");
-    await refreshBikes();
+      const { error } = await supabase.from("bikes").insert([
+        { name, user_id: uid },
+      ]);
+
+      if (error) {
+        console.error("addBike insert error:", error);
+        alert(error.message);
+        return;
+      }
+
+      setNewBikeName("");
+      await refreshBikes(uid);
+    } catch (err) {
+      console.error("addBike crash:", err);
+      alert(err?.message ?? "Error inesperado al agregar la bicicleta.");
+    }
   };
 
   const deleteBike = async (bikeId) => {
