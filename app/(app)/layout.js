@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { getSupabase } from "../../lib/supabaseClient";
+import BackgroundGlow from "../../components/BackgroundGlow";
 
 function NavItem({ href, label, active }) {
   return (
@@ -27,29 +28,32 @@ export default function AppGroupLayout({ children }) {
   const [email, setEmail] = useState("");
 
   useEffect(() => {
-const load = async () => {
-  const supabase = getSupabase();
-  if (!supabase) return router.replace("/login");
+    const load = async () => {
+      const supabase = getSupabase();
+      if (!supabase) return router.replace("/login");
 
-  const { data } = await supabase.auth.getUser();
-  if (!data?.user) return router.replace("/login");
-  setEmail(data.user.email ?? "");
-};
+      const { data } = await supabase.auth.getUser();
+      if (!data?.user) return router.replace("/login");
+      setEmail(data.user.email ?? "");
+    };
 
     load();
   }, [router]);
 
-const logout = async () => {
-  const supabase = getSupabase();
-  if (supabase) await supabase.auth.signOut();
-  router.replace("/login");
-};
+  const logout = async () => {
+    const supabase = getSupabase();
+    if (supabase) await supabase.auth.signOut();
+    router.replace("/login");
+  };
 
   const isGarage = pathname?.startsWith("/garage");
   const isCategories = pathname?.startsWith("/settings/categories");
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative">
+      {/* Glow de fondo */}
+      <BackgroundGlow />
+
       {/* Topbar */}
       <div className="sticky top-0 z-20 border-b border-border bg-surface/60 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
@@ -63,7 +67,9 @@ const logout = async () => {
               label="Categorías"
               active={isCategories}
             />
-            <span className="ml-2 text-sm text-muted">{email}</span>
+            <span className="ml-2 max-w-[220px] truncate text-sm text-muted">
+              {email}
+            </span>
             <button
               onClick={logout}
               className="ml-2 rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm text-muted hover:bg-surface/80 hover:text-text transition"
