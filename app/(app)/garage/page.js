@@ -541,7 +541,7 @@ const styles = {
 
   heroTopRow: {
     display: "flex",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
     flexWrap: "wrap",
@@ -581,6 +581,7 @@ const styles = {
     borderRadius: 18,
     background: "rgba(255,255,255,0.06)",
     border: "1px solid rgba(255,255,255,0.10)",
+    transition: "all 0,2s ease",
     boxShadow: "0 18px 55px rgba(0,0,0,0.22)",
   },
 
