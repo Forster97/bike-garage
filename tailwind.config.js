@@ -7,8 +7,6 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        extend: {
-          colors: {
             bg: "#0b0f19",
             surface: "#0f172a",
             card: "#111827",
@@ -18,8 +16,6 @@ module.exports = {
             primary: "#84cc16",
             primary2: "#3b82f6",
           },
-        },
-      },
       borderRadius: { xl2: "1.25rem" },
       boxShadow: { soft: "0 10px 30px rgba(0,0,0,0.35)" },
     },
