@@ -432,8 +432,8 @@ const styles = {
   },
 
   trashBtn: {
-    width: 42,
-    height: 42,
+    width: 40,
+    height: 40,
     borderRadius: 14,
     border: "1px solid rgba(255,255,255,0.12)",
     background: "rgba(0,0,0,0.22)",
@@ -444,8 +444,8 @@ const styles = {
   },
 
   chevron: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     borderRadius: 14,
     border: "1px solid rgba(255,255,255,0.10)",
     background: "rgba(255,255,255,0.06)",
