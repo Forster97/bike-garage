@@ -78,10 +78,6 @@ function getPartCategory(l, partsById) {
   return p?.category ?? null;
 }
 
-function getPartCategory(l) {
-  return l.new_category ?? l.old_category ?? l.category ?? l.part_category ?? null;
-}
-
 /**
  * Para updated: arma una línea "Cambios: ..."
  * Solo muestra campos que realmente cambiaron.
