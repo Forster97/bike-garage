@@ -8,17 +8,6 @@ import { supabase } from "../../../lib/supabaseClient";
 import AppHeader from "../../../components/AppHeader";
 import PageShell from "../../../components/PageShell";
 
-const headerBtnStyle = {
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "rgba(255,255,255,0.06)",
-  color: "rgba(255,255,255,0.85)",
-  cursor: "pointer",
-  borderRadius: 12,
-  padding: "10px 12px",
-  fontSize: 14,
-  fontWeight: 800,
-};
-
 export default function GaragePage() {
   const router = useRouter();
 
@@ -35,11 +24,9 @@ export default function GaragePage() {
 
   const refreshBikes = async (uid) => {
     const { data, error } = await supabase
-      .from("bikes")
-      .select("*")
-      .eq("user_id", uid)
+      .from("bikes").select("*").eq("user_id", uid)
       .order("created_at", { ascending: false });
-    if (error) { console.error("refreshBikes:", error); alert(error.message); return; }
+    if (error) { console.error(error); alert(error.message); return; }
     setBikes(data || []);
   };
 
@@ -55,7 +42,7 @@ export default function GaragePage() {
         setUser(data.user);
         await refreshBikes(data.user.id);
       } catch (err) {
-        console.error("Garage load:", err);
+        console.error(err);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -98,139 +85,115 @@ export default function GaragePage() {
   const header = (
     <AppHeader
       actions={[
-        <Link key="cats" href="/settings/categories"
-          style={{ color: "rgba(255,255,255,0.78)", textDecoration: "none", fontSize: 14, padding: "10px" }}>
-          Categorías
-        </Link>,
+        <Link key="cats" href="/settings/categories" style={s.headerLink}>Categorías</Link>,
         user?.email && (
-          <div key="chip"
-            className="hidden sm:flex items-center gap-2 rounded-full px-3 py-2 text-xs"
-            style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.80)" }}
-            title={user.email}
-          >
-            <span className="h-2 w-2 rounded-full" style={{ background: "rgba(34,197,94,0.9)" }} />
-            {userLabel}
+          <div key="chip" style={s.userChip} title={user.email}>
+            <span style={s.onlineDot} />
+            <span style={s.userChipText}>{userLabel}</span>
           </div>
         ),
-        <button key="logout" onClick={logout} style={headerBtnStyle}>Salir</button>,
+        <button key="logout" onClick={logout} style={s.headerBtn}>Salir</button>,
       ].filter(Boolean)}
     />
   );
 
   return (
     <PageShell header={header}>
-      {/* Título */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+
+      {/* ── Page title ── */}
+      <div style={s.titleRow}>
         <div>
-          <h1 className="m-0 text-3xl font-black tracking-tight" style={{ color: "rgba(255,255,255,0.96)" }}>
-            Tu Garage
-          </h1>
-          <p className="mt-2 text-sm" style={{ color: "rgba(255,255,255,0.70)" }}>
-            Crea tus bicicletas, entra a cada una para registrar sus componentes
-          </p>
+          <div style={s.titleLabel}>Mi colección</div>
+          <h1 style={s.title}>Garage</h1>
         </div>
-        <div className="rounded-2xl border px-4 py-3"
-          style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)" }}>
-          <span className="text-lg font-black" style={{ color: "rgba(255,255,255,0.92)" }}>{bikes.length}</span>
-          <span className="ml-2 text-xs" style={{ color: "rgba(255,255,255,0.65)" }}>Bicis</span>
-        </div>
+        {!loading && (
+          <div style={s.countPill}>
+            <span style={s.countNum}>{bikes.length}</span>
+            <span style={s.countLabel}>{bikes.length === 1 ? "bici" : "bicis"}</span>
+          </div>
+        )}
       </div>
 
-      {/* Agregar bici */}
-      <div className="rounded-[18px] border p-4"
-        style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)", boxShadow: "0 18px 55px rgba(0,0,0,0.22)" }}>
-        <div className="mb-3 flex items-start justify-between gap-3">
+      {/* ── Add bike ── */}
+      <div style={s.addCard}>
+        <div style={s.addCardTop}>
           <div>
-            <div className="font-black" style={{ color: "rgba(255,255,255,0.92)" }}>Agregar bicicleta</div>
-            <div className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.65)" }}>Ej: Orbea Terra / Diverge / Gambler</div>
+            <div style={s.addCardTitle}>Agregar bicicleta</div>
+            <div style={s.addCardSub}>Ej: Diverge Comp / Gambler / Orbea Terra</div>
           </div>
-          <span className="rounded-full px-3 py-1 text-xs font-black"
-            style={{ background: "rgba(34,197,94,0.18)", border: "1px solid rgba(34,197,94,0.25)", color: "rgba(255,255,255,0.90)" }}>
-            Nuevo
-          </span>
+          <span style={s.newBadge}>+ Nueva</span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div style={s.addRow}>
           <input
             value={newBikeName}
             onChange={(e) => setNewBikeName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addBike()}
             placeholder="Nombre de la bicicleta"
-            className="flex-1 min-w-[200px] rounded-[14px] px-3 py-3 text-sm outline-none"
-            style={{ border: "1px solid rgba(255,255,255,0.12)", background: "rgba(0,0,0,0.22)", color: "rgba(255,255,255,0.92)" }}
+            style={s.input}
           />
           <button
             onClick={addBike}
             disabled={!newBikeName.trim() || adding}
-            className="rounded-[14px] px-4 py-3 text-sm font-black"
             style={{
-              border: 0, color: "#0b1220",
-              background: "linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.82))",
-              boxShadow: "0 14px 30px rgba(0,0,0,0.35)",
-              opacity: !newBikeName.trim() || adding ? 0.55 : 1,
+              ...s.addBtn,
+              opacity: !newBikeName.trim() || adding ? 0.45 : 1,
               cursor: !newBikeName.trim() || adding ? "not-allowed" : "pointer",
             }}
           >
-            {adding ? "Agregando..." : "Agregar"}
+            {adding ? "Agregando…" : "Agregar"}
           </button>
         </div>
 
-        <div className="mt-3 flex items-center gap-2 text-xs" style={{ color: "rgba(255,255,255,0.65)" }}>
-          <span className="h-2 w-2 rounded-full" style={{ background: "rgba(99,102,241,0.75)" }} />
-          Tip: después podrás agregar tipo, año, talla y notas dentro de la bici.
+        <div style={s.tip}>
+          <span style={s.tipDot} />
+          Después podrás agregar tipo, año, talla y notas dentro de cada bici.
         </div>
       </div>
 
-      {/* Lista */}
+      {/* ── Bike list ── */}
       {loading ? (
-        <div className="flex flex-col gap-3">
+        <div style={s.list}>
           {[1, 2, 3].map((i) => (
-            <div key={i} className="animate-pulse rounded-[18px] border p-4"
-              style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(0,0,0,0.22)" }}>
-              <div className="h-4 w-2/3 rounded-full" style={{ background: "rgba(255,255,255,0.10)" }} />
-              <div className="mt-3 h-3 w-1/3 rounded-full" style={{ background: "rgba(255,255,255,0.08)" }} />
+            <div key={i} style={s.skeletonCard}>
+              <div style={s.skeletonAvatar} />
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={s.skeletonLine1} />
+                <div style={s.skeletonLine2} />
+              </div>
             </div>
           ))}
         </div>
       ) : bikes.length === 0 ? (
-        <div className="rounded-[18px] border p-10 text-center"
-          style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)" }}>
-          <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl border text-lg"
-            style={{ border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.08)" }}>✨</div>
-          <div className="font-black" style={{ color: "rgba(255,255,255,0.92)" }}>No tienes bicicletas aún</div>
-          <p className="mt-2 text-sm" style={{ color: "rgba(255,255,255,0.68)" }}>Agrega tu primera bici arriba para empezar.</p>
+        <div style={s.emptyState}>
+          <div style={s.emptyIcon}>🚲</div>
+          <div style={s.emptyTitle}>Tu garage está vacío</div>
+          <p style={s.emptyText}>Agrega tu primera bici arriba para empezar a registrar componentes y pesos.</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div style={s.list}>
           {bikes.map((bike) => (
-            <div key={bike.id} className="overflow-hidden rounded-[22px] border"
-              style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)", boxShadow: "0 25px 60px rgba(0,0,0,0.35)" }}>
-              <div className="flex items-center justify-between gap-3 p-4">
-                <Link href={`/garage/${bike.id}`}
-                  className="flex min-w-0 flex-1 items-center gap-3"
-                  style={{ textDecoration: "none" }}>
-                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl font-black text-lg"
-                    style={{ background: "rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.92)" }}>
-                    {(bike.name || "B").slice(0, 1).toUpperCase()}
+            <div key={bike.id} style={s.bikeCard}>
+              <Link href={`/garage/${bike.id}`} style={s.bikeLink}>
+                <div style={s.bikeAvatar}>
+                  {(bike.name || "B").slice(0, 1).toUpperCase()}
+                </div>
+                <div style={s.bikeInfo}>
+                  <div style={s.bikeName}>{bike.name}</div>
+                  <div style={s.bikeMeta}>
+                    {bike.type ? `${bike.type} · ` : ""}
+                    Creada {new Date(bike.created_at).toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" })}
                   </div>
-                  <div className="min-w-0">
-                    <div className="truncate font-black text-xl" style={{ color: "rgba(255,255,255,0.95)" }}>{bike.name}</div>
-                    <div className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.65)" }}>
-                      Creada: {new Date(bike.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                </Link>
-                <button onClick={() => deleteBike(bike.id)}
-                  className="grid h-11 w-11 place-items-center rounded-2xl"
-                  style={{ border: "1px solid rgba(255,255,255,0.12)", background: "rgba(0,0,0,0.20)", cursor: "pointer" }}
-                  title="Eliminar">🗑</button>
-              </div>
-              <div style={{ height: 1, background: "rgba(255,255,255,0.08)" }} />
-              <Link href={`/garage/${bike.id}`}
-                className="block px-4 py-3 text-sm"
-                style={{ color: "rgba(255,255,255,0.60)", textDecoration: "none" }}>
-                Toca para ver detalles →
+                </div>
+                <div style={s.bikeArrow}>→</div>
               </Link>
+              <button
+                onClick={() => deleteBike(bike.id)}
+                style={s.deleteBtn}
+                title="Eliminar bicicleta"
+              >
+                🗑
+              </button>
             </div>
           ))}
         </div>
@@ -238,3 +201,59 @@ export default function GaragePage() {
     </PageShell>
   );
 }
+
+/* ── Styles ───────────────────────────────────────────── */
+
+const s = {
+  /* Header actions */
+  headerLink: { color: "rgba(255,255,255,0.60)", textDecoration: "none", fontSize: 13, padding: "8px 10px", borderRadius: 8, fontWeight: 500, whiteSpace: "nowrap" },
+  headerBtn: { border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.75)", cursor: "pointer", borderRadius: 9, padding: "8px 13px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" },
+  userChip: { display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 999, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.05)" },
+  onlineDot: { display: "block", width: 6, height: 6, borderRadius: 999, background: "rgb(34,197,94)", boxShadow: "0 0 6px rgba(34,197,94,0.7)", flexShrink: 0 },
+  userChipText: { fontSize: 12, color: "rgba(255,255,255,0.65)", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+
+  /* Title */
+  titleRow: { display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12 },
+  titleLabel: { fontSize: 11, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: 4 },
+  title: { margin: 0, fontSize: "clamp(28px, 6vw, 38px)", fontWeight: 900, letterSpacing: "-1px", color: "rgba(255,255,255,0.95)", lineHeight: 1 },
+  countPill: { display: "flex", alignItems: "baseline", gap: 5, padding: "10px 16px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)" },
+  countNum: { fontSize: 22, fontWeight: 900, color: "rgba(255,255,255,0.90)", letterSpacing: "-0.5px" },
+  countLabel: { fontSize: 12, color: "rgba(255,255,255,0.40)", fontWeight: 500 },
+
+  /* Add card */
+  addCard: { borderRadius: 18, border: "1px solid rgba(255,255,255,0.09)", background: "rgba(255,255,255,0.04)", padding: "18px", display: "flex", flexDirection: "column", gap: 14 },
+  addCardTop: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 },
+  addCardTitle: { fontWeight: 700, fontSize: 15, color: "rgba(255,255,255,0.88)", letterSpacing: "-0.3px" },
+  addCardSub: { marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.40)" },
+  newBadge: { fontSize: 11, fontWeight: 700, color: "rgba(134,239,172,0.9)", background: "rgba(34,197,94,0.10)", border: "1px solid rgba(34,197,94,0.20)", padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" },
+  addRow: { display: "flex", gap: 8, flexWrap: "wrap" },
+  input: { flex: 1, minWidth: 200, padding: "11px 14px", borderRadius: 11, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(0,0,0,0.25)", color: "rgba(255,255,255,0.90)", fontSize: 14, outline: "none" },
+  addBtn: { padding: "11px 18px", borderRadius: 11, border: 0, fontWeight: 700, fontSize: 14, color: "#060910", background: "linear-gradient(135deg, rgba(255,255,255,0.96), rgba(255,255,255,0.82))", boxShadow: "0 4px 20px rgba(0,0,0,0.3)", whiteSpace: "nowrap" },
+  tip: { display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: "rgba(255,255,255,0.38)" },
+  tipDot: { display: "block", width: 5, height: 5, borderRadius: 999, background: "rgba(99,102,241,0.6)", flexShrink: 0 },
+
+  /* List */
+  list: { display: "flex", flexDirection: "column", gap: 8 },
+
+  /* Skeleton */
+  skeletonCard: { display: "flex", alignItems: "center", gap: 14, padding: "16px", borderRadius: 16, border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.03)" },
+  skeletonAvatar: { width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.07)", flexShrink: 0 },
+  skeletonLine1: { height: 14, width: "55%", borderRadius: 999, background: "rgba(255,255,255,0.07)" },
+  skeletonLine2: { height: 11, width: "35%", borderRadius: 999, background: "rgba(255,255,255,0.05)" },
+
+  /* Empty state */
+  emptyState: { padding: "48px 20px", borderRadius: 18, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.03)", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 },
+  emptyIcon: { fontSize: 32, marginBottom: 4 },
+  emptyTitle: { fontWeight: 700, fontSize: 17, color: "rgba(255,255,255,0.80)", letterSpacing: "-0.3px" },
+  emptyText: { margin: 0, fontSize: 14, color: "rgba(255,255,255,0.40)", lineHeight: 1.6, maxWidth: 320 },
+
+  /* Bike cards */
+  bikeCard: { display: "flex", alignItems: "center", borderRadius: 16, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)", overflow: "hidden", transition: "border-color 0.15s" },
+  bikeLink: { display: "flex", alignItems: "center", gap: 14, flex: 1, padding: "14px 16px", textDecoration: "none", minWidth: 0 },
+  bikeAvatar: { width: 44, height: 44, borderRadius: 14, display: "grid", placeItems: "center", fontWeight: 900, fontSize: 18, color: "rgba(255,255,255,0.85)", background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.20)", flexShrink: 0 },
+  bikeInfo: { flex: 1, minWidth: 0 },
+  bikeName: { fontWeight: 700, fontSize: 16, color: "rgba(255,255,255,0.90)", letterSpacing: "-0.3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  bikeMeta: { marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.40)" },
+  bikeArrow: { fontSize: 16, color: "rgba(255,255,255,0.25)", flexShrink: 0 },
+  deleteBtn: { padding: "14px 16px", border: 0, borderLeft: "1px solid rgba(255,255,255,0.07)", background: "transparent", color: "rgba(255,255,255,0.35)", cursor: "pointer", fontSize: 16, alignSelf: "stretch", display: "grid", placeItems: "center" },
+};
