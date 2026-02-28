@@ -53,15 +53,29 @@ function groupLogsByDay(logs) {
  * Intenta obtener el nombre del componente desde distintos formatos de log.
  * (Esto te evita romper la UI si tu tabla part_logs tiene nombres distintos)
  */
-function getPartDisplayName(l) {
-  return (
+function getPartDisplayName(l, partsById) {
+  // 1) si el log trae el nombre, úsalo
+  const direct =
     l.part_name ??
     l.new_name ??
     l.old_name ??
-    l.part_title ?? // por si le pusiste otro nombre
-    l.name ?? // último recurso
-    "Componente"
-  );
+    l.name;
+
+  if (direct) return direct;
+
+  // 2) si no, lookup por part_id a tabla parts
+  const p = l.part_id ? partsById?.[l.part_id] : null;
+  if (p?.name) return p.name;
+
+  return "Componente";
+}
+
+function getPartCategory(l, partsById) {
+  const direct = l.new_category ?? l.old_category ?? l.category;
+  if (direct) return direct;
+
+  const p = l.part_id ? partsById?.[l.part_id] : null;
+  return p?.category ?? null;
 }
 
 function getPartCategory(l) {
@@ -108,6 +122,7 @@ export default function BikeHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState([]);
   const [bike, setBike] = useState(null);
+  const [partsById, setPartsById] = useState({});
 
   useEffect(() => {
     let cancelled = false;
@@ -122,17 +137,36 @@ export default function BikeHistoryPage() {
 
       const [bikeRes, logsRes] = await Promise.all([
         supabase.from("bikes").select("*").eq("id", bikeId).single(),
-        supabase
-          .from("part_logs")
-          .select("*")
-          .eq("bike_id", bikeId)
-          .order("created_at", { ascending: false }),
+        supabase.from("part_logs").select("*").eq("bike_id", bikeId).order("created_at", { ascending: false }),
       ]);
+
+      const logsData = logsRes.data || [];
+
+      // ✅ Buscar part_id únicos
+      const ids = Array.from(
+        new Set(
+          logsData
+            .map((l) => l.part_id)
+            .filter(Boolean)
+        )
+      );
+
+      let partsMap = {};
+      if (ids.length > 0) {
+        const partsRes = await supabase
+          .from("parts")
+          .select("id,name,category,weight_g")
+          .in("id", ids);
+
+        const partsData = partsRes.data || [];
+        partsMap = Object.fromEntries(partsData.map((p) => [p.id, p]));
+      }
 
       if (cancelled) return;
 
       setBike(bikeRes.data || null);
-      setLogs(logsRes.data || []);
+      setLogs(logsData);
+      setPartsById(partsMap);
       setLoading(false);
     };
 
@@ -241,8 +275,8 @@ export default function BikeHistoryPage() {
               </div>
 
               {items.map((l) => {
-                const partName = getPartDisplayName(l);
-                const partCat = getPartCategory(l);
+                const partName = getPartDisplayName(l, partsById);
+                const partCat = getPartCategory(l, partsById);
                 const updateDetails = l.action === "updated" ? getUpdateDetails(l) : null;
 
                 return (
