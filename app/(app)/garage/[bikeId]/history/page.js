@@ -23,7 +23,6 @@ function labelAction(a) {
 }
 
 // Calcula la diferencia de peso entre el valor anterior y el nuevo, en gramos.
-// Ejemplos: "+150 g", "-80 g", "—" (si no hay datos de peso)
 function formatDelta(oldW, newW) {
   const o = oldW == null ? null : Number(oldW);
   const n = newW == null ? null : Number(newW);
@@ -43,27 +42,16 @@ function formatWeights(oldW, newW) {
 function groupLogsByDay(logs) {
   const map = new Map();
   for (const l of logs) {
-    const key = new Date(l.created_at).toLocaleDateString();
+    const key = new Date(l.created_at).toLocaleDateString(); // ej: "28/2/2026"
     map.set(key, [...(map.get(key) || []), l]);
   }
   return Object.fromEntries(map.entries());
 }
 
-/**
- * Intenta obtener el nombre del componente desde distintos formatos de log.
- * (Esto te evita romper la UI si tu tabla part_logs tiene nombres distintos)
- */
 function getPartDisplayName(l, partsById) {
-  // 1) si el log trae el nombre, úsalo
-  const direct =
-    l.part_name ??
-    l.new_name ??
-    l.old_name ??
-    l.name;
-
+  const direct = l.part_name ?? l.new_name ?? l.old_name ?? l.name;
   if (direct) return direct;
 
-  // 2) si no, lookup por part_id a tabla parts
   const p = l.part_id ? partsById?.[l.part_id] : null;
   if (p?.name) return p.name;
 
@@ -78,10 +66,7 @@ function getPartCategory(l, partsById) {
   return p?.category ?? null;
 }
 
-/**
- * Para updated: arma una línea "Cambios: ..."
- * Solo muestra campos que realmente cambiaron.
- */
+// Para updated: línea "Cambios: ..."
 function getUpdateDetails(l) {
   const changes = [];
 
@@ -97,7 +82,6 @@ function getUpdateDetails(l) {
     changes.push(`categoría: "${oldCat}" → "${newCat}"`);
   }
 
-  // Peso: si hay ambos y cambió, lo mostramos (usa tus columnas existentes)
   const oldW = l.old_weight_g ?? null;
   const newW = l.new_weight_g ?? null;
   if (oldW != null && newW != null && Number(oldW) !== Number(newW)) {
@@ -118,10 +102,16 @@ export default function BikeHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState([]);
   const [bike, setBike] = useState(null);
+
+  // ✅ Mapa de partes (para mostrar nombre/categoría aunque el log no lo traiga)
   const [partsById, setPartsById] = useState({});
+
+  // ✅ Estado: qué días están expandidos
+  const [expandedDays, setExpandedDays] = useState({});
 
   useEffect(() => {
     let cancelled = false;
+
     const load = async () => {
       setLoading(true);
 
@@ -133,19 +123,17 @@ export default function BikeHistoryPage() {
 
       const [bikeRes, logsRes] = await Promise.all([
         supabase.from("bikes").select("*").eq("id", bikeId).single(),
-        supabase.from("part_logs").select("*").eq("bike_id", bikeId).order("created_at", { ascending: false }),
+        supabase
+          .from("part_logs")
+          .select("*")
+          .eq("bike_id", bikeId)
+          .order("created_at", { ascending: false }),
       ]);
 
       const logsData = logsRes.data || [];
 
-      // ✅ Buscar part_id únicos
-      const ids = Array.from(
-        new Set(
-          logsData
-            .map((l) => l.part_id)
-            .filter(Boolean)
-        )
-      );
+      // ✅ Buscar part_id únicos y traer nombre/categoría desde parts
+      const ids = Array.from(new Set(logsData.map((l) => l.part_id).filter(Boolean)));
 
       let partsMap = {};
       if (ids.length > 0) {
@@ -172,7 +160,37 @@ export default function BikeHistoryPage() {
     };
   }, [bikeId, router]);
 
+  // Agrupa por día
   const grouped = useMemo(() => groupLogsByDay(logs), [logs]);
+
+  // ✅ Ordena días (más reciente arriba) y auto-expande el primer día
+  const orderedDays = useMemo(() => {
+    const entries = Object.entries(grouped);
+
+    const withDate = entries
+      .map(([day, items]) => {
+        const newest = items?.[0]?.created_at ? new Date(items[0].created_at).getTime() : 0;
+        return { day, items, newest };
+      })
+      .sort((a, b) => b.newest - a.newest);
+
+    return withDate;
+  }, [grouped]);
+
+  // Auto-expande el día más reciente (solo cuando cambia el set de días)
+  useEffect(() => {
+    if (orderedDays.length === 0) return;
+    const firstDay = orderedDays[0].day;
+    setExpandedDays((prev) => {
+      // si ya hay algo definido, no tocamos
+      if (Object.keys(prev).length > 0) return prev;
+      return { [firstDay]: true };
+    });
+  }, [orderedDays]);
+
+  const toggleDay = (day) => {
+    setExpandedDays((prev) => ({ ...prev, [day]: !prev[day] }));
+  };
 
   const linkStyle = {
     color: "rgba(255,255,255,0.78)",
@@ -210,10 +228,7 @@ export default function BikeHistoryPage() {
             <div className="text-xs" style={{ color: "rgba(255,255,255,0.65)" }}>
               Historial
             </div>
-            <div
-              className="mt-1.5 text-2xl font-black tracking-tight"
-              style={{ color: "rgba(255,255,255,0.95)" }}
-            >
+            <div className="mt-1.5 text-2xl font-black tracking-tight" style={{ color: "rgba(255,255,255,0.95)" }}>
               Cambios de componentes
             </div>
             <div className="mt-1.5 text-sm" style={{ color: "rgba(255,255,255,0.70)" }}>
@@ -235,26 +250,20 @@ export default function BikeHistoryPage() {
         <div className="mt-3 flex items-start gap-2.5 border-t pt-3" style={{ borderColor: "rgba(255,255,255,0.10)" }}>
           <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: "rgba(99,102,241,0.70)" }} />
           <p className="text-sm" style={{ color: "rgba(255,255,255,0.65)" }}>
-            Aquí verás cuando creas, editas o eliminas componentes.
+            Aquí verás cuando creas, editas o eliminas componentes. Haz click en una fecha para expandir/colapsar.
           </p>
         </div>
       </div>
 
       {/* Content */}
       {loading ? (
-        <div
-          className="rounded-[18px] border p-4"
-          style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)" }}
-        >
+        <div className="rounded-[18px] border p-4" style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)" }}>
           <div className="font-black" style={{ color: "rgba(255,255,255,0.92)" }}>
             Cargando…
           </div>
         </div>
       ) : logs.length === 0 ? (
-        <div
-          className="rounded-[18px] border p-4"
-          style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)" }}
-        >
+        <div className="rounded-[18px] border p-4" style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)" }}>
           <div className="font-black" style={{ color: "rgba(255,255,255,0.92)" }}>
             Aún no hay historial
           </div>
@@ -264,73 +273,125 @@ export default function BikeHistoryPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {Object.entries(grouped).map(([day, items]) => (
-            <div key={day} className="flex flex-col gap-2.5">
-              <div className="text-xs font-black uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.72)" }}>
-                {day}
-              </div>
+          {orderedDays.map(({ day, items }) => {
+            const isOpen = !!expandedDays[day];
 
-              {items.map((l) => {
-                const partName = getPartDisplayName(l, partsById);
-                const partCat = getPartCategory(l, partsById);
-                const updateDetails = l.action === "updated" ? getUpdateDetails(l) : null;
+            return (
+              <div key={day} className="flex flex-col gap-2.5">
+                {/* ✅ Header colapsable */}
+                <button
+                  type="button"
+                  onClick={() => toggleDay(day)}
+                  className="flex items-center justify-between rounded-2xl border px-4 py-3 text-left"
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.10)",
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-black"
+                      style={{
+                        background: "rgba(255,255,255,0.08)",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        color: "rgba(255,255,255,0.85)",
+                      }}
+                      aria-hidden="true"
+                    >
+                      {isOpen ? "▾" : "▸"}
+                    </span>
 
-                return (
-                  <div
-                    key={l.id}
-                    className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3"
-                    style={{
-                      background: "rgba(0,0,0,0.22)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }}
-                  >
                     <div>
-                      <div className="font-black" style={{ color: "rgba(255,255,255,0.92)" }}>
-                        {labelAction(l.action)}
+                      <div className="text-xs font-black uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.78)" }}>
+                        {day}
                       </div>
-
-                      {/* ✅ NUEVO: qué componente fue */}
-                      <div className="mt-1 text-sm" style={{ color: "rgba(255,255,255,0.78)" }}>
-                        Componente: <span style={{ color: "rgba(255,255,255,0.92)", fontWeight: 800 }}>{partName}</span>
-                        {partCat ? (
-                          <span
-                            className="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-black"
-                            style={{
-                              background: "rgba(255,255,255,0.08)",
-                              border: "1px solid rgba(255,255,255,0.12)",
-                              color: "rgba(255,255,255,0.75)",
-                            }}
-                          >
-                            {partCat}
-                          </span>
-                        ) : null}
-                      </div>
-
-                      {/* ✅ NUEVO: detalle de cambios cuando fue updated */}
-                      {updateDetails ? (
-                        <div className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.60)" }}>
-                          {updateDetails}
-                        </div>
-                      ) : null}
-
-                      <div className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.60)" }}>
-                        {new Date(l.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <div className="font-black" style={{ color: "rgba(255,255,255,0.92)" }}>
-                        {formatDelta(l.old_weight_g, l.new_weight_g)}
-                      </div>
-                      <div className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.60)" }}>
-                        {formatWeights(l.old_weight_g, l.new_weight_g)}
+                      <div className="text-xs" style={{ color: "rgba(255,255,255,0.55)" }}>
+                        {items.length} cambio{items.length === 1 ? "" : "s"}
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          ))}
+
+                  <span
+                    className="rounded-full px-2.5 py-1 text-[11px] font-black"
+                    style={{
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.10)",
+                      color: "rgba(255,255,255,0.70)",
+                    }}
+                  >
+                    {isOpen ? "Ocultar" : "Ver"}
+                  </span>
+                </button>
+
+                {/* ✅ Lista del día (solo si está abierto) */}
+                {isOpen ? (
+                  <div className="flex flex-col gap-2.5">
+                    {items.map((l) => {
+                      const partName = getPartDisplayName(l, partsById);
+                      const partCat = getPartCategory(l, partsById);
+                      const updateDetails = l.action === "updated" ? getUpdateDetails(l) : null;
+
+                      return (
+                        <div
+                          key={l.id}
+                          className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3"
+                          style={{
+                            background: "rgba(0,0,0,0.22)",
+                            border: "1px solid rgba(255,255,255,0.08)",
+                          }}
+                        >
+                          <div>
+                            <div className="font-black" style={{ color: "rgba(255,255,255,0.92)" }}>
+                              {labelAction(l.action)}
+                            </div>
+
+                            <div className="mt-1 text-sm" style={{ color: "rgba(255,255,255,0.78)" }}>
+                              Componente:{" "}
+                              <span style={{ color: "rgba(255,255,255,0.92)", fontWeight: 800 }}>
+                                {partName}
+                              </span>
+
+                              {partCat ? (
+                                <span
+                                  className="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-black"
+                                  style={{
+                                    background: "rgba(255,255,255,0.08)",
+                                    border: "1px solid rgba(255,255,255,0.12)",
+                                    color: "rgba(255,255,255,0.75)",
+                                  }}
+                                >
+                                  {partCat}
+                                </span>
+                              ) : null}
+                            </div>
+
+                            {updateDetails ? (
+                              <div className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.60)" }}>
+                                {updateDetails}
+                              </div>
+                            ) : null}
+
+                            <div className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.60)" }}>
+                              {new Date(l.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <div className="font-black" style={{ color: "rgba(255,255,255,0.92)" }}>
+                              {formatDelta(l.old_weight_g, l.new_weight_g)}
+                            </div>
+                            <div className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.60)" }}>
+                              {formatWeights(l.old_weight_g, l.new_weight_g)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       )}
     </PageShell>
