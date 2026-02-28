@@ -18,7 +18,7 @@ export default function SignupPage() {
   // ── Estado del formulario ──────────────────────────────────────────────────
   const [email, setEmail] = useState("");       // campo email
   const [password, setPassword] = useState(""); // campo contraseña
-  const [password2, setPassword2] = useState("")); // campo confirmar contraseña
+  const [password2, setPassword2] = useState(""); // campo confirmar contraseña
 
   const [showPw, setShowPw] = useState(false);   // muestra/oculta campo contraseña
   const [showPw2, setShowPw2] = useState(false);  // muestra/oculta campo confirmación
