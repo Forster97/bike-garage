@@ -5,6 +5,8 @@ export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
+import AppHeader from "../../../../components/AppHeader";
+import PageShell from "../../../../components/PageShell";
 
 /* =========================
    Constants / Helpers
@@ -373,109 +375,60 @@ export default function BikeDetailPage() {
      Render
   ========================= */
 
+  const backBtn = (
+    <button
+      onClick={() => router.push("/garage")}
+      style={{ border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.85)", cursor: "pointer", borderRadius: 12, padding: "10px 12px", fontSize: 14, fontWeight: 800 }}
+    >
+      ← Garage
+    </button>
+  );
+
   if (loading) {
     return (
-      <div style={styles.page}>
-        <div style={styles.bgGlow} aria-hidden="true" />
-        <header style={styles.header}>
-          <div style={styles.headerInner}>
-            <div style={styles.brand}>
-              <div style={styles.logo}>BG</div>
-              <div>
-                <div style={styles.brandName}>Bike Garage</div>
-              </div>
-            </div>
-            <div style={styles.headerActions}>
-              <button style={styles.headerGhostBtn} onClick={() => router.push("/garage")}>
-                ← Garage
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <main style={styles.main}>
-          <section style={styles.hero}>
-            <div style={styles.card}>
-              <div style={styles.skelLine1} />
-              <div style={styles.skelLine2} />
-              <div style={styles.skelBtn} />
-            </div>
-          </section>
-        </main>
-      </div>
+      <PageShell header={<AppHeader actions={[backBtn]} />}>
+        <div className="animate-pulse rounded-[18px] border p-4"
+          style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)" }}>
+          <div className="h-5 w-2/3 rounded-full" style={{ background: "rgba(255,255,255,0.10)" }} />
+          <div className="mt-3 h-4 w-1/2 rounded-full" style={{ background: "rgba(255,255,255,0.08)" }} />
+          <div className="mt-5 h-10 w-full rounded-xl" style={{ background: "rgba(255,255,255,0.10)" }} />
+        </div>
+      </PageShell>
     );
   }
 
   if (!bike) {
     return (
-      <div style={styles.page}>
-        <div style={styles.bgGlow} aria-hidden="true" />
-        <header style={styles.header}>
-          <div style={styles.headerInner}>
-            <div style={styles.brand}>
-              <div style={styles.logo}>BG</div>
-              <div>
-                <div style={styles.brandName}>Bike Garage</div>
-              </div>
-            </div>
-            <div style={styles.headerActions}>
-              <button style={styles.headerGhostBtn} onClick={() => router.push("/garage")}>
-                ← Garage
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <main style={styles.main}>
-          <section style={styles.hero}>
-            <div style={styles.empty}>
-              <div style={styles.emptyIcon}>🤕</div>
-              <div style={styles.emptyTitle}>No encontré esta bicicleta</div>
-              <div style={styles.emptyText}>Puede que no exista o no tengas permisos.</div>
-              <div style={{ height: 10 }} />
-              <button style={styles.primaryBtn} onClick={() => router.push("/garage")}>
-                Volver al Garage
-              </button>
-            </div>
-          </section>
-        </main>
-      </div>
+      <PageShell header={<AppHeader actions={[backBtn]} />}>
+        <div className="rounded-[18px] border p-10 text-center"
+          style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)" }}>
+          <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl border text-lg"
+            style={{ border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.08)" }}>🤕</div>
+          <div className="font-black" style={{ color: "rgba(255,255,255,0.92)" }}>No encontré esta bicicleta</div>
+          <p className="mt-2 text-sm" style={{ color: "rgba(255,255,255,0.68)" }}>Puede que no exista o no tengas permisos.</p>
+          <button onClick={() => router.push("/garage")} style={styles.primaryBtn} className="mt-4">
+            Volver al Garage
+          </button>
+        </div>
+      </PageShell>
     );
   }
 
   const partCount = parts.length;
 
+  const headerActions = [
+    <a key="history" href={`/garage/${bikeId}/history`}
+      style={{ color: "rgba(255,255,255,0.78)", textDecoration: "none", fontSize: 14, padding: "10px" }}>
+      Historial
+    </a>,
+    <button key="back" onClick={() => router.push("/garage")}
+      style={{ border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.85)", cursor: "pointer", borderRadius: 12, padding: "10px 12px", fontSize: 14, fontWeight: 800 }}>
+      ← Garage
+    </button>,
+  ];
+
   return (
-    <div style={styles.page}>
-      <div style={styles.bgGlow} aria-hidden="true" />
-
-      {/* Header (landing style) */}
-      <header style={styles.header}>
-        <div style={styles.headerInner}>
-          <div style={styles.brand}>
-            <div style={styles.logo} aria-hidden="true">
-              BG
-            </div>
-            <div>
-              <div style={styles.brandName}>Bike Garage</div>
-            </div>
-          </div>
-
-          <div style={styles.headerActions}>
-
-            <a href={`/garage/${bikeId}/history`} style={styles.headerLink}>
-              Historial
-            </a>
-
-            <button style={styles.headerGhostBtn} onClick={() => router.push("/garage")}>
-              ← Volver al Garage
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main style={styles.main}>
-        <section style={styles.hero}>
+    <PageShell header={<AppHeader actions={headerActions} />}>
           {/* Hero card */}
           <div style={styles.heroCard}>
             <div style={styles.heroTop}>
@@ -780,7 +733,6 @@ export default function BikeDetailPage() {
           >
             +
           </button>
-        </section>
 
         {/* Add Modal */}
         {addOpen ? (
@@ -851,8 +803,7 @@ export default function BikeDetailPage() {
             </div>
           </div>
         ) : null}
-      </main>
-    </div>
+    </PageShell>
   );
 }
 
@@ -861,103 +812,6 @@ export default function BikeDetailPage() {
 ========================= */
 
 const styles = {
-  page: {
-    fontFamily:
-      'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"',
-    minHeight: "100vh",
-    background: "#070A12",
-  },
-
-  bgGlow: {
-    position: "fixed",
-    inset: 0,
-    background:
-      "radial-gradient(800px 400px at 20% 0%, rgba(99,102,241,0.20), transparent 60%), radial-gradient(700px 350px at 100% 20%, rgba(34,197,94,0.14), transparent 55%), radial-gradient(600px 300px at 50% 100%, rgba(59,130,246,0.10), transparent 55%)",
-    pointerEvents: "none",
-    zIndex: 0,
-  },
-
-  header: {
-    position: "sticky",
-    top: 0,
-    zIndex: 20,
-    backdropFilter: "blur(10px)",
-    background: "rgba(7,10,18,0.70)",
-    borderBottom: "1px solid rgba(255,255,255,0.08)",
-  },
-
-  headerInner: {
-    maxWidth: 980,
-    margin: "0 auto",
-    padding: "12px 16px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-
-  brand: { display: "flex", alignItems: "center", gap: 10 },
-
-  logo: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    display: "grid",
-    placeItems: "center",
-    fontWeight: 800,
-    fontSize: 13,
-    color: "white",
-    background: "linear-gradient(135deg, rgba(99,102,241,1), rgba(34,197,94,1))",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
-  },
-
-  brandName: { fontWeight: 700, color: "rgba(255,255,255,0.95)" },
-  brandTag: { fontSize: 12, color: "rgba(255,255,255,0.60)" },
-
-  headerActions: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
-
-  headerLink: {
-    color: "rgba(255,255,255,0.78)",
-    textDecoration: "none",
-    fontSize: 14,
-    padding: "10px 10px",
-    borderRadius: 12,
-  },
-
-  headerLinkBtn: {
-    appearance: "none",
-    border: 0,
-    background: "transparent",
-    color: "rgba(255,255,255,0.78)",
-    fontSize: 14,
-    padding: "10px 10px",
-    borderRadius: 12,
-    cursor: "pointer",
-  },
-
-  headerGhostBtn: {
-    appearance: "none",
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.06)",
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 14,
-    fontWeight: 800,
-    padding: "10px 12px",
-    borderRadius: 12,
-    cursor: "pointer",
-  },
-
-  main: { position: "relative", zIndex: 1 },
-
-  hero: {
-    maxWidth: 980,
-    margin: "0 auto",
-    padding: "18px 16px 24px",
-    display: "flex",
-    flexDirection: "column",
-    gap: 14,
-  },
-
   heroCard: {
     borderRadius: 22,
     overflow: "hidden",
@@ -1237,18 +1091,6 @@ const styles = {
   tipDot: { width: 8, height: 8, borderRadius: 99, background: "rgba(99,102,241,0.75)" },
   tipText: { lineHeight: 1.4 },
 
-  // skeleton
-  card: {
-    padding: 14,
-    borderRadius: 18,
-    background: "rgba(255,255,255,0.06)",
-    border: "1px solid rgba(255,255,255,0.10)",
-    boxShadow: "0 18px 55px rgba(0,0,0,0.22)",
-  },
-
-  skelLine1: { height: 14, width: "70%", borderRadius: 999, background: "rgba(255,255,255,0.10)" },
-  skelLine2: { height: 12, width: "45%", borderRadius: 999, background: "rgba(255,255,255,0.08)", marginTop: 10 },
-  skelBtn: { height: 40, width: "100%", borderRadius: 14, background: "rgba(255,255,255,0.10)", marginTop: 14 },
 };
 
 /* Responsive tweak: 2 columnas en pantallas grandes */

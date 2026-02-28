@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
 
 import Card from "../../../../components/Card";
-import PrimaryButton from "../../../../components/PrimaryButton";
+import Button from "../../../../components/Button";
 
 const DEFAULT_CATEGORIES = [
   "Frame",
@@ -336,9 +336,9 @@ export default function CategoriesPage() {
             className="w-full flex-1 min-w-[220px] rounded-xl border border-slate-700 bg-slate-950/40 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:ring-2 focus:ring-lime-400"
           />
 
-          <PrimaryButton type="submit" disabled={saving || !newName.trim()}>
+          <Button type="submit" disabled={saving || !newName.trim()}>
             {saving ? "Guardando…" : "Agregar"}
-          </PrimaryButton>
+          </Button>
         </form>
       </Card>
 
@@ -361,14 +361,14 @@ export default function CategoriesPage() {
                 className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-950/30 px-3 py-2"
               >
                 <span className="text-sm font-semibold text-slate-100">{name}</span>
-                <PrimaryButton
+                <Button
                   type="button"
                   variant="ghost"
                   onClick={() => hideCategory(name)}
                   className="px-3 py-1 text-xs"
                 >
                   Ocultar
-                </PrimaryButton>
+                </Button>
               </div>
             ))}
           </div>
@@ -392,14 +392,14 @@ export default function CategoriesPage() {
                 className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/40 px-3 py-2"
               >
                 <span className="text-sm font-semibold text-slate-100">{name}</span>
-                <PrimaryButton
+                <Button
                   type="button"
                   variant="ghost"
                   onClick={() => unhideCategory(name)}
                   className="px-3 py-1 text-xs"
                 >
                   Mostrar
-                </PrimaryButton>
+                </Button>
               </div>
             ))}
           </div>
@@ -436,7 +436,7 @@ export default function CategoriesPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <PrimaryButton
+                    <Button
                       type="button"
                       variant="ghost"
                       onClick={() =>
@@ -445,7 +445,7 @@ export default function CategoriesPage() {
                       className="text-xs"
                     >
                       {isHidden ? "Mostrar" : "Ocultar"}
-                    </PrimaryButton>
+                    </Button>
 
                     <button
                       type="button"

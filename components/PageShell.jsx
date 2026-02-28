@@ -1,25 +1,30 @@
 import BackgroundGlow from "./BackgroundGlow";
 
-export default function PageShell({ title, subtitle, right, children }) {
+/**
+ * PageShell — wrapper de página con fondo oscuro + glow.
+ *
+ * Props:
+ *  - header: nodo React (usualmente <AppHeader />)
+ *  - children: contenido de la página
+ */
+export default function PageShell({ header, children }) {
   return (
-    <div className="min-h-screen bg-bg text-text">
+    <div
+      className="relative min-h-screen"
+      style={{
+        fontFamily:
+          'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+        background: "#070A12",
+        color: "rgba(255,255,255,0.92)",
+      }}
+    >
       <BackgroundGlow />
-      <div className="relative mx-auto w-full max-w-3xl px-4 py-10">
-        {(title || subtitle || right) && (
-          <div className="mb-6 flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              {title && (
-                <h1 className="text-2xl font-semibold tracking-tight text-text">
-                  {title}
-                </h1>
-              )}
-              {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
-            </div>
-            {right && <div className="shrink-0">{right}</div>}
-          </div>
-        )}
-        {children}
-      </div>
+      {header}
+      <main className="relative z-10">
+        <div className="mx-auto flex max-w-[980px] flex-col gap-4 px-4 py-5">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }
