@@ -92,6 +92,57 @@ function getUpdateDetails(l) {
   return `Cambios: ${changes.join(" · ")}`;
 }
 
+function calcDelta(oldW, newW) {
+  const o = oldW == null ? null : Number(oldW);
+  const n = newW == null ? null : Number(newW);
+
+  if (o == null && n == null) return 0;
+  if (o == null && n != null) return n;     // created -> +n
+  if (o != null && n == null) return -o;    // deleted -> -o
+  return n - o;                              // updated -> n - o
+}
+
+function sumWeights(partsRows) {
+  return (partsRows || []).reduce((acc, p) => {
+    const w = p?.weight_g == null ? 0 : Number(p.weight_g);
+    return acc + (Number.isFinite(w) ? w : 0);
+  }, 0);
+}
+
+// Devuelve: [{ dayKey, dayLabel, weight_g, ts }]
+function buildDailyWeightHistory(logsDesc, currentTotalG) {
+  const seen = new Set();
+  const points = [];
+
+  let running = Number(currentTotalG) || 0;
+
+  for (const l of logsDesc) {
+    const ts = new Date(l.created_at).getTime();
+    const dayKey = new Date(l.created_at).toISOString().slice(0, 10); // YYYY-MM-DD (estable)
+    const dayLabel = new Date(l.created_at).toLocaleDateString();
+
+    // running = peso DESPUÉS de este evento (porque part_logs se guarda al crear el evento)
+    if (!seen.has(dayKey)) {
+      seen.add(dayKey);
+      points.push({ dayKey, dayLabel, weight_g: Math.round(running), ts });
+    }
+
+    // viajamos al pasado
+    const delta = calcDelta(l.old_weight_g, l.new_weight_g);
+    running = running - delta;
+  }
+
+  // ya viene desc (por logs desc), pero ordenamos por si acaso
+  points.sort((a, b) => b.ts - a.ts);
+  return points;
+}
+
+function formatKg(g) {
+  const n = Number(g);
+  if (!Number.isFinite(n)) return "—";
+  return `${(n / 1000).toFixed(2)} kg`;
+}
+
 /* =========================
    Page
 ========================= */
@@ -109,6 +160,10 @@ export default function BikeHistoryPage() {
   // ✅ Estado: qué días están expandidos
   const [expandedDays, setExpandedDays] = useState({});
 
+  // Constantes de peso total actual y el historial diario de peso para la gráfica
+  const [currentTotalG, setCurrentTotalG] = useState(0);
+  const [weightHistory, setWeightHistory] = useState([]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -121,16 +176,22 @@ export default function BikeHistoryPage() {
         return;
       }
 
-      const [bikeRes, logsRes] = await Promise.all([
+      const [bikeRes, logsRes, partsResAll] = await Promise.all([
         supabase.from("bikes").select("*").eq("id", bikeId).single(),
         supabase
           .from("part_logs")
           .select("*")
           .eq("bike_id", bikeId)
           .order("created_at", { ascending: false }),
+        supabase
+          .from("parts")
+          .select("weight_g")
+          .eq("bike_id", bikeId),
       ]);
 
       const logsData = logsRes.data || [];
+      const currentTotal = sumWeights(partsResAll.data || []);
+      const daily = buildDailyWeightHistory(logsData, currentTotal);
 
       // ✅ Buscar part_id únicos y traer nombre/categoría desde parts
       const ids = Array.from(new Set(logsData.map((l) => l.part_id).filter(Boolean)));
@@ -152,6 +213,8 @@ export default function BikeHistoryPage() {
       setLogs(logsData);
       setPartsById(partsMap);
       setLoading(false);
+      setCurrentTotalG(currentTotal);
+      setWeightHistory(daily);
     };
 
     if (bikeId) load();
@@ -253,6 +316,69 @@ export default function BikeHistoryPage() {
             Aquí verás cuando creas, editas o eliminas componentes. Haz click en una fecha para expandir/colapsar.
           </p>
         </div>
+      </div>
+
+      {/* Peso total + Historial */}
+      <div
+        className="mt-4 rounded-[22px] border p-4"
+        style={{
+          border: "1px solid rgba(255,255,255,0.10)",
+          background: "rgba(255,255,255,0.06)",
+          boxShadow: "0 25px 60px rgba(0,0,0,0.45)",
+        }}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="text-xs" style={{ color: "rgba(255,255,255,0.65)" }}>
+              Peso de la bici
+            </div>
+            <div className="mt-1.5 text-2xl font-black tracking-tight" style={{ color: "rgba(255,255,255,0.95)" }}>
+              {formatKg(currentTotalG)}
+            </div>
+            <div className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.60)" }}>
+              (suma de componentes con peso)
+            </div>
+          </div>
+
+          {weightHistory.length > 0 ? (
+            <span
+              className="rounded-full px-3 py-2 text-xs font-black"
+              style={{
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                color: "rgba(255,255,255,0.75)",
+              }}
+            >
+              {weightHistory.length} día{weightHistory.length === 1 ? "" : "s"} con registro
+            </span>
+          ) : null}
+        </div>
+
+        {weightHistory.length === 0 ? (
+          <div className="mt-3 text-sm" style={{ color: "rgba(255,255,255,0.65)" }}>
+            Aún no hay suficiente historial para calcular el peso por día.
+          </div>
+        ) : (
+          <div className="mt-3 flex flex-col gap-2.5 border-t pt-3" style={{ borderColor: "rgba(255,255,255,0.10)" }}>
+            {weightHistory.map((p) => (
+              <div
+                key={p.dayKey}
+                className="flex items-center justify-between rounded-2xl border px-4 py-3"
+                style={{
+                  background: "rgba(0,0,0,0.18)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                <div className="text-sm font-black" style={{ color: "rgba(255,255,255,0.85)" }}>
+                  {p.dayLabel}
+                </div>
+                <div className="text-sm font-black" style={{ color: "rgba(255,255,255,0.92)" }}>
+                  {formatKg(p.weight_g)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Content */}
