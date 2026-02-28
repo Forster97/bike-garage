@@ -208,9 +208,6 @@ export default function CategoriesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="max-w-[240px] truncate rounded-full border border-slate-700 bg-slate-900/50 px-3 py-2 text-xs text-slate-200" title={email}>
-            {email || "—"}
-          </div>
           <Link href="/garage" className="rounded-xl border border-slate-700 px-3 py-2 text-sm text-slate-100 hover:bg-slate-800">
             Volver
           </Link>

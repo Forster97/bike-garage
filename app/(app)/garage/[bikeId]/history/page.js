@@ -330,7 +330,7 @@ export default function BikeHistoryPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="text-xs" style={{ color: "rgba(255,255,255,0.65)" }}>
-              Peso de la bici
+              Peso actual
             </div>
             <div className="mt-1.5 text-2xl font-black tracking-tight" style={{ color: "rgba(255,255,255,0.95)" }}>
               {formatKg(currentTotalG)}
