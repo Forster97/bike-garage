@@ -23,21 +23,36 @@ export default function GaragePage() {
   // ── Estado (variables reactivas) ──────────────────────────────────────────
   // Cada useState guarda un valor. Cuando ese valor cambia, React redibuja la pantalla.
   const [bikes, setBikes] = useState([]);             // Lista de bicicletas del usuario
-  const [newBikeName, setNewBikeName] = useState(""); // Texto que escribe el usuario en el input
+  const [newBrand, setNewBrand] = useState("");
+  const [newModel, setNewModel] = useState("");
+  const [newYear, setNewYear] = useState("");
+  const [newSize, setNewSize] = useState("");
+  const [newType, setNewType] = useState("Gravel");
+
+  const BIKE_TYPES = ["Ruta", "Gravel", "XC", "Trail", "Enduro", "Urbana", "E-Bike", "Dh", "Otra"];
   const [loading, setLoading] = useState(true);       // true = está cargando datos, false = ya terminó
   const [adding, setAdding] = useState(false);        // true = se está guardando una bici nueva (evita doble clic)
 
   // ── Función: cargar bicicletas desde la base de datos ──────────────────────
-  // Recibe el ID del usuario (uid) y consulta Supabase para traer sus bicis
   const refreshBikes = async (uid) => {
     const { data, error } = await supabase
-      .from("bikes")                              // tabla "bikes" en Supabase
-      .select("*")                                // trae todas las columnas
-      .eq("user_id", uid)                         // solo las filas donde user_id coincide
-      .order("created_at", { ascending: false }); // ordena de más nueva a más antigua
+      .from("bikes")
+      .select("id, user_id, brand, model, type, year, size, notes, created_at")
+      .eq("user_id", uid)
+      .order("created_at", { ascending: false });
 
-    if (error) { console.error(error); alert(error.message); return; } // si hay error, lo muestra
-    setBikes(data || []); // guarda las bicis en el estado (o array vacío si no hay datos)
+    if (error) {
+      console.error(error);
+      alert(error.message);
+      return;
+    }
+
+    const rows = (data || []).map((b) => ({
+      ...b,
+      displayName: `${b.brand ?? ""} ${b.model ?? ""}`.trim() || b.name || "Bicicleta",
+    }));
+
+    setBikes(rows);
   };
 
   // ── Efecto: se ejecuta al cargar la página ────────────────────────────────
@@ -64,29 +79,47 @@ export default function GaragePage() {
     return () => { cancelled = true; }; // limpieza: marca como cancelado si el componente se destruye
   }, [router]);
 
-  // ── Función: agregar una nueva bicicleta ──────────────────────────────────
+    // ── Función: agregar una nueva bicicleta ──────────────────────────────────
   const addBike = async () => {
-    const name = newBikeName.trim(); // elimina espacios al inicio y al final del nombre
-    if (!name || adding) return;     // si el campo está vacío o ya se está agregando, no hace nada
+    const brand = newBrand.trim();
+    const model = newModel.trim();
+    const size = newSize.trim();
+    const type = (newType || "").trim();
+    const yearNum = Number(String(newYear).trim());
+
+    // Validaciones mínimas (evita errores por NOT NULL)
+    if (adding) return;
+    if (!brand || !model || !size || !type) return;
+    if (!Number.isFinite(yearNum) || yearNum < 1980 || yearNum > new Date().getFullYear() + 1) return;
 
     try {
-      setAdding(true); // bloquea el botón para evitar envíos duplicados
+      setAdding(true);
 
-      // Vuelve a verificar que el usuario sigue autenticado antes de guardar
       const { data: userRes, error: userErr } = await supabase.auth.getUser();
       const uid = userRes?.user?.id;
-      if (userErr || !uid) { router.replace("/login"); return; } // si perdió la sesión, redirige
+      if (userErr || !uid) {
+        router.replace("/login");
+        return;
+      }
 
-      // Inserta una nueva fila en la tabla "bikes" con el nombre y el ID del usuario
-      const { error } = await supabase.from("bikes").insert([{ name, user_id: uid }]);
+      // Inserta usando los 5 campos obligatorios (name lo genera el trigger, o lo ignoras)
+      const { error } = await supabase.from("bikes").insert([
+        { user_id: uid, brand, model, year: yearNum, size, type },
+      ]);
       if (error) throw error;
 
-      setNewBikeName("");       // limpia el input
-      await refreshBikes(uid);  // recarga la lista para mostrar la nueva bici
+      // Limpia el form
+      setNewBrand("");
+      setNewModel("");
+      setNewYear("");
+      setNewSize("");
+      setNewType("Gravel");
+
+      await refreshBikes(uid);
     } catch (err) {
-      alert(err?.message ?? "Error al agregar la bicicleta."); // muestra el error al usuario
+      alert(err?.message ?? "Error al agregar la bicicleta.");
     } finally {
-      setAdding(false); // desbloquea el botón siempre, haya o no error
+      setAdding(false);
     }
   };
 
@@ -133,32 +166,87 @@ export default function GaragePage() {
         </div>
 
         <div style={s.addRow}>
-          {/* Input controlado: su valor viene del estado y se actualiza con onChange */}
           <input
-            value={newBikeName}
-            onChange={(e) => setNewBikeName(e.target.value)} // actualiza el estado con cada tecla
-            onKeyDown={(e) => e.key === "Enter" && addBike()} // permite agregar presionando Enter
-            placeholder="Nombre de la bicicleta"
+            value={newBrand}
+            onChange={(e) => setNewBrand(e.target.value)}
+            placeholder="Marca (ej: Orbea)"
             style={s.input}
           />
-          {/* Botón deshabilitado si el input está vacío o si ya se está guardando */}
+
+          <input
+            value={newModel}
+            onChange={(e) => setNewModel(e.target.value)}
+            placeholder="Modelo (ej: Terra H30)"
+            style={s.input}
+          />
+
+          <input
+            value={newYear}
+            onChange={(e) => setNewYear(e.target.value)}
+            placeholder="Año (ej: 2021)"
+            inputMode="numeric"
+            style={s.input}
+          />
+
+          <input
+            value={newSize}
+            onChange={(e) => setNewSize(e.target.value)}
+            placeholder="Talla (ej: S / 54)"
+            style={s.input}
+          />
+
+          <select
+            value={newType}
+            onChange={(e) => setNewType(e.target.value)}
+            style={{ ...s.input, cursor: "pointer" }}
+          >
+            {BIKE_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+
           <button
             onClick={addBike}
-            disabled={!newBikeName.trim() || adding}
+            disabled={
+              adding ||
+              !newBrand.trim() ||
+              !newModel.trim() ||
+              !String(newYear).trim() ||
+              !newSize.trim() ||
+              !newType.trim()
+            }
             style={{
-              ...s.addBtn, // aplica los estilos base del botón
-              opacity: !newBikeName.trim() || adding ? 0.45 : 1,               // más transparente si está deshabilitado
-              cursor: !newBikeName.trim() || adding ? "not-allowed" : "pointer", // cambia el cursor
+              ...s.addBtn,
+              opacity:
+                adding ||
+                !newBrand.trim() ||
+                !newModel.trim() ||
+                !String(newYear).trim() ||
+                !newSize.trim() ||
+                !newType.trim()
+                  ? 0.45
+                  : 1,
+              cursor:
+                adding ||
+                !newBrand.trim() ||
+                !newModel.trim() ||
+                !String(newYear).trim() ||
+                !newSize.trim() ||
+                !newType.trim()
+                  ? "not-allowed"
+                  : "pointer",
             }}
           >
-            {adding ? "Agregando…" : "Agregar"} {/* Cambia el texto mientras guarda */}
+            {adding ? "Agregando…" : "Agregar"}
           </button>
         </div>
 
         {/* Pequeño tip informativo para el usuario */}
         <div style={s.tip}>
           <span style={s.tipDot} />
-          Después podrás agregar tipo, año, talla y notas dentro de cada bici.
+            Estos 5 datos son obligatorios. Después podrás agregar notas y componentes dentro de cada bici.
         </div>
       </div>
 
@@ -190,23 +278,34 @@ export default function GaragePage() {
           {bikes.map((bike) => ( // recorre cada bici y renderiza una tarjeta
             <div key={bike.id} style={s.bikeCard}> {/* key es obligatorio en listas, ayuda a React a identificar cada elemento */}
 
-              {/* Área clickeable que lleva al detalle de la bici */}
-              <Link href={`/garage/${bike.id}`} style={s.bikeLink}>
-                {/* Avatar con la primera letra del nombre de la bici */}
-                <div style={s.bikeAvatar}>
-                  {(bike.name || "B").slice(0, 1).toUpperCase()}
-                </div>
-                <div style={s.bikeInfo}>
-                  <div style={s.bikeName}>{bike.name}</div>
-                  <div style={s.bikeMeta}>
-                    {/* Muestra el tipo si existe, seguido de un punto separador */}
-                    {bike.type ? `${bike.type} · ` : ""}
-                    {/* Formatea la fecha de creación en español chileno */}
-                    Creada {new Date(bike.created_at).toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" })}
-                  </div>
-                </div>
-                <div style={s.bikeArrow}>→</div> {/* flecha indicando que es clickeable */}
-              </Link>
+          {/* Área clickeable que lleva al detalle de la bici */}
+          <Link href={`/garage/${bike.id}`} style={s.bikeLink}>
+            {/* Avatar con la primera letra del displayName (brand + model) */}
+            <div style={s.bikeAvatar}>
+              {(`${bike.brand ?? ""} ${bike.model ?? ""}`.trim() || "B")
+                .slice(0, 1)
+                .toUpperCase()}
+            </div>
+
+            <div style={s.bikeInfo}>
+              {/* Nombre visible = brand + model */}
+              <div style={s.bikeName}>
+                {(`${bike.brand ?? ""} ${bike.model ?? ""}`.trim() || bike.name || "Bicicleta")}
+              </div>
+
+              <div style={s.bikeMeta}>
+                {bike.type ? `${bike.type} · ` : ""}
+                Creada{" "}
+                {new Date(bike.created_at).toLocaleDateString("es-CL", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </div>
+            </div>
+
+            <div style={s.bikeArrow}>→</div>
+          </Link>
 
               {/* Botón de eliminar, separado del Link para no activar la navegación */}
               <button onClick={() => deleteBike(bike.id)} style={s.deleteBtn} title="Eliminar bicicleta">
