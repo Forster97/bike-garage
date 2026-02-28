@@ -1,34 +1,41 @@
 "use client";
 
+// useMemo: recalcula canSubmit solo cuando cambian los campos del formulario
+// useState: variables reactivas del formulario
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { getSupabase } from "../../../lib/supabaseClient";
 
 export const dynamic = "force-dynamic";
 
+// Valida que el email tenga formato válido (algo@algo.algo)
 function isValidEmail(v) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || "").trim());
 }
 
+// ── Página de Registro ────────────────────────────────────────────────────────
 export default function SignupPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [password2, setPassword2] = useState("");
+  // ── Estado del formulario ──────────────────────────────────────────────────
+  const [email, setEmail] = useState("");       // campo email
+  const [password, setPassword] = useState(""); // campo contraseña
+  const [password2, setPassword2] = useState("")); // campo confirmar contraseña
 
-  const [showPw, setShowPw] = useState(false);
-  const [showPw2, setShowPw2] = useState(false);
+  const [showPw, setShowPw] = useState(false);   // muestra/oculta campo contraseña
+  const [showPw2, setShowPw2] = useState(false);  // muestra/oculta campo confirmación
 
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState("");
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);     // true mientras se espera respuesta de Supabase
+  const [msg, setMsg] = useState("");               // mensaje de éxito o error
+  const [isSuccess, setIsSuccess] = useState(false); // true = éxito verde, false = error rojo
 
+  // canSubmit: true solo si todos los campos son válidos y no está cargando
   const canSubmit = useMemo(() => {
     const okEmail = isValidEmail(email);
     const okPw = password.length >= 6;
-    const okMatch = password2.length > 0 && password2 === password;
+    const okMatch = password2.length > 0 && password2 === password; // las dos contraseñas deben coincidir
     return okEmail && okPw && okMatch && !loading;
   }, [email, password, password2, loading]);
 
+  // ── Función: crear cuenta ──────────────────────────────────────────────────
   async function signUp(e) {
     e?.preventDefault?.();
     setMsg("");
@@ -45,13 +52,13 @@ export default function SignupPage() {
         return;
       }
 
-      // Opcional: si tienes confirmación de correo activada en Supabase,
-      // esto ayuda a controlar hacia dónde vuelve el usuario.
+      // Si Supabase tiene confirmación por email activada, redirige al login después de confirmar
       const redirectTo =
         typeof window !== "undefined"
           ? `${window.location.origin}/login`
           : undefined;
 
+      // Crea la cuenta en Supabase Auth
       const { error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
@@ -64,11 +71,12 @@ export default function SignupPage() {
         return;
       }
 
+      // Registro exitoso: pide al usuario que confirme su email antes de entrar
       setMsg(
         "Listo ✅ Revisa tu correo para confirmar la cuenta y luego vuelve a Login."
       );
       setIsSuccess(true);
-      setPassword("");
+      setPassword("");  // limpia las contraseñas por seguridad
       setPassword2("");
     } catch (err) {
       setMsg(err?.message ?? "Error desconocido al crear la cuenta.");
@@ -78,15 +86,19 @@ export default function SignupPage() {
     }
   }
 
+  // "Touched" = el usuario ya escribió algo en ese campo.
+  // Se usa para no mostrar errores de validación antes de que el usuario empiece a escribir.
   const emailTouched = email.length > 0;
   const pwTouched = password.length > 0;
   const pw2Touched = password2.length > 0;
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <main className="min-h-[100svh] bg-zinc-950 text-zinc-50">
       <div className="mx-auto flex min-h-[100svh] max-w-6xl items-center justify-center px-4 py-10">
         <div className="w-full max-w-md">
-          {/* Header */}
+
+          {/* Encabezado */}
           <div className="mb-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 text-xs text-zinc-200">
               <span className="h-2 w-2 rounded-full bg-emerald-400" />
@@ -98,10 +110,11 @@ export default function SignupPage() {
             </h1>
           </div>
 
-          {/* Card */}
+          {/* Tarjeta con el formulario */}
           <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
             <form onSubmit={signUp} className="grid gap-4">
-              {/* Email */}
+
+              {/* Campo email */}
               <div className="grid gap-2">
                 <label className="text-sm text-zinc-200">Email</label>
                 <input
@@ -112,6 +125,7 @@ export default function SignupPage() {
                   placeholder="tu@email.com"
                   className="h-11 w-full rounded-xl border border-zinc-800 bg-zinc-950/40 px-3 text-sm outline-none transition focus:border-zinc-600 focus:bg-zinc-950"
                 />
+                {/* Solo muestra el error si el usuario ya tocó el campo */}
                 {emailTouched && !isValidEmail(email) ? (
                   <p className="text-xs text-amber-300">
                     Ingrese un email válido.
@@ -119,7 +133,7 @@ export default function SignupPage() {
                 ) : null}
               </div>
 
-              {/* Password */}
+              {/* Campo contraseña */}
               <div className="grid gap-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm text-zinc-200">Password</label>
@@ -147,7 +161,7 @@ export default function SignupPage() {
                 ) : null}
               </div>
 
-              {/* Confirm password */}
+              {/* Campo confirmar contraseña */}
               <div className="grid gap-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm text-zinc-200">
@@ -170,6 +184,7 @@ export default function SignupPage() {
                   placeholder="repite tu password"
                   className="h-11 w-full rounded-xl border border-zinc-800 bg-zinc-950/40 px-3 text-sm outline-none transition focus:border-zinc-600 focus:bg-zinc-950"
                 />
+                {/* Avisa si las contraseñas no coinciden */}
                 {pw2Touched && password2 !== password ? (
                   <p className="text-xs text-amber-300">
                     Las contraseñas no coinciden.
@@ -177,7 +192,7 @@ export default function SignupPage() {
                 ) : null}
               </div>
 
-              {/* Message */}
+              {/* Mensaje de éxito (verde) o error (rojo) */}
               {msg ? (
                 <div
                   className={[
@@ -191,7 +206,7 @@ export default function SignupPage() {
                 </div>
               ) : null}
 
-              {/* Submit */}
+              {/* Botón de envío — deshabilitado si canSubmit es false */}
               <button
                 type="submit"
                 disabled={!canSubmit}
@@ -204,7 +219,7 @@ export default function SignupPage() {
                 {loading ? "Creando..." : "Crear cuenta"}
               </button>
 
-              {/* Footer */}
+              {/* Link para usuarios que ya tienen cuenta */}
               <p className="pt-1 text-sm text-zinc-400">
                 ¿Ya tienes cuenta?{" "}
                 <Link href="/login" className="text-emerald-300 hover:underline">
@@ -214,6 +229,7 @@ export default function SignupPage() {
             </form>
           </div>
 
+          {/* Pie de página */}
           <p className="mt-6 text-center text-xs text-zinc-500">
             © {new Date().getFullYear()} Bike Garage
           </p>
