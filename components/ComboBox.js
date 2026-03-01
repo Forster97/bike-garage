@@ -1,70 +1,161 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-// ── ComboBox ────────────────────────────────────────────────────────────────
-// Input con sugerencias desplegables. Permite escribir libremente O elegir
-// una opción de la lista filtrada en tiempo real.
-//
-// Props:
-//   value       – valor actual (controlado)
-//   onChange    – función(newValue) cuando el usuario escribe o elige
-//   options     – array de strings con las sugerencias
-//   placeholder – texto fantasma del input
-//   style       – estilos para el contenedor (flex, minWidth, etc.)
-//   inputMode   – "numeric" para campos de año, omitir para texto normal
-export default function ComboBox({ value, onChange, options = [], placeholder, style, inputMode }) {
+// ComboBox pro: escribe o elige, con teclado (↑↓ Enter Esc) y scroll al item activo
+export default function ComboBox({
+  value,
+  onChange,
+  options = [],
+  placeholder,
+  style,
+  inputMode,
+  minChars = 0, // pro-tip: pon 1 o 2 para marca/modelo si quieres
+}) {
   const [open, setOpen] = useState(false);
-  const [hovered, setHovered] = useState(-1);
+  const [active, setActive] = useState(-1);
   const containerRef = useRef(null);
+  const listRef = useRef(null);
 
-  // Filtra las opciones según lo que el usuario ha escrito
-  const filtered = value
-    ? options.filter((o) => String(o).toLowerCase().includes(String(value).toLowerCase()))
-    : options;
+  const normalizedValue = String(value ?? "");
 
-  // Muestra hasta 12 sugerencias para no saturar la pantalla
-  const shown = filtered.slice(0, 12);
+  // Filtrado memoizado
+  const shown = useMemo(() => {
+    const v = normalizedValue.trim().toLowerCase();
+    const base = Array.isArray(options) ? options : [];
 
-  // Cierra el dropdown si el usuario hace clic fuera del componente
+    // Normaliza (evita undefined/null)
+    const clean = base
+      .map((o) => String(o ?? ""))
+      .filter((o) => o.trim().length > 0);
+
+    // Sin escribir: muestra todo (limitado) solo si minChars=0
+    if (!v) return minChars === 0 ? clean.slice(0, 12) : [];
+
+    if (v.length < minChars) return [];
+
+    const filtered = clean.filter((o) => o.toLowerCase().includes(v));
+    return filtered.slice(0, 12);
+  }, [options, normalizedValue, minChars]);
+
+  const hasOptions = shown.length > 0;
+
+  // Cierra al hacer click fuera
   useEffect(() => {
     const handler = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         setOpen(false);
-        setHovered(-1);
+        setActive(-1);
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // Asegura que active siempre esté dentro del rango cuando cambian opciones
+  useEffect(() => {
+    if (!open) return;
+    if (!hasOptions) {
+      setActive(-1);
+      return;
+    }
+    setActive((prev) => (prev >= shown.length ? shown.length - 1 : prev));
+  }, [open, hasOptions, shown.length]);
+
+  // Scroll al item activo cuando navegas con teclado
+  useEffect(() => {
+    if (!open || active < 0) return;
+    const el = listRef.current?.querySelector(`[data-idx="${active}"]`);
+    if (el && typeof el.scrollIntoView === "function") {
+      el.scrollIntoView({ block: "nearest" });
+    }
+  }, [open, active]);
+
+  const selectOption = (opt) => {
+    onChange(String(opt));
+    setOpen(false);
+    setActive(-1);
+  };
+
+  const onKeyDown = (e) => {
+    if (!open && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+      setOpen(true);
+      return;
+    }
+
+    if (e.key === "Escape") {
+      setOpen(false);
+      setActive(-1);
+      return;
+    }
+
+    if (!open) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (!hasOptions) return;
+      setActive((prev) => (prev < shown.length - 1 ? prev + 1 : 0));
+      return;
+    }
+
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!hasOptions) return;
+      setActive((prev) => (prev > 0 ? prev - 1 : shown.length - 1));
+      return;
+    }
+
+    if (e.key === "Enter") {
+      if (active >= 0 && active < shown.length) {
+        e.preventDefault();
+        selectOption(shown[active]);
+      } else {
+        // Enter sin seleccionar: cierra (y deja el texto tal cual)
+        setOpen(false);
+        setActive(-1);
+      }
+      return;
+    }
+  };
+
   return (
     <div ref={containerRef} style={{ ...style, position: "relative" }}>
       <input
-        value={value}
-        onChange={(e) => { onChange(e.target.value); setOpen(true); setHovered(-1); }}
-        onFocus={() => { setOpen(true); setHovered(-1); }}
+        value={normalizedValue}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+          setActive(-1);
+        }}
+        onFocus={() => {
+          setOpen(true);
+          setActive(-1);
+        }}
+        onKeyDown={onKeyDown}
         placeholder={placeholder}
         inputMode={inputMode}
         autoComplete="off"
         style={inputS}
+        aria-autocomplete="list"
+        aria-expanded={open ? "true" : "false"}
       />
 
-      {/* Dropdown de sugerencias – aparece solo si hay opciones y el input está activo */}
-      {open && shown.length > 0 && (
-        <ul style={dropS}>
+      {open && hasOptions && (
+        <ul ref={listRef} style={dropS} role="listbox">
           {shown.map((opt, i) => (
             <li
-              key={opt}
+              key={`${opt}-${i}`}
+              data-idx={i}
+              role="option"
+              aria-selected={active === i ? "true" : "false"}
               onMouseDown={(e) => {
-                // preventDefault evita que el input pierda el foco antes de registrar el clic
-                e.preventDefault();
-                onChange(String(opt));
-                setOpen(false);
-                setHovered(-1);
+                e.preventDefault(); // evita blur
+                selectOption(opt);
               }}
-              onMouseEnter={() => setHovered(i)}
-              onMouseLeave={() => setHovered(-1)}
-              style={{ ...optS, background: hovered === i ? "rgba(255,255,255,0.07)" : "transparent" }}
+              onMouseEnter={() => setActive(i)}
+              style={{
+                ...optS,
+                background: active === i ? "rgba(255,255,255,0.07)" : "transparent",
+              }}
             >
               {opt}
             </li>
@@ -75,7 +166,6 @@ export default function ComboBox({ value, onChange, options = [], placeholder, s
   );
 }
 
-// ── Estilos internos ────────────────────────────────────────────────────────
 const inputS = {
   width: "100%",
   boxSizing: "border-box",
