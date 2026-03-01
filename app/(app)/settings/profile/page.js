@@ -4,6 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
 
+function Chevron({ open }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+      style={{ transition: "transform 0.22s", transform: open ? "rotate(180deg)" : "rotate(0deg)", flexShrink: 0 }}
+    >
+      <path d="M4 6l4 4 4-4" stroke="rgba(255,255,255,0.40)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const fileRef = useRef(null);
@@ -33,6 +43,7 @@ export default function ProfilePage() {
   const [prefs, setPrefs] = useState({});
   const [savingPref, setSavingPref] = useState(null);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [personalOpen, setPersonalOpen] = useState(true);
 
   // ── Carga inicial ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -257,11 +268,18 @@ export default function ProfilePage() {
       {/* ── Formulario ── */}
       <form onSubmit={handleSave}>
         <div style={S.card}>
-          <div style={{ marginBottom: 16 }}>
-            <div style={S.sectionTitle}>Información personal</div>
-          </div>
+          <button
+            onClick={() => setPersonalOpen((o) => !o)}
+            style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: personalOpen ? 16 : 0 }}
+          >
+            <div style={{ textAlign: "left" }}>
+              <div style={S.sectionTitle}>Información personal</div>
+            </div>
+            <Chevron open={personalOpen} />
+          </button>
 
-          <div className="profile-grid">
+          {personalOpen && (<>
+            <div className="profile-grid">
             <label style={S.fieldWrap}>
               <span style={S.label}>Nombre</span>
               <input
@@ -347,7 +365,7 @@ export default function ProfilePage() {
                 ))}
               </div>
             </label>
-          </div>
+            </div>
 
           {/* Correo (solo lectura) */}
           <div style={{ marginTop: 14 }}>
@@ -391,6 +409,7 @@ export default function ProfilePage() {
               {saving ? "Guardando…" : "Guardar cambios"}
             </button>
           </div>
+          </>)}
         </div>
       </form>
 
@@ -407,7 +426,7 @@ export default function ProfilePage() {
                 Activa o desactiva el email automático para cada tipo de mantenimiento
               </div>
             </div>
-            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.40)", flexShrink: 0, transition: "transform 0.2s", display: "inline-block", transform: notifOpen ? "rotate(180deg)" : "rotate(0deg)" }}>▼</span>
+            <Chevron open={notifOpen} />
           </button>
 
           {notifOpen && <div style={{ display: "grid", gap: 6, marginTop: 14 }}>

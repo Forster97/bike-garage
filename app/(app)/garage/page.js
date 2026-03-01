@@ -17,6 +17,17 @@ import Link from "next/link";
 // supabase: conexión a la base de datos y sistema de autenticación
 import { supabase } from "../../../lib/supabaseClient";
 
+// ── Chevron reutilizable ───────────────────────────────────────────────────────
+function Chevron({ open }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+      style={{ transition: "transform 0.22s", transform: open ? "rotate(180deg)" : "rotate(0deg)", flexShrink: 0 }}
+    >
+      <path d="M4 6l4 4 4-4" stroke="rgba(255,255,255,0.40)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 // ── Componente principal de la página ─────────────────────────────────────────
 export default function GaragePage() {
   const router = useRouter(); // Hook para poder redirigir al usuario a otra página
@@ -33,6 +44,7 @@ export default function GaragePage() {
   const BIKE_TYPES = ["Ruta", "Gravel", "XC", "Trail", "Enduro", "Urbana", "E-Bike", "Dh", "Otra"];
   const [loading, setLoading] = useState(true);       // true = está cargando datos, false = ya terminó
   const [adding, setAdding] = useState(false);        // true = se está guardando una bici nueva (evita doble clic)
+  const [addOpen, setAddOpen] = useState(false);      // colapsable del formulario "Agregar bicicleta"
 
   // ── Catálogo de bicicletas (para los desplegables) ────────────────────────
   const [catalogBrands, setCatalogBrands] = useState([]);  // marcas únicas
@@ -222,101 +234,111 @@ export default function GaragePage() {
 
       {/* ── Tarjeta para agregar una nueva bicicleta ── */}
       <div style={s.addCard}>
-        <div style={s.addCardTop}>
-          <div>
+        <button
+          onClick={() => setAddOpen((o) => !o)}
+          style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
+        >
+          <div style={{ textAlign: "left" }}>
             <div style={s.addCardTitle}>Agregar bicicleta</div>
             <div style={s.addCardSub}>Ej: Diverge Comp / Gambler / Orbea Terra</div>
           </div>
-          <span style={s.newBadge}>+ Nueva</span>
-        </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={s.newBadge}>+ Nueva</span>
+            <Chevron open={addOpen} />
+          </div>
+        </button>
 
-        <div style={s.addRow}>
-          <ComboBox
-            value={newBrand}
-            onChange={setNewBrand}
-            options={catalogBrands}
-            placeholder="Marca (ej: Orbea)"
-            style={s.comboWrapper}
-          />
+        {addOpen && (
+          <>
+            <div style={s.addRow}>
+              <ComboBox
+                value={newBrand}
+                onChange={setNewBrand}
+                options={catalogBrands}
+                placeholder="Marca (ej: Orbea)"
+                style={s.comboWrapper}
+              />
 
-          <ComboBox
-            value={newModel}
-            onChange={setNewModel}
-            options={catalogModels}
-            placeholder="Modelo (ej: Terra H30)"
-            style={s.comboWrapper}
-          />
+              <ComboBox
+                value={newModel}
+                onChange={setNewModel}
+                options={catalogModels}
+                placeholder="Modelo (ej: Terra H30)"
+                style={s.comboWrapper}
+              />
 
-          <ComboBox
-            value={newYear}
-            onChange={setNewYear}
-            options={catalogYears}
-            placeholder="Año (ej: 2021)"
-            inputMode="numeric"
-            style={s.comboWrapper}
-          />
+              <ComboBox
+                value={newYear}
+                onChange={setNewYear}
+                options={catalogYears}
+                placeholder="Año (ej: 2021)"
+                inputMode="numeric"
+                style={s.comboWrapper}
+              />
 
-          <ComboBox
-            value={newSize}
-            onChange={setNewSize}
-            options={catalogSizes}
-            placeholder="Talla (ej: S / 54)"
-            style={s.comboWrapper}
-          />
+              <ComboBox
+                value={newSize}
+                onChange={setNewSize}
+                options={catalogSizes}
+                placeholder="Talla (ej: S / 54)"
+                style={s.comboWrapper}
+              />
 
-          <select
-            value={newType}
-            onChange={(e) => setNewType(e.target.value)}
-            style={{ ...s.input, cursor: "pointer" }}
-          >
-            {BIKE_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
+              <select
+                value={newType}
+                onChange={(e) => setNewType(e.target.value)}
+                style={{ ...s.input, cursor: "pointer" }}
+              >
+                {BIKE_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
 
-          <button
-            onClick={addBike}
-            disabled={
-              adding ||
-              !newBrand.trim() ||
-              !newModel.trim() ||
-              !String(newYear).trim() ||
-              !newSize.trim() ||
-              !newType.trim()
-            }
-            style={{
-              ...s.addBtn,
-              opacity:
-                adding ||
-                !newBrand.trim() ||
-                !newModel.trim() ||
-                !String(newYear).trim() ||
-                !newSize.trim() ||
-                !newType.trim()
-                  ? 0.45
-                  : 1,
-              cursor:
-                adding ||
-                !newBrand.trim() ||
-                !newModel.trim() ||
-                !String(newYear).trim() ||
-                !newSize.trim() ||
-                !newType.trim()
-                  ? "not-allowed"
-                  : "pointer",
-            }}
-          >
-            {adding ? "Agregando…" : "Agregar"}
-          </button>
-        </div>
+              <button
+                onClick={addBike}
+                disabled={
+                  adding ||
+                  !newBrand.trim() ||
+                  !newModel.trim() ||
+                  !String(newYear).trim() ||
+                  !newSize.trim() ||
+                  !newType.trim()
+                }
+                style={{
+                  ...s.addBtn,
+                  opacity:
+                    adding ||
+                    !newBrand.trim() ||
+                    !newModel.trim() ||
+                    !String(newYear).trim() ||
+                    !newSize.trim() ||
+                    !newType.trim()
+                      ? 0.45
+                      : 1,
+                  cursor:
+                    adding ||
+                    !newBrand.trim() ||
+                    !newModel.trim() ||
+                    !String(newYear).trim() ||
+                    !newSize.trim() ||
+                    !newType.trim()
+                      ? "not-allowed"
+                      : "pointer",
+                }}
+              >
+                {adding ? "Agregando…" : "Agregar"}
+              </button>
+            </div>
 
-        {/* Pequeño tip informativo para el usuario */}
-        <div style={s.tip}>
-          <span style={s.tipDot} />
-            Estos 5 datos son obligatorios. Después podrás agregar notas y componentes dentro de cada bici.
-        </div>
+            {/* Pequeño tip informativo para el usuario */}
+            <div style={s.tip}>
+              <span style={s.tipDot} />
+              Estos 5 datos son obligatorios. Después podrás agregar notas y componentes dentro de cada bici.
+            </div>
+          </>
+        )}
       </div>
 
       {/* ── Lista de bicicletas ── */}
