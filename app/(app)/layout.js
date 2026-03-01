@@ -31,6 +31,7 @@ export default function AppGroupLayout({ children }) {
   const isGarage = pathname?.startsWith("/garage");
   const isCategories = pathname?.startsWith("/settings/categories");
   const isNotifications = pathname?.startsWith("/notifications");
+  const isProfile = pathname?.startsWith("/settings/profile");
 
   const userLabel = email.length > 22 ? `${email.slice(0, 19)}…` : email;
 
@@ -64,10 +65,10 @@ export default function AppGroupLayout({ children }) {
             </nav>
 
             {email && (
-              <div style={s.userChip} title={email}>
+              <Link href="/settings/profile" style={{ ...s.userChip, textDecoration: "none", ...(isProfile ? { borderColor: "rgba(99,102,241,0.40)", background: "rgba(99,102,241,0.10)" } : {}) }} title={email}>
                 <span style={s.onlineDot} />
                 <span style={s.userChipText}>{userLabel}</span>
-              </div>
+              </Link>
             )}
 
             <button onClick={logout} style={s.logoutBtn}>Salir</button>
@@ -85,6 +86,9 @@ export default function AppGroupLayout({ children }) {
           </Link>
           <Link href="/settings/categories" style={{ ...s.mobileTab, ...(isCategories ? s.mobileTabActive : {}) }}>
             Categorías
+          </Link>
+          <Link href="/settings/profile" style={{ ...s.mobileTab, ...(isProfile ? s.mobileTabActive : {}) }}>
+            Perfil
           </Link>
         </div>
       </header>
