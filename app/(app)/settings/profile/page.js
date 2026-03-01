@@ -32,6 +32,7 @@ export default function ProfilePage() {
   const [types, setTypes] = useState([]);
   const [prefs, setPrefs] = useState({});
   const [savingPref, setSavingPref] = useState(null);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   // ── Carga inicial ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -396,13 +397,20 @@ export default function ProfilePage() {
       {/* ── Notificaciones por email ── */}
       {types.filter((t) => t.default_interval_days).length > 0 && (
         <div style={S.card}>
-          <div style={{ marginBottom: 14 }}>
-            <div style={S.sectionTitle}>Notificaciones por email</div>
-            <div style={{ marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.46)", lineHeight: 1.5 }}>
-              Activa o desactiva el email automático para cada tipo de mantenimiento
+          <button
+            onClick={() => setNotifOpen((o) => !o)}
+            style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
+          >
+            <div style={{ textAlign: "left" }}>
+              <div style={S.sectionTitle}>Notificaciones por email</div>
+              <div style={{ marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.46)", lineHeight: 1.5 }}>
+                Activa o desactiva el email automático para cada tipo de mantenimiento
+              </div>
             </div>
-          </div>
-          <div style={{ display: "grid", gap: 6 }}>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.40)", flexShrink: 0, transition: "transform 0.2s", display: "inline-block", transform: notifOpen ? "rotate(180deg)" : "rotate(0deg)" }}>▼</span>
+          </button>
+
+          {notifOpen && <div style={{ display: "grid", gap: 6, marginTop: 14 }}>
             {types.filter((t) => t.default_interval_days).map((type) => {
               const enabled = prefs[type.id] !== false;
               return (
@@ -427,16 +435,16 @@ export default function ProfilePage() {
                     }}
                   >
                     <span style={{
-                      position: "absolute", top: 2, width: 16, height: 16, borderRadius: 999,
+                      position: "absolute", top: 2, left: 0, width: 16, height: 16, borderRadius: 999,
                       background: "white", boxShadow: "0 1px 4px rgba(0,0,0,0.35)",
                       transition: "transform 0.2s",
-                      transform: enabled ? "translateX(16px)" : "translateX(2px)",
+                      transform: enabled ? "translateX(18px)" : "translateX(2px)",
                     }} />
                   </button>
                 </div>
               );
             })}
-          </div>
+          </div>}
         </div>
       )}
 
