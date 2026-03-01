@@ -369,10 +369,13 @@ export default function BikeDetailPage() {
 
   const partCount = parts.length;
 
-  // Acciones del header: link al historial + botón volver
+  // Acciones del header: links al historial y mantenimiento + botón volver
+  const navLinkStyle = { color: "rgba(255,255,255,0.78)", textDecoration: "none", fontSize: 14, padding: "10px" };
   const headerActions = [
-    <a key="history" href={`/garage/${bikeId}/history`}
-      style={{ color: "rgba(255,255,255,0.78)", textDecoration: "none", fontSize: 14, padding: "10px" }}>
+    <a key="maintenance" href={`/garage/${bikeId}/maintenance`} style={navLinkStyle}>
+      Mantenimiento
+    </a>,
+    <a key="history" href={`/garage/${bikeId}/history`} style={navLinkStyle}>
       Historial
     </a>,
     <button key="back" onClick={() => router.push("/garage")}
