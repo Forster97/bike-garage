@@ -152,11 +152,22 @@ export default function GaragePage() {
         return;
       }
 
-      // Inserta usando los 5 campos obligatorios (name lo genera el trigger, o lo ignoras)
-      const { error } = await supabase.from("bikes").insert([
-        { user_id: uid, brand, model, year: yearNum, size, type },
-      ]);
-      if (error) throw error;
+    // 1) Asegura que exista en el catálogo (si no existe, lo crea; si existe, no duplica)
+    const { error: catErr } = await supabase
+      .from("bike_catalog")
+      .upsert(
+        { brand, model, year: yearNum, type },
+        { onConflict: "brand,model,year" }
+      );
+
+    if (catErr) throw catErr;
+
+    // 2) Inserta la bici del usuario
+    const { error: bikeErr } = await supabase.from("bikes").insert([
+      { user_id: uid, brand, model, year: yearNum, size, type },
+    ]);
+
+    if (bikeErr) throw bikeErr;
 
       // Limpia el form
       setNewBrand("");
@@ -171,6 +182,10 @@ export default function GaragePage() {
     } finally {
       setAdding(false);
     }
+      // Actualiza sugerencias sin recargar la página
+      setCatalogBrands((prev) =>
+        prev.includes(brand) ? prev : [...prev, brand].sort((a, b) => a.localeCompare(b))
+      );
   };
 
   // ── Función: eliminar una bicicleta ───────────────────────────────────────
