@@ -57,6 +57,10 @@ export default function GaragePage() {
   const [catalogYears, setCatalogYears] = useState([]);
   const [catalogSizes, setCatalogSizes] = useState([]);
 
+  // ── Preview de plantilla (componentes con peso) ───────────────────────────
+  const [templatePreview, setTemplatePreview] = useState(null); // null = sin buscar, [] = sin plantilla, [...] = componentes
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
+
   // ── Efecto: carga marcas y tallas al montar ───────────────────────────────
   useEffect(() => {
     const fetchStaticCatalog = async () => {
@@ -104,6 +108,41 @@ export default function GaragePage() {
     }, 300);
     return () => clearTimeout(t);
   }, [newBrand, newModel]);
+
+  // ── Efecto: busca plantilla cuando cambia marca+modelo+año ───────────────
+  useEffect(() => {
+    const yearNum = Number(String(newYear).trim());
+    if (!newBrand.trim() || !newModel.trim() || !Number.isFinite(yearNum) || yearNum < 1980) {
+      setTemplatePreview(null);
+      return;
+    }
+    const t = setTimeout(async () => {
+      setLoadingTemplate(true);
+      const { data: tpl } = await supabase
+        .from("bike_model_templates")
+        .select("id")
+        .ilike("brand", newBrand.trim())
+        .ilike("model", newModel.trim())
+        .eq("year", yearNum)
+        .maybeSingle();
+
+      if (!tpl?.id) {
+        setTemplatePreview([]);
+        setLoadingTemplate(false);
+        return;
+      }
+
+      const { data: parts } = await supabase
+        .from("component_templates")
+        .select("category, name, weight_g, position")
+        .eq("template_id", tpl.id)
+        .order("position", { ascending: true });
+
+      setTemplatePreview(parts || []);
+      setLoadingTemplate(false);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [newBrand, newModel, newYear]);
 
   // ── Función: cargar bicicletas ────────────────────────────────────────────
   const refreshBikes = async (uid) => {
@@ -212,6 +251,7 @@ export default function GaragePage() {
       setNewYear("");
       setNewSize("");
       setNewType("Gravel");
+      setTemplatePreview(null);
 
       // 4) refrescar lista
       await refreshBikes(uid);
@@ -369,6 +409,48 @@ export default function GaragePage() {
                 {adding ? "Agregando…" : "Agregar"}
               </button>
             </div>
+
+            {/* ── Preview de plantilla ── */}
+            {loadingTemplate && (
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", padding: "8px 0" }}>
+                Buscando componentes…
+              </div>
+            )}
+
+            {!loadingTemplate && templatePreview !== null && (
+              templatePreview.length > 0 ? (
+                <div style={{ borderRadius: 12, border: "1px solid rgba(99,102,241,0.25)", background: "rgba(99,102,241,0.07)", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(165,180,252,0.90)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                      ✓ Plantilla encontrada — se cargarán {templatePreview.length} componentes
+                    </span>
+                    {templatePreview.some((p) => p.weight_g) && (
+                      <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, color: "rgba(134,239,172,0.85)", whiteSpace: "nowrap" }}>
+                        {(templatePreview.reduce((s, p) => s + (p.weight_g ?? 0), 0) / 1000).toFixed(2)} kg total
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: "grid", gap: 4 }}>
+                    {templatePreview.map((p, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "5px 8px", borderRadius: 8, background: "rgba(255,255,255,0.04)" }}>
+                        <div style={{ minWidth: 0 }}>
+                          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>{p.name}</span>
+                          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginLeft: 6 }}>{p.category}</span>
+                        </div>
+                        <span style={{ fontSize: 12, color: p.weight_g ? "rgba(134,239,172,0.80)" : "rgba(255,255,255,0.25)", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 }}>
+                          {p.weight_g ? `${p.weight_g} g` : "—"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.30)", display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 14 }}>○</span>
+                  Sin plantilla para este modelo — los componentes se agregarán manualmente.
+                </div>
+              )
+            )}
 
             <div style={s.tip}>
               <span style={s.tipDot} />
