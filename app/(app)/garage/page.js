@@ -18,8 +18,6 @@ import Link from "next/link";
 import { supabase } from "../../../lib/supabaseClient";
 
 // import de insertar componentes:
-  import { useRouter } from "next/navigation";
-  import { supabase } from "../../../lib/supabaseClient"; // ajusta la ruta
   import { createBikeWithTemplate } from "../../../lib/createBikeWithTemplate"; // ajusta la ruta
 
 
