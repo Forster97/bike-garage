@@ -126,7 +126,7 @@ export default function ProfilePage() {
 
     setSaving(false);
     if (error) {
-      setSaveResult({ ok: false, message: "Error al guardar. Intenta de nuevo." });
+      setSaveResult({ ok: false, message: error.message || "Error al guardar. Intenta de nuevo." });
     } else {
       setSaveResult({ ok: true, message: "Perfil guardado correctamente." });
       setTimeout(() => setSaveResult(null), 3000);
