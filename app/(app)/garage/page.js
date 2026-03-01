@@ -17,6 +17,12 @@ import Link from "next/link";
 // supabase: conexión a la base de datos y sistema de autenticación
 import { supabase } from "../../../lib/supabaseClient";
 
+// import de insertar componentes:
+  import { useRouter } from "next/navigation";
+  import { supabase } from "../../../lib/supabaseClient"; // ajusta la ruta
+  import { createBikeWithTemplate } from "../../../lib/createBikeWithTemplate"; // ajusta la ruta
+
+
 // ── Chevron reutilizable ───────────────────────────────────────────────────────
 function Chevron({ open }) {
   return (
@@ -175,12 +181,40 @@ export default function GaragePage() {
     if (catErr) throw catErr;
 
     // 2) Inserta la bici del usuario
-    const { error: bikeErr } = await supabase.from("bikes").insert([
-      { user_id: uid, brand, model, year: yearNum, size, type },
-    ]);
 
-    if (bikeErr) throw bikeErr;
+      // dentro de tu componente...
+      const router = useRouter();
 
+      async function handleCreate(e) {
+        e.preventDefault();
+
+        // 1) sacar userId
+        const { data: auth } = await supabase.auth.getUser();
+        const userId = auth?.user?.id;
+        if (!userId) {
+          alert("Debes iniciar sesión");
+          return;
+        }
+
+        try {
+          // 2) crear bici + autocargar componentes
+          const bike = await createBikeWithTemplate({
+            userId,
+            name,   // tu state
+            brand,  // tu state
+            model,  // tu state
+            year,   // tu state
+            size,   // tu state (si lo tienes)
+            notes,  // tu state (si lo tienes)
+          });
+
+          // 3) redirigir a la bici
+          router.push(`/garage/${bike.id}`);
+        } catch (err) {
+          console.error(err);
+          alert(err?.message ?? "Error creando bicicleta");
+        }
+      }
       // Limpia el form
       setNewBrand("");
       setNewModel("");
