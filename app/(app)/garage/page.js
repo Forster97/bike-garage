@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic"; // Fuerza que la página siempre se reca
 // useMemo: memoriza un valor calculado para no recalcularlo en cada render
 // useState: crea variables que, al cambiar, actualizan la pantalla automáticamente
 import { useEffect, useMemo, useState } from "react";
+import ComboBox from "../../../components/ComboBox";
 
 // useRouter: permite navegar entre páginas (ej: redirigir al login)
 import { useRouter } from "next/navigation";
@@ -32,6 +33,55 @@ export default function GaragePage() {
   const BIKE_TYPES = ["Ruta", "Gravel", "XC", "Trail", "Enduro", "Urbana", "E-Bike", "Dh", "Otra"];
   const [loading, setLoading] = useState(true);       // true = está cargando datos, false = ya terminó
   const [adding, setAdding] = useState(false);        // true = se está guardando una bici nueva (evita doble clic)
+
+  // ── Catálogo de bicicletas (para los desplegables) ────────────────────────
+  const [catalogBrands, setCatalogBrands] = useState([]);  // marcas únicas
+  const [catalogModels, setCatalogModels] = useState([]);  // modelos filtrados por marca
+  const [catalogYears,  setCatalogYears]  = useState([]);  // años filtrados por marca+modelo
+  const [catalogSizes,  setCatalogSizes]  = useState([]);  // tallas de bike_sizes
+
+  // ── Efecto: carga marcas y tallas al montar (datos independientes) ──────────
+  useEffect(() => {
+    const fetchStaticCatalog = async () => {
+      const [brandsRes, sizesRes] = await Promise.all([
+        supabase.from("bike_catalog").select("brand").order("brand"),
+        supabase.from("bike_sizes").select("size").order("size"),
+      ]);
+      if (brandsRes.data) setCatalogBrands([...new Set(brandsRes.data.map((r) => r.brand))]);
+      if (sizesRes.data)  setCatalogSizes(sizesRes.data.map((r) => r.size));
+    };
+    fetchStaticCatalog();
+  }, []);
+
+  // ── Efecto: recarga modelos cada vez que cambia la marca ─────────────────
+  // Usa 300 ms de debounce para no disparar una query por cada tecla
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      if (!newBrand.trim()) { setCatalogModels([]); return; }
+      const { data } = await supabase
+        .from("bike_catalog")
+        .select("model")
+        .ilike("brand", newBrand.trim())
+        .order("model");
+      if (data) setCatalogModels([...new Set(data.map((r) => r.model))]);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [newBrand]);
+
+  // ── Efecto: recarga años cada vez que cambia marca o modelo ──────────────
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      if (!newBrand.trim() || !newModel.trim()) { setCatalogYears([]); return; }
+      const { data } = await supabase
+        .from("bike_catalog")
+        .select("year")
+        .ilike("brand", newBrand.trim())
+        .ilike("model", newModel.trim())
+        .order("year", { ascending: false });
+      if (data) setCatalogYears([...new Set(data.map((r) => String(r.year)))]);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [newBrand, newModel]);
 
   // ── Función: cargar bicicletas desde la base de datos ──────────────────────
   const refreshBikes = async (uid) => {
@@ -166,33 +216,37 @@ export default function GaragePage() {
         </div>
 
         <div style={s.addRow}>
-          <input
+          <ComboBox
             value={newBrand}
-            onChange={(e) => setNewBrand(e.target.value)}
+            onChange={setNewBrand}
+            options={catalogBrands}
             placeholder="Marca (ej: Orbea)"
-            style={s.input}
+            style={s.comboWrapper}
           />
 
-          <input
+          <ComboBox
             value={newModel}
-            onChange={(e) => setNewModel(e.target.value)}
+            onChange={setNewModel}
+            options={catalogModels}
             placeholder="Modelo (ej: Terra H30)"
-            style={s.input}
+            style={s.comboWrapper}
           />
 
-          <input
+          <ComboBox
             value={newYear}
-            onChange={(e) => setNewYear(e.target.value)}
+            onChange={setNewYear}
+            options={catalogYears}
             placeholder="Año (ej: 2021)"
             inputMode="numeric"
-            style={s.input}
+            style={s.comboWrapper}
           />
 
-          <input
+          <ComboBox
             value={newSize}
-            onChange={(e) => setNewSize(e.target.value)}
+            onChange={setNewSize}
+            options={catalogSizes}
             placeholder="Talla (ej: S / 54)"
-            style={s.input}
+            style={s.comboWrapper}
           />
 
           <select
@@ -340,6 +394,8 @@ const s = {
   addCardSub: { marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.40)" },
   newBadge: { fontSize: 11, fontWeight: 700, color: "rgba(134,239,172,0.9)", background: "rgba(34,197,94,0.10)", border: "1px solid rgba(34,197,94,0.20)", padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" },
   addRow: { display: "flex", gap: 8, flexWrap: "wrap" },
+  // comboWrapper: layout para el contenedor del ComboBox (flex+minWidth van aquí, el estilo visual va dentro del componente)
+  comboWrapper: { flex: 1, minWidth: 180 },
   input: { flex: 1, minWidth: 180, padding: "11px 14px", borderRadius: 11, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(0,0,0,0.25)", color: "rgba(255,255,255,0.90)", fontSize: 14, outline: "none" },
   addBtn: { padding: "11px 18px", borderRadius: 11, border: 0, fontWeight: 700, fontSize: 14, color: "#060910", background: "rgba(255,255,255,0.92)", whiteSpace: "nowrap" },
   tip: { display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: "rgba(255,255,255,0.38)" },
