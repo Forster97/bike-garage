@@ -9,56 +9,9 @@ export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
-
-// ── Helpers (misma lógica que en la página de mantenimiento) ──────────────────
-
-function daysSince(dateStr) {
-  if (!dateStr) return null;
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const then = new Date(y, m - 1, d);
-  const now = new Date(); now.setHours(0, 0, 0, 0);
-  return Math.floor((now - then) / 864e5);
-}
-
-function addDays(dateStr, days) {
-  if (!dateStr || !days) return null;
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const dt = new Date(y, m - 1, d);
-  dt.setDate(dt.getDate() + days);
-  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
-}
-
-function formatDateShort(dateStr) {
-  if (!dateStr) return "—";
-  const [y, m, d] = dateStr.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("es-CL", {
-    day: "numeric", month: "short", year: "numeric",
-  });
-}
-
-function getTypeStatus(mType, lastRecord) {
-  if (!lastRecord) return { status: "none", nextDate: null, daysLeft: null, badge: null };
-  const intervalDays = mType?.default_interval_days;
-  if (!intervalDays) return { status: "ok", nextDate: null, daysLeft: null, badge: null };
-  const days = daysSince(lastRecord.performed_at);
-  if (days === null) return { status: "none", nextDate: null, daysLeft: null, badge: null };
-  const nextDate = addDays(lastRecord.performed_at, intervalDays);
-  const daysLeft = intervalDays - days;
-  const pct = days / intervalDays;
-  if (pct >= 1) return {
-    status: "overdue", nextDate, daysLeft,
-    badge: { label: `Vencido hace ${Math.abs(daysLeft)}d`, color: "rgba(239,68,68,0.85)", bg: "rgba(239,68,68,0.12)", border: "rgba(239,68,68,0.25)" },
-  };
-  if (pct >= 0.75) return {
-    status: "soon", nextDate, daysLeft,
-    badge: { label: `Vence en ${daysLeft}d`, color: "rgba(251,191,36,0.90)", bg: "rgba(251,191,36,0.10)", border: "rgba(251,191,36,0.20)" },
-  };
-  return { status: "ok", nextDate, daysLeft, badge: null };
-}
-
-function bikeName(bike) {
-  return `${bike.brand ?? ""} ${bike.model ?? ""}`.trim() || "Bicicleta";
-}
+import {
+  daysSince, addDays, formatDateShort, getTypeStatus, bikeName,
+} from "../../../lib/dateHelpers";
 
 // ── Componente principal ───────────────────────────────────────────────────────
 export default function NotificationsPage() {

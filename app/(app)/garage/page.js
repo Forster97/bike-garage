@@ -8,31 +8,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../../lib/supabaseClient";
 import { createBikeWithTemplate } from "../../../lib/createBikeWithTemplate";
-
-// ── Chevron reutilizable ───────────────────────────────────────────────────────
-function Chevron({ open }) {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      style={{
-        transition: "transform 0.22s",
-        transform: open ? "rotate(180deg)" : "rotate(0deg)",
-        flexShrink: 0,
-      }}
-    >
-      <path
-        d="M4 6l4 4 4-4"
-        stroke="rgba(255,255,255,0.40)"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+import Chevron from "../../../components/Chevron";
+import { BIKE_TYPES } from "../../../lib/constants";
 
 // ── Componente principal de la página ─────────────────────────────────────────
 export default function GaragePage() {
@@ -46,7 +23,6 @@ export default function GaragePage() {
   const [newSize, setNewSize] = useState("");
   const [newType, setNewType] = useState("Gravel");
 
-  const BIKE_TYPES = ["Ruta", "Gravel", "XC", "Trail", "Enduro", "Urbana", "E-Bike", "Dh", "Otra"];
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
