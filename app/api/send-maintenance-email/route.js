@@ -11,7 +11,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { NextResponse } from "next/server";
 
-import { formatDate, getTypeStatus, bikeName } from "../../lib/dateHelpers";
+import { formatDate, getTypeStatus, bikeName } from "../../../lib/dateHelpers";
 
 // ── Generador de HTML del email ────────────────────────────────────────────────
 function generateEmailHtml({ alerts, userEmail, appUrl }) {
