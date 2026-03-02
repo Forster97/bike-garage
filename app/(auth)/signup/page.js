@@ -116,7 +116,7 @@ export default function SignupPage() {
 
               {/* Campo email */}
               <div className="grid gap-2">
-                <label className="text-sm text-zinc-200">Email</label>
+                <label className="text-sm text-zinc-200">Correo electrónico</label>
                 <input
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -136,7 +136,7 @@ export default function SignupPage() {
               {/* Campo contraseña */}
               <div className="grid gap-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm text-zinc-200">Password</label>
+                  <label className="text-sm text-zinc-200">Contraseña</label>
                   <button
                     type="button"
                     onClick={() => setShowPw((v) => !v)}
@@ -165,7 +165,7 @@ export default function SignupPage() {
               <div className="grid gap-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm text-zinc-200">
-                    Confirmar password
+                    Confirmar contraseña
                   </label>
                   <button
                     type="button"
@@ -181,7 +181,7 @@ export default function SignupPage() {
                   value={password2}
                   onChange={(e) => setPassword2(e.target.value)}
                   autoComplete="new-password"
-                  placeholder="repite tu password"
+                  placeholder="repite tu contraseña"
                   className="h-11 w-full rounded-xl border border-zinc-800 bg-zinc-950/40 px-3 text-sm outline-none transition focus:border-zinc-600 focus:bg-zinc-950"
                 />
                 {/* Avisa si las contraseñas no coinciden */}
@@ -223,7 +223,7 @@ export default function SignupPage() {
               <p className="pt-1 text-sm text-zinc-400">
                 ¿Ya tienes cuenta?{" "}
                 <Link href="/login" className="text-emerald-300 hover:underline">
-                  Ir al login
+                  Iniciar sesión
                 </Link>
               </p>
             </form>

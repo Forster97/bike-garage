@@ -126,7 +126,7 @@ export default function Home() {
               { icon: "🧩", title: "Componentes por categoría", text: "Frame, frenos, transmisión, cockpit, ruedas. Todo ordenado." },
               { icon: "⚖️", title: "Peso total automático", text: "Suma los gramos de cada pieza y te muestra el total al instante." },
               { icon: "🛠️", title: "Historial de cambios", text: "Registra cuándo y qué cambiaste. Trazabilidad real." },
-              { icon: "📝", title: "Notas de setup", text: "Presión de neumáticos, configuraciones, sensaciones. Todo en un lugar." },
+              { icon: "📝", title: "Notas de ajuste", text: "Presión de neumáticos, configuraciones, sensaciones. Todo en un lugar." },
             ].map((f, i) => (
               <div key={i} style={s.featureCard}>
                 <div style={{ fontSize: 22 }}>{f.icon}</div>
@@ -147,7 +147,7 @@ export default function Home() {
             {[
               { n: "01", title: "Crea tu bicicleta", text: "Nombre, tipo, año, talla y notas. Menos de 30 segundos." },
               { n: "02", title: "Agrega componentes", text: "Categoría, nombre y peso. El total se calcula solo." },
-              { n: "03", title: "Mantén el orden", text: "Revisa tu setup, compara pesos y planifica upgrades." },
+              { n: "03", title: "Mantén el orden", text: "Revisa tu configuración, compara pesos y planifica mejoras." },
             ].map((step, i) => (
               <div key={i} style={s.step}>
                 <div style={s.stepNum}>{step.n}</div> {/* número de paso en monospace */}

@@ -14,14 +14,9 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
 import AppHeader from "../../../../components/AppHeader";
 import PageShell from "../../../../components/PageShell";
+import { DEFAULT_CATEGORIES } from "../../../../lib/constants";
 
 // ── Constantes y funciones helper ─────────────────────────────────────────────
-
-// Categorías por defecto disponibles para los componentes
-const DEFAULT_CATEGORIES = [
-  "Frame", "Fork", "Wheelset", "Tires", "Drivetrain",
-  "Brakes", "Cockpit", "Seat / Post", "Accessories", "Other",
-];
 
 // Crea un objeto vacío para el formulario de edición de bici
 const emptyBikeDraft = () => ({ name: "", type: "", year: "", size: "", notes: "" });
@@ -395,7 +390,7 @@ export default function BikeDetailPage() {
             {/* Vista normal (sin edición) */}
             {!bikeEditMode ? (
               <>
-                <div style={styles.heroKicker}>Bike</div>
+                <div style={styles.heroKicker}>Bici</div>
                 <div style={styles.heroTitleRow}>
                   <h1 style={styles.heroTitle}>{bike.name}</h1>
                   {/* Botón para activar el modo edición de la bici */}
@@ -470,12 +465,12 @@ export default function BikeDetailPage() {
         <div style={{ marginTop: 14 }}>
           <div style={styles.sectionTop}>
             <div style={styles.sectionTitle}>Distribución de peso</div>
-            <div style={styles.sectionHint}>Top categorías</div>
+            <div style={styles.sectionHint}>Principales categorías</div>
           </div>
 
           <div style={{ display: "grid", gap: 10 }}>
             {/* Muestra las 6 categorías con más peso. Si no hay componentes, muestra una fila vacía. */}
-            {(byCategory.length ? byCategory.slice(0, 6) : [{ cat: "No parts", grams: 0 }]).map((row) => {
+            {(byCategory.length ? byCategory.slice(0, 6) : [{ cat: "Sin piezas", grams: 0 }]).map((row) => {
               const pct = totalWeightG > 0 ? (row.grams / totalWeightG) * 100 : 0; // porcentaje del total
               return (
                 <div key={row.cat} style={styles.distRow}>

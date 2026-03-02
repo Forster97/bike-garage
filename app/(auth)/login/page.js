@@ -103,7 +103,7 @@ export default function LoginPage() {
 
               {/* Campo email con validación inline */}
               <div className="grid gap-2">
-                <label className="text-sm text-zinc-200">Email</label>
+                <label className="text-sm text-zinc-200">Correo electrónico</label>
                 <input
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -123,7 +123,7 @@ export default function LoginPage() {
               {/* Campo contraseña con toggle mostrar/ocultar */}
               <div className="grid gap-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm text-zinc-200">Password</label>
+                  <label className="text-sm text-zinc-200">Contraseña</label>
                   {/* Botón para alternar entre mostrar y ocultar la contraseña */}
                   <button
                     type="button"

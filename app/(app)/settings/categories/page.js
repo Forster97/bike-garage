@@ -12,12 +12,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
 import Card from "../../../../components/Card";
 import Button from "../../../../components/Button";
-
-// Categorías que vienen por defecto en la app (no pueden eliminarse, solo ocultarse)
-const DEFAULT_CATEGORIES = [
-  "Frame", "Fork", "Wheelset", "Tires", "Drivetrain",
-  "Brakes", "Cockpit", "Seat / Post", "Accessories", "Other",
-];
+import { DEFAULT_CATEGORIES } from "../../../../lib/constants";
 
 // Limpia espacios al inicio y al final de un nombre de categoría
 const normalizeName = (s) => (s ?? "").trim();
