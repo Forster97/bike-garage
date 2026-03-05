@@ -144,12 +144,17 @@ export default function BikeMaintenancePage() {
 
   // ── Panel de estado con lógica de perfil + km ──────────────────────────────
   const statusPanel = useMemo(() => {
+    // Fecha de creación de la bici como punto de partida si no hay registro
+    const bikeCreatedDate = bike?.created_at ? bike.created_at.split("T")[0] : null;
+    const creationFallback = bikeCreatedDate ? { performed_at: bikeCreatedDate, odometer_km: null } : null;
+
     return filteredTypes
       .map((t) => {
         const rule = resolveRule(t, customRulesByTypeId[String(t.id)], bikeProfile);
         if (!rule.interval_days && !rule.interval_km) return null;
         const last = lastByTypeName[t.name] || null;
-        const taskStatus = calculateTaskStatus(rule, last, currentKm);
+        const lastForCalc = last ?? creationFallback;
+        const taskStatus = calculateTaskStatus(rule, lastForCalc, currentKm);
         const badge = getStatusBadge(taskStatus);
         return { type: t, last, rule, ...taskStatus, badge };
       })
@@ -158,7 +163,7 @@ export default function BikeMaintenancePage() {
         const order = { overdue: 0, soon: 1, ok: 2, none: 3 };
         return (order[a.status] ?? 3) - (order[b.status] ?? 3);
       });
-  }, [types, customRulesByTypeId, bikeProfile, lastByTypeName, currentKm]);
+  }, [filteredTypes, customRulesByTypeId, bikeProfile, lastByTypeName, currentKm, bike]);
 
   const panelTypeNames = useMemo(() => new Set(statusPanel.map((s) => s.type.name)), [statusPanel]);
   const otherRecords = useMemo(() => records.filter((r) => !panelTypeNames.has(r.type_name)), [records, panelTypeNames]);
@@ -560,6 +565,10 @@ export default function BikeMaintenancePage() {
                                 <> · <span style={{ color: "rgba(255,255,255,0.75)" }}>Próximo: {formatDateShort(nextDueDate)}</span>{kmPart}</>
                               )}
                             </>
+                          ) : nextDueDate ? (
+                            <span style={{ color: "rgba(255,255,255,0.50)" }}>
+                              Sin registro · <span style={{ color: "rgba(255,255,255,0.75)" }}>Próximo: {formatDateShort(nextDueDate)}</span>{kmPart}
+                            </span>
                           ) : (
                             <span style={{ color: "rgba(255,255,255,0.32)" }}>Sin registro todavía</span>
                           )}

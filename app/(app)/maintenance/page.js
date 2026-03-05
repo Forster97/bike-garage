@@ -78,11 +78,15 @@ export default function MaintenanceDashboardPage() {
         const profile = profileByBike[bike.id] ?? "balanced";
         const currentKm = statsByBike[bike.id] ?? null;
 
+        const bikeCreatedDate = bike.created_at ? bike.created_at.split("T")[0] : null;
+        const creationFallback = bikeCreatedDate ? { performed_at: bikeCreatedDate, odometer_km: null } : null;
+
         const taskStatuses = types.map((mType) => {
           const rule = rulesByBikeType[`${bike.id}:${mType.id}`] ?? null;
           const resolved = resolveRule(mType, rule, profile);
           const lastEvent = lastEventMap[`${bike.id}:${mType.id}`] ?? null;
-          const status = calculateTaskStatus(resolved, lastEvent, currentKm);
+          const lastForCalc = lastEvent ?? creationFallback;
+          const status = calculateTaskStatus(resolved, lastForCalc, currentKm);
           return { ...status, severity: mType.severity, name: mType.name };
         });
 
