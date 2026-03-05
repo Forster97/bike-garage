@@ -26,6 +26,7 @@ export default function GaragePage() {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   // ── Catálogo para ComboBox ────────────────────────────────────────────────
   const [catalogBrands, setCatalogBrands] = useState([]);
@@ -248,15 +249,13 @@ export default function GaragePage() {
   };
 
   // ── Función: eliminar bicicleta ───────────────────────────────────────────
-  const deleteBike = async (bikeId) => {
-    if (!confirm("¿Eliminar esta bicicleta? Esto también eliminará sus componentes.")) return;
+  const deleteBike = (bikeId) => setConfirmDeleteId(bikeId);
 
+  const doDelete = async () => {
+    const bikeId = confirmDeleteId;
+    setConfirmDeleteId(null);
     const { error } = await supabase.from("bikes").delete().eq("id", bikeId);
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
+    if (error) { alert(error.message); return; }
     setBikes((prev) => prev.filter((b) => b.id !== bikeId));
   };
 
@@ -489,6 +488,20 @@ export default function GaragePage() {
           ))}
         </div>
       )}
+      {/* Modal de confirmación eliminar bici */}
+      {confirmDeleteId && (
+        <div style={s.modalOverlay} onClick={() => setConfirmDeleteId(null)}>
+          <div style={s.modalBox} onClick={(e) => e.stopPropagation()}>
+            <div style={s.modalIcon}>🗑</div>
+            <p style={s.modalTitle}>¿Eliminar bicicleta?</p>
+            <p style={s.modalText}>Esto también eliminará sus componentes y registros. Esta acción no se puede deshacer.</p>
+            <div style={s.modalBtns}>
+              <button style={s.modalCancel} onClick={() => setConfirmDeleteId(null)}>Cancelar</button>
+              <button style={s.modalConfirm} onClick={doDelete}>Eliminar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -533,4 +546,13 @@ const s = {
   bikeMeta: { marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.40)" },
   bikeArrow: { fontSize: 16, color: "rgba(255,255,255,0.25)", flexShrink: 0 },
   deleteBtn: { padding: "14px 16px", border: 0, borderLeft: "1px solid rgba(255,255,255,0.07)", background: "transparent", color: "rgba(255,255,255,0.35)", cursor: "pointer", fontSize: 16, alignSelf: "stretch", display: "grid", placeItems: "center" },
+
+  modalOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.60)", backdropFilter: "blur(4px)", display: "grid", placeItems: "center", zIndex: 1000, padding: 20 },
+  modalBox: { background: "#111318", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 20, padding: "28px 24px", maxWidth: 360, width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 },
+  modalIcon: { fontSize: 36 },
+  modalTitle: { margin: 0, fontSize: 18, fontWeight: 800, color: "rgba(255,255,255,0.92)", letterSpacing: "-0.4px" },
+  modalText: { margin: 0, fontSize: 13, color: "rgba(255,255,255,0.45)", textAlign: "center", lineHeight: 1.6 },
+  modalBtns: { display: "flex", gap: 10, width: "100%", marginTop: 4 },
+  modalCancel: { flex: 1, padding: "11px 0", borderRadius: 12, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.75)", fontSize: 14, fontWeight: 600, cursor: "pointer" },
+  modalConfirm: { flex: 1, padding: "11px 0", borderRadius: 12, border: 0, background: "rgba(239,68,68,0.85)", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" },
 };
