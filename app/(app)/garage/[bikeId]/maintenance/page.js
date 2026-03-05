@@ -45,6 +45,9 @@ export default function BikeMaintenancePage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(emptyForm());
 
+  // ── Estado de componentes instalados ──────────────────────────────────────
+  const [bikeParts, setBikeParts] = useState([]);
+
   // ── Estado de perfil, odómetro y reglas ───────────────────────────────────
   const [bikeProfile, setBikeProfile] = useState("balanced");
   const [bikeStats, setBikeStats] = useState(null);
@@ -67,13 +70,14 @@ export default function BikeMaintenancePage() {
         const { data: ud } = await supabase.auth.getUser();
         if (!ud?.user) return router.replace("/login");
 
-        const [bikeRes, recRes, typRes, profileRes, statsRes, rulesRes] = await Promise.all([
+        const [bikeRes, recRes, typRes, profileRes, statsRes, rulesRes, partsRes] = await Promise.all([
           supabase.from("bikes").select("*").eq("id", bikeId).single(),
           supabase.from("bike_maintenance").select("*").eq("bike_id", bikeId).order("performed_at", { ascending: false }),
           supabase.from("maintenance_types").select("*").order("name", { ascending: true }),
           supabase.from("bike_profiles").select("profile").eq("bike_id", bikeId).maybeSingle(),
           supabase.from("bike_stats").select("odometer_km").eq("bike_id", bikeId).maybeSingle(),
           supabase.from("maintenance_rules").select("*").eq("bike_id", bikeId),
+          supabase.from("parts").select("category").eq("bike_id", bikeId),
         ]);
 
         if (cancelled) return;
@@ -83,6 +87,7 @@ export default function BikeMaintenancePage() {
         setBikeProfile(profileRes.data?.profile ?? "balanced");
         setBikeStats(statsRes.data || null);
         setCustomRules(rulesRes.data || []);
+        setBikeParts(partsRes.data || []);
         setOdometerInput(String(statsRes.data?.odometer_km ?? ""));
       } finally {
         if (!cancelled) setLoading(false);
@@ -112,11 +117,34 @@ export default function BikeMaintenancePage() {
     const m = {}; for (const r of customRules) m[String(r.type_id)] = r; return m;
   }, [customRules]);
 
+  // Mapping: categoría de maintenance_type → categorías de partes correspondientes
+  // null = siempre mostrar
+  const MAINT_TO_PART_CAT = {
+    transmision: ["Transmisión"],
+    frenos:      ["Frenos"],
+    suspension:  ["Horquilla", "Sillín / Tija"],
+    estructura:  null, // rodamientos / torque → aplica a toda bici
+    ruedas:      ["Ruedas", "Neumáticos"],
+    general:     null,
+  };
+
+  // Tipos filtrados según los componentes instalados en esta bici.
+  // Si la bici no tiene ningún componente aún, se muestran todos.
+  const filteredTypes = useMemo(() => {
+    if (bikeParts.length === 0) return types;
+    const presentCats = new Set(bikeParts.map((p) => p.category));
+    return types.filter((t) => {
+      const mapped = MAINT_TO_PART_CAT[t.category];
+      if (mapped === null || mapped === undefined) return true;
+      return mapped.some((cat) => presentCats.has(cat));
+    });
+  }, [types, bikeParts]);
+
   const currentKm = bikeStats?.odometer_km ?? null;
 
   // ── Panel de estado con lógica de perfil + km ──────────────────────────────
   const statusPanel = useMemo(() => {
-    return types
+    return filteredTypes
       .map((t) => {
         const rule = resolveRule(t, customRulesByTypeId[String(t.id)], bikeProfile);
         if (!rule.interval_days && !rule.interval_km) return null;
@@ -220,7 +248,7 @@ export default function BikeMaintenancePage() {
   const setField = (k, v) => setForm((p) => ({ ...p, [k]: v }));
   const handleTypeChange = (e) => {
     const id = e.target.value;
-    const found = types.find((t) => String(t.id) === id);
+    const found = filteredTypes.find((t) => String(t.id) === id);
     setField("type_id", id);
     setField("type_name", found ? found.name : "");
     if (found && currentKm != null) setField("odometer_km", String(currentKm));
@@ -475,8 +503,13 @@ export default function BikeMaintenancePage() {
       {/* ── Panel acordeón por tipo ── */}
       {statusPanel.length > 0 && (
         <div style={S.card}>
-          <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
             <div style={S.sectionTitle}>Estado del mantenimiento</div>
+            {bikeParts.length > 0 && filteredTypes.length < types.length && (
+              <Link href={`/garage/${bikeId}`} style={{ fontSize: 11, color: "rgba(165,180,252,0.70)", textDecoration: "none" }}>
+                {filteredTypes.length} de {types.length} tareas · por componentes ›
+              </Link>
+            )}
           </div>
 
           <div style={{ display: "grid", gap: 6 }}>
@@ -744,7 +777,7 @@ export default function BikeMaintenancePage() {
                 <div style={S.label}>Tipo de mantenimiento</div>
                 <select value={form.type_id} onChange={handleTypeChange} className="dark-select" style={S.input}>
                   <option value="">— Personalizado —</option>
-                  {types.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  {filteredTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               </div>
 
