@@ -29,6 +29,7 @@ export default function AppGroupLayout({ children }) {
   };
 
   const isGarage = pathname?.startsWith("/garage");
+  const isMaintenance = pathname?.startsWith("/maintenance");
   const isCategories = pathname?.startsWith("/settings/categories");
   const isNotifications = pathname?.startsWith("/notifications");
   const isProfile = pathname?.startsWith("/settings/profile");
@@ -56,6 +57,9 @@ export default function AppGroupLayout({ children }) {
               <Link href="/garage" style={{ ...s.navItem, ...(isGarage ? s.navItemActive : {}) }}>
                 Garage
               </Link>
+              <Link href="/maintenance" style={{ ...s.navItem, ...(isMaintenance ? s.navItemActive : {}) }}>
+                Mantenimiento
+              </Link>
               <Link href="/notifications" style={{ ...s.navItem, ...(isNotifications ? s.navItemActive : {}) }}>
                 Notificaciones
               </Link>
@@ -80,6 +84,9 @@ export default function AppGroupLayout({ children }) {
         <div className="mobile-tabs" style={s.mobileTabs}>
           <Link href="/garage" style={{ ...s.mobileTab, ...(isGarage ? s.mobileTabActive : {}) }}>
             Garage
+          </Link>
+          <Link href="/maintenance" style={{ ...s.mobileTab, ...(isMaintenance ? s.mobileTabActive : {}) }}>
+            Mantenim.
           </Link>
           <Link href="/notifications" style={{ ...s.mobileTab, ...(isNotifications ? s.mobileTabActive : {}) }}>
             Notificaciones
