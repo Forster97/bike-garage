@@ -1,10 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function AppHeader({ actions = [] }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   return (
     <header
@@ -34,15 +42,9 @@ export default function AppHeader({ actions = [] }) {
         </Link>
 
         {actions.length > 0 && (
-          <>
-            {/* Desktop: acciones inline */}
-            <div className="hidden md:flex flex-wrap items-center gap-2">
-              {actions}
-            </div>
-
-            {/* Mobile: botón hamburger */}
+          isMobile ? (
+            /* Mobile: botón hamburger */
             <button
-              className="md:hidden"
               onClick={() => setMenuOpen((v) => !v)}
               aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
               style={{
@@ -52,24 +54,28 @@ export default function AppHeader({ actions = [] }) {
                 borderRadius: 12,
                 padding: "8px 12px",
                 cursor: "pointer",
-                fontSize: 18,
+                fontSize: 20,
                 lineHeight: 1,
                 fontWeight: 900,
               }}
             >
               {menuOpen ? "✕" : "☰"}
             </button>
-          </>
+          ) : (
+            /* Desktop: acciones inline */
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+              {actions}
+            </div>
+          )
         )}
       </div>
 
       {/* Menú desplegable mobile */}
-      {menuOpen && actions.length > 0 && (
+      {isMobile && menuOpen && actions.length > 0 && (
         <div
-          className="md:hidden border-t"
           style={{
-            borderColor: "rgba(255,255,255,0.08)",
-            background: "rgba(7,10,18,0.96)",
+            borderTop: "1px solid rgba(255,255,255,0.08)",
+            background: "rgba(7,10,18,0.97)",
             padding: "10px 16px 14px",
             display: "flex",
             flexDirection: "column",
