@@ -75,7 +75,7 @@ export default function BikeDetailPage() {
   // Modal agregar componente
   const [addOpen, setAddOpen] = useState(false);
   const [partName, setPartName] = useState("");
-  const [partCategory, setPartCategory] = useState("Drivetrain");
+  const [partCategory, setPartCategory] = useState(DEFAULT_CATEGORIES[0]);
   const [partWeight, setPartWeight] = useState("");
   const [selectedExistingId, setSelectedExistingId] = useState(null); // ID si se reutiliza un componente existente
 
@@ -102,7 +102,7 @@ export default function BikeDetailPage() {
   const byCategory = useMemo(() => {
     const map = new Map();
     for (const p of parts) {
-      const cat = p.category || "Other";
+      const cat = p.category || "Otros";
       map.set(cat, (map.get(cat) || 0) + (Number(p.weight_g) || 0));
     }
     return Array.from(map.entries())
