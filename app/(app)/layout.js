@@ -10,6 +10,7 @@ export default function AppGroupLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const [email, setEmail] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -50,54 +51,49 @@ export default function AppGroupLayout({ children }) {
             <span style={s.brandName}>Bike Garage</span>
           </Link>
 
-          {/* Nav + user (desktop) */}
-          <div style={s.right}>
-            <style>{`@media(max-width:639px){.desktop-nav{display:none!important}}`}</style>
-            <nav className="desktop-nav" style={s.nav}>
-              <Link href="/garage" style={{ ...s.navItem, ...(isGarage ? s.navItemActive : {}) }}>
-                Garage
-              </Link>
-              <Link href="/maintenance" style={{ ...s.navItem, ...(isMaintenance ? s.navItemActive : {}) }}>
-                Mantenimiento
-              </Link>
-              <Link href="/notifications" style={{ ...s.navItem, ...(isNotifications ? s.navItemActive : {}) }}>
-                Notificaciones
-              </Link>
-              <Link href="/settings/categories" style={{ ...s.navItem, ...(isCategories ? s.navItemActive : {}) }}>
-                Categorías
-              </Link>
+          {/* Desktop: nav + user */}
+          <style>{`@media(max-width:639px){.desktop-right{display:none!important}}`}</style>
+          <div className="desktop-right" style={s.right}>
+            <nav style={s.nav}>
+              <Link href="/garage" style={{ ...s.navItem, ...(isGarage ? s.navItemActive : {}) }}>Garage</Link>
+              <Link href="/maintenance" style={{ ...s.navItem, ...(isMaintenance ? s.navItemActive : {}) }}>Mantenimiento</Link>
+              <Link href="/notifications" style={{ ...s.navItem, ...(isNotifications ? s.navItemActive : {}) }}>Notificaciones</Link>
+              <Link href="/settings/categories" style={{ ...s.navItem, ...(isCategories ? s.navItemActive : {}) }}>Categorías</Link>
             </nav>
-
             {email && (
               <Link href="/settings/profile" style={{ ...s.userChip, textDecoration: "none", ...(isProfile ? { borderColor: "rgba(99,102,241,0.40)", background: "rgba(99,102,241,0.10)" } : {}) }} title={email}>
                 <span style={s.onlineDot} />
                 <span style={s.userChipText}>{userLabel}</span>
               </Link>
             )}
-
             <button onClick={logout} style={s.logoutBtn}>Salir</button>
           </div>
+
+          {/* Mobile: hamburger */}
+          <style>{`@media(min-width:640px){.mobile-hamburger{display:none!important}}`}</style>
+          <button
+            className="mobile-hamburger"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
+            style={s.hamburgerBtn}
+          >
+            {menuOpen ? "✕" : "☰"}
+          </button>
         </div>
 
-        {/* Mobile nav tabs — hidden on desktop via CSS */}
-        <style>{`@media(min-width:640px){.mobile-tabs{display:none!important}}`}</style>
-        <div className="mobile-tabs" style={s.mobileTabs}>
-          <Link href="/garage" style={{ ...s.mobileTab, ...(isGarage ? s.mobileTabActive : {}) }}>
-            Garage
-          </Link>
-          <Link href="/maintenance" style={{ ...s.mobileTab, ...(isMaintenance ? s.mobileTabActive : {}) }}>
-            Mantenim.
-          </Link>
-          <Link href="/notifications" style={{ ...s.mobileTab, ...(isNotifications ? s.mobileTabActive : {}) }}>
-            Notificaciones
-          </Link>
-          <Link href="/settings/categories" style={{ ...s.mobileTab, ...(isCategories ? s.mobileTabActive : {}) }}>
-            Categorías
-          </Link>
-          <Link href="/settings/profile" style={{ ...s.mobileTab, ...(isProfile ? s.mobileTabActive : {}) }}>
-            Perfil
-          </Link>
-        </div>
+        {/* Mobile dropdown — visible solo en mobile cuando está abierto */}
+        {menuOpen && (
+          <div style={s.mobileMenu} onClick={() => setMenuOpen(false)}>
+            <Link href="/garage" style={{ ...s.mobileMenuItem, ...(isGarage ? s.mobileMenuItemActive : {}) }}>Garage</Link>
+            <Link href="/maintenance" style={{ ...s.mobileMenuItem, ...(isMaintenance ? s.mobileMenuItemActive : {}) }}>Mantenimiento</Link>
+            <Link href="/notifications" style={{ ...s.mobileMenuItem, ...(isNotifications ? s.mobileMenuItemActive : {}) }}>Notificaciones</Link>
+            <Link href="/settings/categories" style={{ ...s.mobileMenuItem, ...(isCategories ? s.mobileMenuItemActive : {}) }}>Categorías</Link>
+            <Link href="/settings/profile" style={{ ...s.mobileMenuItem, ...(isProfile ? s.mobileMenuItemActive : {}) }}>Perfil</Link>
+            <div style={s.mobileMenuDivider} />
+            {email && <div style={s.mobileMenuEmail}>{userLabel}</div>}
+            <button onClick={logout} style={s.mobileMenuLogout}>Salir</button>
+          </div>
+        )}
       </header>
 
       {/* ── Content ── */}
@@ -220,24 +216,60 @@ const s = {
     whiteSpace: "nowrap",
   },
 
-  /* Mobile tabs - shown below header on small screens */
-  mobileTabs: {
-    display: "flex",
-    borderTop: "1px solid rgba(255,255,255,0.06)",
-    padding: "0 16px",
-  },
-  mobileTab: {
-    textDecoration: "none",
-    fontSize: 13,
-    fontWeight: 500,
-    color: "rgba(255,255,255,0.45)",
-    padding: "10px 14px",
-    borderBottom: "2px solid transparent",
-    whiteSpace: "nowrap",
-  },
-  mobileTabActive: {
+  hamburgerBtn: {
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.06)",
     color: "rgba(255,255,255,0.90)",
-    borderBottomColor: "rgba(99,102,241,0.7)",
+    borderRadius: 10,
+    padding: "7px 13px",
+    cursor: "pointer",
+    fontSize: 18,
+    lineHeight: 1,
+    fontWeight: 900,
+  },
+  mobileMenu: {
+    borderTop: "1px solid rgba(255,255,255,0.07)",
+    background: "rgba(6,9,16,0.98)",
+    padding: "8px 16px 16px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+  },
+  mobileMenuItem: {
+    textDecoration: "none",
+    fontSize: 15,
+    fontWeight: 500,
+    color: "rgba(255,255,255,0.65)",
+    padding: "12px 8px",
+    borderRadius: 8,
+    display: "block",
+    borderBottom: "1px solid rgba(255,255,255,0.04)",
+  },
+  mobileMenuItemActive: {
+    color: "rgba(255,255,255,0.95)",
+    background: "rgba(99,102,241,0.10)",
+  },
+  mobileMenuDivider: {
+    height: 1,
+    background: "rgba(255,255,255,0.07)",
+    margin: "8px 0",
+  },
+  mobileMenuEmail: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.35)",
+    padding: "4px 8px",
+  },
+  mobileMenuLogout: {
+    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.04)",
+    color: "rgba(255,255,255,0.60)",
+    cursor: "pointer",
+    borderRadius: 9,
+    padding: "10px 16px",
+    fontSize: 14,
+    fontWeight: 600,
+    textAlign: "left",
+    marginTop: 4,
   },
 
   main: {
