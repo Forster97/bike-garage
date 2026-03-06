@@ -15,15 +15,6 @@ export default function AppHeader({ actions = [] }) {
         backdropFilter: "blur(10px)",
       }}
     >
-      <style>{`
-        .ah-desktop { display: flex; }
-        .ah-hamburger { display: none; }
-        @media (max-width: 767px) {
-          .ah-desktop { display: none !important; }
-          .ah-hamburger { display: flex !important; }
-        }
-      `}</style>
-
       <div className="mx-auto flex max-w-[980px] items-center justify-between gap-3 px-4 py-3">
 
         {/* Logo + nombre */}
