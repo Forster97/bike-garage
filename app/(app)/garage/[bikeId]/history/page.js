@@ -184,13 +184,14 @@ export default function BikeHistoryPage() {
           .eq("bike_id", bikeId)
           .order("created_at", { ascending: false }),
         supabase
-          .from("parts")
-          .select("weight_g")
+          .from("bike_components")
+          .select("component:components(weight_g)")
           .eq("bike_id", bikeId),
       ]);
 
       const logsData = logsRes.data || [];
-      const currentTotal = sumWeights(partsResAll.data || []);
+      // Aplanar el join para que sumWeights reciba { weight_g } por cada componente
+      const currentTotal = sumWeights((partsResAll.data || []).map((bc) => ({ weight_g: bc.component?.weight_g })));
       const daily = buildDailyWeightHistory(logsData, currentTotal);
 
       // ✅ Buscar part_id únicos y traer nombre/categoría desde parts
@@ -199,7 +200,7 @@ export default function BikeHistoryPage() {
       let partsMap = {};
       if (ids.length > 0) {
         const partsRes = await supabase
-          .from("parts")
+          .from("components")
           .select("id,name,category,weight_g")
           .in("id", ids);
 

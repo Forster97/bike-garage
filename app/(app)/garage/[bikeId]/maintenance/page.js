@@ -77,7 +77,7 @@ export default function BikeMaintenancePage() {
           supabase.from("bike_profiles").select("profile").eq("bike_id", bikeId).maybeSingle(),
           supabase.from("bike_stats").select("odometer_km").eq("bike_id", bikeId).maybeSingle(),
           supabase.from("maintenance_rules").select("*").eq("bike_id", bikeId),
-          supabase.from("parts").select("category").eq("bike_id", bikeId),
+          supabase.from("bike_components").select("component:components(category)").eq("bike_id", bikeId),
         ]);
 
         if (cancelled) return;
@@ -87,7 +87,8 @@ export default function BikeMaintenancePage() {
         setBikeProfile(profileRes.data?.profile ?? "balanced");
         setBikeStats(statsRes.data || null);
         setCustomRules(rulesRes.data || []);
-        setBikeParts(partsRes.data || []);
+        // Aplanar el join para obtener { category } por cada bike_component
+        setBikeParts((partsRes.data || []).map((bc) => ({ category: bc.component?.category })).filter((p) => p.category));
         setOdometerInput(String(statsRes.data?.odometer_km ?? ""));
       } finally {
         if (!cancelled) setLoading(false);
