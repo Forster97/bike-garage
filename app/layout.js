@@ -7,6 +7,11 @@ export const metadata = {
   description: "Tu garage digital",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 // Layout raíz — envuelve TODA la aplicación.
 // Next.js requiere que exista este componente en app/layout.js.
 // Define el idioma de la página (lang="es") y el fondo oscuro base.
