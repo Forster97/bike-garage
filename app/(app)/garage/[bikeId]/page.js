@@ -12,8 +12,6 @@ export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
-import AppHeader from "../../../../components/AppHeader";
-import PageShell from "../../../../components/PageShell";
 import { DEFAULT_CATEGORIES } from "../../../../lib/constants";
 
 // ── Constantes y funciones helper ─────────────────────────────────────────────
@@ -375,29 +373,34 @@ export default function BikeDetailPage() {
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
-  const backBtn = (
-    <button onClick={() => router.push("/garage")}
-      style={{ border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.85)", cursor: "pointer", borderRadius: 12, padding: "10px 12px", fontSize: 14, fontWeight: 800 }}>
-      ← Garage
-    </button>
+  const pageNav = (
+    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+      <button onClick={() => router.push("/garage")} style={styles.secondaryBtn}>← Garage</button>
+      {bikeId && <>
+        <a href={`/garage/${bikeId}/maintenance`} style={{ color: "rgba(255,255,255,0.78)", textDecoration: "none", fontSize: 14, padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.04)" }}>Mantenimiento</a>
+        <a href={`/garage/${bikeId}/history`} style={{ color: "rgba(255,255,255,0.78)", textDecoration: "none", fontSize: 14, padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.04)" }}>Historial</a>
+      </>}
+    </div>
   );
 
   if (loading) {
     return (
-      <PageShell header={<AppHeader actions={[backBtn]} />}>
+      <>
+        {pageNav}
         <div className="animate-pulse rounded-[18px] border p-4"
           style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)" }}>
           <div className="h-5 w-2/3 rounded-full" style={{ background: "rgba(255,255,255,0.10)" }} />
           <div className="mt-3 h-4 w-1/2 rounded-full" style={{ background: "rgba(255,255,255,0.08)" }} />
           <div className="mt-5 h-10 w-full rounded-xl" style={{ background: "rgba(255,255,255,0.10)" }} />
         </div>
-      </PageShell>
+      </>
     );
   }
 
   if (!bike) {
     return (
-      <PageShell header={<AppHeader actions={[backBtn]} />}>
+      <>
+        {pageNav}
         <div className="rounded-[18px] border p-10 text-center"
           style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)" }}>
           <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl border text-lg"
@@ -406,24 +409,16 @@ export default function BikeDetailPage() {
           <p className="mt-2 text-sm" style={{ color: "rgba(255,255,255,0.68)" }}>Puede que no exista o no tengas permisos.</p>
           <button onClick={() => router.push("/garage")} style={styles.primaryBtn} className="mt-4">Volver al Garage</button>
         </div>
-      </PageShell>
+      </>
     );
   }
 
   const partCount = parts.length;
   const confirmPart = parts.find((p) => p.component_id === confirmPartId);
-  const navLinkStyle = { color: "rgba(255,255,255,0.78)", textDecoration: "none", fontSize: 14, padding: "10px" };
-  const headerActions = [
-    <a key="maintenance" href={`/garage/${bikeId}/maintenance`} style={navLinkStyle}>Mantenimiento</a>,
-    <a key="history" href={`/garage/${bikeId}/history`} style={navLinkStyle}>Historial</a>,
-    <button key="back" onClick={() => router.push("/garage")}
-      style={{ border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.85)", cursor: "pointer", borderRadius: 12, padding: "10px 12px", fontSize: 14, fontWeight: 800 }}>
-      ← Garage
-    </button>,
-  ];
 
   return (
-    <PageShell header={<AppHeader actions={headerActions} />}>
+    <>
+      {pageNav}
 
       {/* ── Tarjeta hero ── */}
       <div style={styles.heroCard}>
@@ -701,7 +696,7 @@ export default function BikeDetailPage() {
         </div>
       )}
 
-    </PageShell>
+    </>
   );
 }
 

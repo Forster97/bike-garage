@@ -7,8 +7,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "../../../../../lib/supabaseClient";
-import AppHeader from "../../../../../components/AppHeader";
-import PageShell from "../../../../../components/PageShell";
 
 /* =========================
    Helpers
@@ -263,21 +261,11 @@ export default function BikeHistoryPage() {
     padding: "10px",
   };
 
-  const header = (
-    <AppHeader
-      actions={[
-        <Link key="back" href={`/garage/${bikeId}`} style={linkStyle}>
-          ← Volver
-        </Link>,
-        <Link key="cats" href="/settings/categories" style={linkStyle}>
-          Categorías
-        </Link>,
-      ]}
-    />
-  );
-
   return (
-    <PageShell header={header}>
+    <>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <Link href={`/garage/${bikeId}`} style={linkStyle}>← Volver</Link>
+      </div>
       {/* Hero */}
       <div
         className="rounded-[22px] border p-4"
@@ -521,6 +509,6 @@ export default function BikeHistoryPage() {
           })}
         </div>
       )}
-    </PageShell>
+    </>
   );
 }

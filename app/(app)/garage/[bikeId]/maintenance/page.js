@@ -6,8 +6,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../../../../lib/supabaseClient";
-import AppHeader from "../../../../../components/AppHeader";
-import PageShell from "../../../../../components/PageShell";
 import { formatDate, formatDateShort, formatCLP, todayISO } from "../../../../../lib/dateHelpers";
 import {
   PROFILES, resolveRule, calculateTaskStatus, getStatusBadge, bikeHealthScore, healthColor,
@@ -333,24 +331,27 @@ export default function BikeMaintenancePage() {
     setRecords((p) => p.filter((r) => r.id !== id));
   };
 
-  // ── Header ─────────────────────────────────────────────────────────────────
-  const headerActions = [
-    <Link key="back" href={`/garage/${bikeId}`} style={S.linkBtn}>← Volver</Link>,
-  ];
+  const pageNav = (
+    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      <Link href={`/garage/${bikeId}`} style={S.linkBtn}>← Volver</Link>
+    </div>
+  );
 
   if (loading) return (
-    <PageShell header={<AppHeader actions={headerActions} />}>
+    <>
+      {pageNav}
       <div className="animate-pulse rounded-[18px] border p-4"
         style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)" }}>
         <div className="h-5 w-2/3 rounded-full" style={{ background: "rgba(255,255,255,0.10)" }} />
         <div className="mt-3 h-4 w-1/2 rounded-full" style={{ background: "rgba(255,255,255,0.08)" }} />
         <div className="mt-3 h-4 w-3/4 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }} />
       </div>
-    </PageShell>
+    </>
   );
 
   if (!bike) return (
-    <PageShell header={<AppHeader actions={headerActions} />}>
+    <>
+      {pageNav}
       <div style={{ ...S.card, textAlign: "center", padding: "40px 16px" }}>
         <div style={S.emptyIcon}>🤕</div>
         <div style={S.emptyTitle}>No encontré esta bicicleta</div>
@@ -358,14 +359,15 @@ export default function BikeMaintenancePage() {
           Volver al Garage
         </button>
       </div>
-    </PageShell>
+    </>
   );
 
   const isEditing = modalMode === "edit";
   const currentTypeData = form.type_id ? typesById[Number(form.type_id)] : null;
 
   return (
-    <PageShell header={<AppHeader actions={headerActions} />}>
+    <>
+      {pageNav}
 
       {/* ── CSS responsive ── */}
       <style>{`
@@ -858,7 +860,7 @@ export default function BikeMaintenancePage() {
           </div>
         </div>
       )}
-    </PageShell>
+    </>
   );
 }
 
