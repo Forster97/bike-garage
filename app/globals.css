@@ -1,12 +1,5 @@
 @import "tailwindcss";
 
-/* AppHeader responsive */
-.ah-desktop  { display: flex; }
-.ah-hamburger { display: none; }
-@media (max-width: 767px) {
-  .ah-desktop   { display: none !important; }
-  .ah-hamburger { display: flex !important; }
-}
 
 @media (min-width: 900px) {
   .garage-grid-desktop {
