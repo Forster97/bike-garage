@@ -3,6 +3,7 @@
 // useMemo: recalcula canSubmit solo cuando cambian los valores del formulario
 // useState: variables reactivas del formulario
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getSupabase } from "../../../lib/supabaseClient";
 
@@ -180,6 +181,12 @@ export default function LoginPage() {
                 >
                   ← Volver
                 </button>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-zinc-400 hover:text-zinc-100"
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
               </div>
             </form>
           </div>
