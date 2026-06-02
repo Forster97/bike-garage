@@ -13,7 +13,7 @@ import {
 
 const emptyForm = () => ({
   type_id: "", type_name: "", performed_at: todayISO(),
-  odometer_km: "", cost_clp: "", notes: "",
+  odometer_km: "", cost_clp: "", notes: "", component_id: "",
 });
 
 function recordToForm(r) {
@@ -24,6 +24,7 @@ function recordToForm(r) {
     odometer_km: r.odometer_km != null ? String(r.odometer_km) : "",
     cost_clp: r.cost_clp != null ? String(r.cost_clp) : "",
     notes: r.notes ?? "",
+    component_id: r.component_id ?? "",
   };
 }
 
@@ -75,7 +76,7 @@ export default function BikeMaintenancePage() {
           supabase.from("bike_profiles").select("profile").eq("bike_id", bikeId).maybeSingle(),
           supabase.from("bike_stats").select("odometer_km").eq("bike_id", bikeId).maybeSingle(),
           supabase.from("maintenance_rules").select("*").eq("bike_id", bikeId),
-          supabase.from("bike_components").select("component:components(category)").eq("bike_id", bikeId),
+          supabase.from("bike_components").select("component:components(id, name, category)").eq("bike_id", bikeId),
         ]);
 
         if (cancelled) return;
@@ -85,8 +86,10 @@ export default function BikeMaintenancePage() {
         setBikeProfile(profileRes.data?.profile ?? "balanced");
         setBikeStats(statsRes.data || null);
         setCustomRules(rulesRes.data || []);
-        // Aplanar el join para obtener { category } por cada bike_component
-        setBikeParts((partsRes.data || []).map((bc) => ({ category: bc.component?.category })).filter((p) => p.category));
+        // Aplanar el join para obtener { id, name, category } por cada bike_component
+        setBikeParts((partsRes.data || []).map((bc) => ({
+          id: bc.component?.id, name: bc.component?.name, category: bc.component?.category,
+        })).filter((p) => p.category));
         setOdometerInput(String(statsRes.data?.odometer_km ?? ""));
       } finally {
         if (!cancelled) setLoading(false);
@@ -100,6 +103,12 @@ export default function BikeMaintenancePage() {
   const typesById = useMemo(() => {
     const m = {}; for (const t of types) m[t.id] = t; return m;
   }, [types]);
+
+  // Componentes instalados con id (para asociar un registro a una pieza específica)
+  const partsWithId = useMemo(() => bikeParts.filter((p) => p.id), [bikeParts]);
+  const partNameById = useMemo(() => {
+    const m = {}; for (const p of partsWithId) m[p.id] = p.name; return m;
+  }, [partsWithId]);
 
   const lastByTypeName = useMemo(() => {
     const m = {}; for (const r of records) { if (!m[r.type_name]) m[r.type_name] = r; } return m;
@@ -285,6 +294,7 @@ export default function BikeMaintenancePage() {
       type_id: form.type_id ? Number(form.type_id) : null,
       type_name: typeName, performed_at: form.performed_at,
       odometer_km: km, cost_clp: cost, notes: form.notes.trim() || null,
+      component_id: form.component_id || null,
     };
   };
 
@@ -627,6 +637,9 @@ export default function BikeMaintenancePage() {
                               </div>
                               <div className="m-hist-content" style={{ flex: 1, minWidth: 0 }}>
                                 <div style={S.histDate}>{formatDate(r.performed_at)}</div>
+                                {r.component_id && partNameById[r.component_id] && (
+                                  <div style={S.componentChip}>🔩 {partNameById[r.component_id]}</div>
+                                )}
                                 {(r.odometer_km != null || r.cost_clp != null) && (
                                   <div className="flex items-center flex-wrap gap-1.5" style={S.histMeta}>
                                     {r.odometer_km != null && <span>{r.odometer_km.toLocaleString("es-CL")} km</span>}
@@ -734,6 +747,9 @@ export default function BikeMaintenancePage() {
                   <div className="m-rec-row">
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={S.recType}>{r.type_name}</div>
+                      {r.component_id && partNameById[r.component_id] && (
+                        <div style={S.componentChip}>🔩 {partNameById[r.component_id]}</div>
+                      )}
                       <div style={S.recDate}>{formatDate(r.performed_at)}</div>
                       {(r.odometer_km != null || r.cost_clp != null) && (
                         <div className="flex items-center flex-wrap gap-1.5" style={S.recMeta}>
@@ -802,6 +818,17 @@ export default function BikeMaintenancePage() {
                     placeholder="Ej: Revisión frenos traseros"
                     style={S.input} autoFocus
                   />
+                </div>
+              )}
+
+              {/* Componente asociado (opcional) */}
+              {partsWithId.length > 0 && (
+                <div style={S.field}>
+                  <div style={S.label}>Componente (opcional)</div>
+                  <select value={form.component_id} onChange={(e) => setField("component_id", e.target.value)} className="dark-select" style={S.input}>
+                    <option value="">— Toda la bici —</option>
+                    {partsWithId.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
                 </div>
               )}
 
@@ -884,6 +911,7 @@ const S = {
   histDate: { fontWeight: 700, fontSize: 13, color: "rgba(255,255,255,0.88)", lineHeight: 1.3 },
   histMeta: { marginTop: 2, fontSize: 12, color: "rgba(255,255,255,0.52)" },
   histNotes: { marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.46)", fontStyle: "italic" },
+  componentChip: { marginTop: 3, display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700, color: "rgba(165,180,252,0.85)", background: "rgba(99,102,241,0.10)", border: "1px solid rgba(99,102,241,0.22)" },
   dot: { display: "inline-block", width: 3, height: 3, borderRadius: 999, background: "rgba(255,255,255,0.25)" },
   inlineLink: { border: "none", background: "none", color: "rgba(99,102,241,0.90)", fontWeight: 900, fontSize: 13, cursor: "pointer", padding: 0 },
   recCard: { padding: "12px 12px", borderRadius: 14, background: "rgba(0,0,0,0.18)", border: "1px solid rgba(255,255,255,0.07)" },

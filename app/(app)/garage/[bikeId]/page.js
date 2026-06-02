@@ -75,6 +75,8 @@ export default function BikeDetailPage() {
   const [partName, setPartName] = useState("");
   const [partCategory, setPartCategory] = useState(DEFAULT_CATEGORIES[0]);
   const [partWeight, setPartWeight] = useState("");
+  const [partBrand, setPartBrand] = useState("");
+  const [partSku, setPartSku] = useState("");
   const [selectedExistingId, setSelectedExistingId] = useState(null); // ID si se reutiliza un componente existente
 
   const [query, setQuery] = useState("");
@@ -189,6 +191,8 @@ export default function BikeDetailPage() {
           name: bc.component?.name ?? "",
           category: bc.component?.category ?? "",
           weight_g: bc.component?.weight_g ?? null,
+          brand: bc.component?.brand ?? null,
+          sku: bc.component?.sku ?? null,
           created_at: bc.created_at,
         }));
         setParts(rows);
@@ -197,7 +201,7 @@ export default function BikeDetailPage() {
 
         const nextEdit = {};
         for (const p of rows)
-          nextEdit[p.id] = { name: p.name ?? "", category: p.category, weight_g: p.weight_g ?? "" };
+          nextEdit[p.id] = { name: p.name ?? "", category: p.category, weight_g: p.weight_g ?? "", brand: p.brand ?? "", sku: p.sku ?? "" };
         setEditById(nextEdit);
       } finally {
         if (!cancelled) setLoading(false);
@@ -260,7 +264,14 @@ export default function BikeDetailPage() {
         // Crea el componente en la biblioteca
         const { data: newComp, error: compErr } = await supabase
           .from("components")
-          .insert([{ user_id: userId, name: partName.trim(), category: partCategory, weight_g: w }])
+          .insert([{
+            user_id: userId,
+            name: partName.trim(),
+            category: partCategory,
+            weight_g: w,
+            brand: partBrand.trim() || null,
+            sku: partSku.trim() || null,
+          }])
           .select("*").single();
         if (compErr) return alert(compErr.message);
         componentId = newComp.id;
@@ -288,15 +299,17 @@ export default function BikeDetailPage() {
       name: bc.component?.name ?? partName.trim(),
       category: bc.component?.category ?? partCategory,
       weight_g: bc.component?.weight_g ?? w,
+      brand: bc.component?.brand ?? null,
+      sku: bc.component?.sku ?? null,
       created_at: bc.created_at,
     };
 
     await logEvent({ userId, bikeId, partId: componentId, action: "created", oldW: null, newW: newPart.weight_g });
 
     setParts((prev) => [newPart, ...prev]);
-    setEditById((prev) => ({ ...prev, [newPart.id]: { name: newPart.name, category: newPart.category, weight_g: newPart.weight_g ?? "" } }));
+    setEditById((prev) => ({ ...prev, [newPart.id]: { name: newPart.name, category: newPart.category, weight_g: newPart.weight_g ?? "", brand: newPart.brand ?? "", sku: newPart.sku ?? "" } }));
 
-    setPartName(""); setPartWeight(""); setSelectedExistingId(null);
+    setPartName(""); setPartWeight(""); setPartBrand(""); setPartSku(""); setSelectedExistingId(null);
     setAddOpen(false);
   };
 
@@ -360,16 +373,22 @@ export default function BikeDetailPage() {
 
     const { data, error } = await supabase
       .from("components")
-      .update({ name: nextName, category: row.category, weight_g: w })
+      .update({
+        name: nextName,
+        category: row.category,
+        weight_g: w,
+        brand: (row.brand ?? "").trim() || null,
+        sku: (row.sku ?? "").trim() || null,
+      })
       .eq("id", partId)
       .select("*").single();
     if (error) return alert(error.message);
 
     await logEvent({ userId, bikeId, partId, action: "updated", oldW: oldWeight, newW: w ?? null });
 
-    setParts((prev) => prev.map((p) => p.id === partId ? { ...p, name: data.name, category: data.category, weight_g: data.weight_g } : p));
+    setParts((prev) => prev.map((p) => p.id === partId ? { ...p, name: data.name, category: data.category, weight_g: data.weight_g, brand: data.brand, sku: data.sku } : p));
     setAllComponents((prev) => prev.map((c) => c.id === partId ? data : c));
-    setEditById((prev) => ({ ...prev, [partId]: { name: data.name, category: data.category, weight_g: data.weight_g ?? "" } }));
+    setEditById((prev) => ({ ...prev, [partId]: { name: data.name, category: data.category, weight_g: data.weight_g ?? "", brand: data.brand ?? "", sku: data.sku ?? "" } }));
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -542,6 +561,13 @@ export default function BikeDetailPage() {
                       <div style={styles.partMeta}>
                         {p.category} • {p.weight_g ?? "—"} g
                         {p.weight_g != null ? <span style={styles.partMetaSoft}> • {pct.toFixed(1)}%</span> : null}
+                        {(p.brand || p.sku) ? (
+                          <div style={styles.partSubMeta}>
+                            {p.brand ? p.brand : ""}
+                            {p.brand && p.sku ? " • " : ""}
+                            {p.sku ? `SKU ${p.sku}` : ""}
+                          </div>
+                        ) : null}
                       </div>
                     ) : (
                       <div style={styles.editRow}>
@@ -566,6 +592,22 @@ export default function BikeDetailPage() {
                             if (e.key === "Escape") setEditingPartId(null);
                           }}
                           placeholder="peso (g)" inputMode="numeric" style={{ ...styles.input, width: 140 }} />
+
+                        <input value={String(row.brand ?? "")}
+                          onChange={(e) => setEditById((prev) => ({ ...prev, [p.id]: { ...row, brand: e.target.value } }))}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") { e.preventDefault(); savePart(p.id); setEditingPartId(null); }
+                            if (e.key === "Escape") setEditingPartId(null);
+                          }}
+                          placeholder="marca" style={{ ...styles.input, width: 160 }} />
+
+                        <input value={String(row.sku ?? "")}
+                          onChange={(e) => setEditById((prev) => ({ ...prev, [p.id]: { ...row, sku: e.target.value } }))}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") { e.preventDefault(); savePart(p.id); setEditingPartId(null); }
+                            if (e.key === "Escape") setEditingPartId(null);
+                          }}
+                          placeholder="SKU" style={{ ...styles.input, width: 160 }} />
 
                         <button style={styles.primaryBtn} onClick={async () => { await savePart(p.id); setEditingPartId(null); }}>Guardar</button>
                         <button style={styles.secondaryBtn} onClick={() => setEditingPartId(null)}>Cancelar</button>
@@ -614,6 +656,8 @@ export default function BikeDetailPage() {
                     if (match) {
                       setPartCategory(match.category);
                       setPartWeight(String(match.weight_g ?? ""));
+                      setPartBrand(match.brand ?? "");
+                      setPartSku(match.sku ?? "");
                       setSelectedExistingId(match.id);
                     } else {
                       setSelectedExistingId(null);
@@ -644,6 +688,17 @@ export default function BikeDetailPage() {
                 <div style={styles.field}>
                   <div style={styles.label}>Peso (g)</div>
                   <input value={partWeight} onChange={(e) => setPartWeight(e.target.value)} placeholder="Ej: 342" inputMode="numeric" style={styles.input} />
+                </div>
+              </div>
+
+              <div style={styles.grid2}>
+                <div style={styles.field}>
+                  <div style={styles.label}>Marca</div>
+                  <input value={partBrand} onChange={(e) => setPartBrand(e.target.value)} placeholder="Ej: Shimano" style={styles.input} />
+                </div>
+                <div style={styles.field}>
+                  <div style={styles.label}>SKU / Código</div>
+                  <input value={partSku} onChange={(e) => setPartSku(e.target.value)} placeholder="Ej: CS-M7100-12" style={styles.input} />
                 </div>
               </div>
 
@@ -731,6 +786,7 @@ const styles = {
   partName: { fontWeight: 900, color: "rgba(255,255,255,0.92)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   partMeta: { marginTop: 6, fontSize: 13, color: "rgba(255,255,255,0.70)" },
   partMetaSoft: { color: "rgba(255,255,255,0.60)" },
+  partSubMeta: { marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.52)" },
   partBtns: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" },
   editRow: { marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" },
   field: { display: "grid", gap: 6 },

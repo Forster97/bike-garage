@@ -9,9 +9,10 @@ export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
+import { formatDateShort, bikeName } from "../../../lib/dateHelpers";
 import {
-  daysSince, addDays, formatDateShort, getTypeStatus, bikeName,
-} from "../../../lib/dateHelpers";
+  resolveRule, calculateTaskStatus, getStatusBadge,
+} from "../../../lib/maintenanceHelpers";
 
 // ── Componente principal ───────────────────────────────────────────────────────
 export default function NotificationsPage() {
@@ -22,6 +23,9 @@ export default function NotificationsPage() {
   const [bikes, setBikes] = useState([]);
   const [allRecords, setAllRecords] = useState([]);
   const [types, setTypes] = useState([]);
+  const [profiles, setProfiles] = useState([]);
+  const [stats, setStats] = useState([]);
+  const [rules, setRules] = useState([]);
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState(null); // { ok, message }
 
@@ -35,9 +39,10 @@ export default function NotificationsPage() {
         if (!ud?.user) return router.replace("/login");
         setUserEmail(ud.user.email ?? "");
 
-        const [bikesRes, typesRes] = await Promise.all([
-          supabase.from("bikes").select("id, brand, model, type").eq("user_id", ud.user.id),
+        const [bikesRes, typesRes, rulesRes] = await Promise.all([
+          supabase.from("bikes").select("id, brand, model, type, created_at").eq("user_id", ud.user.id),
           supabase.from("maintenance_types").select("*").order("name"),
+          supabase.from("maintenance_rules").select("*").eq("user_id", ud.user.id),
         ]);
 
         if (cancelled) return;
@@ -45,15 +50,21 @@ export default function NotificationsPage() {
         const bikesData = bikesRes.data || [];
         setBikes(bikesData);
         setTypes(typesRes.data || []);
+        setRules(rulesRes.data || []);
 
-        // Carga registros de mantenimiento de todas las bicis
+        // Carga registros, perfiles y odómetros de todas las bicis
         if (bikesData.length > 0) {
-          const { data: recs } = await supabase
-            .from("bike_maintenance")
-            .select("*")
-            .in("bike_id", bikesData.map((b) => b.id))
-            .order("performed_at", { ascending: false });
-          if (!cancelled) setAllRecords(recs || []);
+          const bikeIds = bikesData.map((b) => b.id);
+          const [recsRes, profilesRes, statsRes] = await Promise.all([
+            supabase.from("bike_maintenance").select("*").in("bike_id", bikeIds).order("performed_at", { ascending: false }),
+            supabase.from("bike_profiles").select("bike_id, profile").in("bike_id", bikeIds),
+            supabase.from("bike_stats").select("bike_id, odometer_km").in("bike_id", bikeIds),
+          ]);
+          if (!cancelled) {
+            setAllRecords(recsRes.data || []);
+            setProfiles(profilesRes.data || []);
+            setStats(statsRes.data || []);
+          }
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -72,15 +83,28 @@ export default function NotificationsPage() {
       const key = `${r.bike_id}:${r.type_name}`;
       if (!lastByKey[key]) lastByKey[key] = r;
     }
+    // Perfil, odómetro y reglas custom indexados
+    const profileByBike = {};
+    for (const p of profiles) profileByBike[p.bike_id] = p.profile;
+    const kmByBike = {};
+    for (const s of stats) kmByBike[s.bike_id] = s.odometer_km;
+    const ruleByBikeType = {};
+    for (const r of rules) ruleByBikeType[`${r.bike_id}:${r.type_id}`] = r;
 
     const result = [];
     for (const bike of bikes) {
+      const profile = profileByBike[bike.id] || "balanced";
+      const currentKm = kmByBike[bike.id] ?? null;
+      const bikeCreated = bike.created_at ? bike.created_at.split("T")[0] : null;
+      const creationFallback = bikeCreated ? { performed_at: bikeCreated, odometer_km: null } : null;
+
       for (const type of types) {
-        if (!type.default_interval_days) continue;
+        const rule = resolveRule(type, ruleByBikeType[`${bike.id}:${type.id}`], profile);
+        if (!rule.interval_days && !rule.interval_km) continue;
         const last = lastByKey[`${bike.id}:${type.name}`] || null;
-        const statusInfo = getTypeStatus(type, last);
-        if (statusInfo.status === "overdue" || statusInfo.status === "soon") {
-          result.push({ bike, type, last, ...statusInfo });
+        const st = calculateTaskStatus(rule, last ?? creationFallback, currentKm);
+        if (st.status === "overdue" || st.status === "soon") {
+          result.push({ bike, type, last, status: st.status, nextDate: st.nextDueDate, badge: getStatusBadge(st) });
         }
       }
     }
@@ -92,7 +116,7 @@ export default function NotificationsPage() {
       if (diff !== 0) return diff;
       return bikeName(a.bike).localeCompare(bikeName(b.bike));
     });
-  }, [bikes, types, allRecords]);
+  }, [bikes, types, allRecords, profiles, stats, rules]);
 
   const overdueCount = alerts.filter((a) => a.status === "overdue").length;
   const soonCount = alerts.filter((a) => a.status === "soon").length;

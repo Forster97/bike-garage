@@ -111,7 +111,7 @@ export default function GaragePage() {
 
       const { data: parts } = await supabase
         .from("component_templates")
-        .select("category, name, weight_g, position")
+        .select("category, name, weight_g, position, brand, sku")
         .eq("template_id", tpl.id)
         .order("position", { ascending: true });
 
@@ -411,6 +411,11 @@ export default function GaragePage() {
                         <div style={{ minWidth: 0 }}>
                           <span style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>{p.name}</span>
                           <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginLeft: 6 }}>{p.category}</span>
+                          {(p.brand || p.sku) && (
+                            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.30)", marginTop: 1 }}>
+                              {p.brand ? p.brand : ""}{p.brand && p.sku ? " • " : ""}{p.sku ? `SKU ${p.sku}` : ""}
+                            </div>
+                          )}
                         </div>
                         <span style={{ fontSize: 12, color: p.weight_g ? "rgba(134,239,172,0.80)" : "rgba(255,255,255,0.25)", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 }}>
                           {p.weight_g ? `${p.weight_g} g` : "—"}
