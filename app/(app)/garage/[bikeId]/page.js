@@ -333,6 +333,13 @@ export default function BikeDetailPage() {
     }
   };
 
+  // Piezas que ESTA bici ya tiene en la categoría elegida.
+  // En las categorías que llevan varias por diseño no se advierte nada.
+  const sameCategoryParts = useMemo(() => {
+    if (MULTI_COMPONENT_CATEGORIES.includes(partCategory)) return [];
+    return parts.filter((p) => p.category === partCategory);
+  }, [parts, partCategory]);
+
   const addPart = async (e) => {
     e?.preventDefault?.();
 
