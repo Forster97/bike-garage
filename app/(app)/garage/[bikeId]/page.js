@@ -12,7 +12,8 @@ export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
-import { DEFAULT_CATEGORIES } from "../../../../lib/constants";
+import { DEFAULT_CATEGORIES, CATEGORY_TO_CATALOG } from "../../../../lib/constants";
+import ComboBox from "../../../../components/ComboBox";
 
 // ── Constantes y funciones helper ─────────────────────────────────────────────
 
@@ -67,6 +68,7 @@ export default function BikeDetailPage() {
 
   // allComponents: todos los componentes del usuario (para búsqueda al agregar)
   const [allComponents, setAllComponents] = useState([]);
+  const [catalog, setCatalog] = useState([]); // component_catalog: sugerencias de marca y modelo
 
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
 
@@ -75,8 +77,11 @@ export default function BikeDetailPage() {
   const [partName, setPartName] = useState("");
   const [partCategory, setPartCategory] = useState(DEFAULT_CATEGORIES[0]);
   const [partWeight, setPartWeight] = useState("");
+  const [partHasWeight, setPartHasWeight] = useState(false); // el peso solo se guarda si se activa
   const [partBrand, setPartBrand] = useState("");
   const [partSku, setPartSku] = useState("");
+  const [partModel, setPartModel] = useState("");
+  const [catalogHit, setCatalogHit] = useState(null); // pieza del catálogo que rellenó los datos
   const [selectedExistingId, setSelectedExistingId] = useState(null); // ID si se reutiliza un componente existente
 
   const [query, setQuery] = useState("");
@@ -157,7 +162,7 @@ export default function BikeDetailPage() {
         const { data: userData } = await supabase.auth.getUser();
         if (!userData?.user) return router.replace("/login");
 
-        const [catsRes, hiddenRes, bikeRes, bcRes, allCompsRes] = await Promise.all([
+        const [catsRes, hiddenRes, bikeRes, bcRes, allCompsRes, catalogRes] = await Promise.all([
           supabase.from("categories").select("name").order("created_at", { ascending: true }),
           supabase.from("category_hidden").select("name"),
           supabase.from("bikes").select("*").eq("id", bikeId).single(),
@@ -168,6 +173,8 @@ export default function BikeDetailPage() {
             .order("created_at", { ascending: false }),
           // Cargar todos los componentes del usuario para la búsqueda al agregar
           supabase.from("components").select("*").eq("user_id", userData.user.id),
+          // Catálogo maestro: alimenta las sugerencias de marca y modelo
+          supabase.from("component_catalog").select("category, brand, series, model, variant, weight_g, sku, confidence"),
         ]);
 
         if (cancelled) return;
@@ -198,6 +205,7 @@ export default function BikeDetailPage() {
         setParts(rows);
 
         setAllComponents(allCompsRes.data || []);
+        setCatalog(catalogRes.data || []);
 
         const nextEdit = {};
         for (const p of rows)
@@ -242,11 +250,88 @@ export default function BikeDetailPage() {
   // Agrega un componente a la bici.
   // Si el nombre+categoría coincide con uno existente de la biblioteca → lo reutiliza.
   // Si no → crea un componente nuevo y lo vincula.
+  // ── Sugerencias en cascada: categoría → marca → modelo ─────────────────────
+  // Se alimentan de DOS fuentes: el catálogo maestro y los componentes que el
+  // usuario ya tiene cargados. Así hay sugerencias útiles incluso en las
+  // categorías que el catálogo todavía no cubre. Nunca obligan: son texto libre.
+
+  // Filas del catálogo que corresponden a la categoría elegida (puede ser ninguna).
+  const catalogForCategory = useMemo(() => {
+    const mapped = CATEGORY_TO_CATALOG[partCategory];
+    if (!mapped) return [];
+    return catalog.filter((c) => mapped.includes(c.category));
+  }, [catalog, partCategory]);
+
+  // Marcas: las del catálogo para esa categoría + las que el usuario ya usó ahí.
+  const brandOptions = useMemo(() => {
+    const set = new Set();
+    for (const c of catalogForCategory) if (c.brand) set.add(c.brand);
+    for (const c of allComponents) {
+      if (c.category === partCategory && c.brand) set.add(c.brand);
+    }
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [catalogForCategory, allComponents, partCategory]);
+
+  // Modelos de la marca elegida. En el catálogo el nombre comercial vive en
+  // `series` (Deore, Code, GX Eagle) y el código en `model` (CS-M8100).
+  const modelOptions = useMemo(() => {
+    if (!partBrand.trim()) return [];
+    const b = partBrand.trim().toLowerCase();
+    const set = new Set();
+    for (const c of catalogForCategory) {
+      if ((c.brand || "").toLowerCase() !== b) continue;
+      const label = [c.series, c.variant].filter(Boolean).join(" ") || c.model;
+      if (label) set.add(label);
+    }
+    for (const c of allComponents) {
+      if (c.category !== partCategory) continue;
+      if ((c.brand || "").toLowerCase() !== b) continue;
+      if (c.model) set.add(c.model);
+    }
+    return [...set].sort((a, b2) => a.localeCompare(b2));
+  }, [catalogForCategory, allComponents, partCategory, partBrand]);
+
+  // Al elegir un modelo, si está en el catálogo rellenamos peso y SKU.
+  const applyModel = (value) => {
+    setPartModel(value);
+    const b = partBrand.trim().toLowerCase();
+    const hit = catalogForCategory.find((c) => {
+      if ((c.brand || "").toLowerCase() !== b) return false;
+      const label = [c.series, c.variant].filter(Boolean).join(" ") || c.model;
+      return label === value;
+    });
+    if (hit) {
+      if (hit.weight_g != null) { setPartWeight(String(hit.weight_g)); setPartHasWeight(true); }
+      if (hit.sku) setPartSku(hit.sku);
+      setCatalogHit(hit);
+      return;
+    }
+    // Si no vino del catálogo, puede venir de una pieza propia del usuario
+    const own = allComponents.find(
+      (c) => c.category === partCategory && (c.brand || "").toLowerCase() === b && c.model === value
+    );
+    if (own) {
+      if (own.weight_g != null) { setPartWeight(String(own.weight_g)); setPartHasWeight(true); }
+      if (own.sku) setPartSku(own.sku);
+    }
+    setCatalogHit(null);
+  };
+
   const addPart = async (e) => {
     e?.preventDefault?.();
-    if (!partName.trim()) return alert("Ponle un nombre al componente.");
-    const w = parseNullableNumber(partWeight);
-    if (partWeight !== "" && (Number.isNaN(w) || w < 0)) return alert("Peso inválido.");
+
+    // El peso solo se considera si el usuario activó la casilla.
+    const w = partHasWeight ? parseNullableNumber(partWeight) : null;
+    if (partHasWeight && partWeight !== "" && (Number.isNaN(w) || w < 0)) {
+      return alert("Peso inválido.");
+    }
+
+    // El nombre es opcional: se deriva de marca + modelo, igual que las bicis.
+    // components.name es NOT NULL en la base, así que siempre debe quedar con algo.
+    const finalName =
+      partName.trim() ||
+      [partBrand.trim(), partModel.trim()].filter(Boolean).join(" ") ||
+      partCategory;
 
     const userId = await getUserIdOrRedirect();
     if (!userId) return;
@@ -256,7 +341,7 @@ export default function BikeDetailPage() {
     if (!componentId) {
       // Busca coincidencia exacta por nombre+categoría en la biblioteca del usuario
       const existing = allComponents.find(
-        (c) => c.name.toLowerCase() === partName.trim().toLowerCase() && c.category === partCategory
+        (c) => c.name.toLowerCase() === finalName.toLowerCase() && c.category === partCategory
       );
       if (existing) {
         componentId = existing.id;
@@ -266,10 +351,12 @@ export default function BikeDetailPage() {
           .from("components")
           .insert([{
             user_id: userId,
-            name: partName.trim(),
+            name: finalName,
             category: partCategory,
             weight_g: w,
             brand: partBrand.trim() || null,
+            model: partModel.trim() || null,
+            variant: catalogHit?.variant || null,
             sku: partSku.trim() || null,
           }])
           .select("*").single();
@@ -296,7 +383,7 @@ export default function BikeDetailPage() {
       id: bc.component_id,
       bc_id: bc.id,
       component_id: bc.component_id,
-      name: bc.component?.name ?? partName.trim(),
+      name: bc.component?.name ?? finalName,
       category: bc.component?.category ?? partCategory,
       weight_g: bc.component?.weight_g ?? w,
       brand: bc.component?.brand ?? null,
@@ -309,7 +396,8 @@ export default function BikeDetailPage() {
     setParts((prev) => [newPart, ...prev]);
     setEditById((prev) => ({ ...prev, [newPart.id]: { name: newPart.name, category: newPart.category, weight_g: newPart.weight_g ?? "", brand: newPart.brand ?? "", sku: newPart.sku ?? "" } }));
 
-    setPartName(""); setPartWeight(""); setPartBrand(""); setPartSku(""); setSelectedExistingId(null);
+    setPartName(""); setPartWeight(""); setPartHasWeight(false); setPartBrand("");
+    setPartModel(""); setPartSku(""); setSelectedExistingId(null); setCatalogHit(null);
     setAddOpen(false);
   };
 
@@ -644,62 +732,95 @@ export default function BikeDetailPage() {
             </div>
 
             <form onSubmit={addPart} style={{ display: "grid", gap: 12, marginTop: 12 }}>
+              {/* 1 · Categoría */}
               <div style={styles.field}>
-                <div style={styles.label}>Nombre</div>
-                {/* datalist: sugiere componentes ya existentes del usuario */}
-                <input
-                  value={partName}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setPartName(val);
-                    const match = allComponents.find((c) => c.name === val);
-                    if (match) {
-                      setPartCategory(match.category);
-                      setPartWeight(String(match.weight_g ?? ""));
-                      setPartBrand(match.brand ?? "");
-                      setPartSku(match.sku ?? "");
-                      setSelectedExistingId(match.id);
-                    } else {
-                      setSelectedExistingId(null);
-                    }
-                  }}
-                  list="all-components-list"
-                  placeholder="Ej: Cassette 11-42"
-                  style={styles.input}
+                <div style={styles.label}>Categoría</div>
+                <select value={partCategory} onChange={(e) => setPartCategory(e.target.value)} className="dark-select" style={styles.input}>
+                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              {/* 2 · Marca — sugerencias según la categoría */}
+              <div style={styles.field}>
+                <div style={styles.label}>Marca</div>
+                <ComboBox
+                  value={partBrand}
+                  onChange={(v) => { setPartBrand(v); setPartModel(""); setCatalogHit(null); }}
+                  options={brandOptions}
+                  placeholder="Ej: Shimano"
+                  style={styles.comboWrap}
                 />
-                <datalist id="all-components-list">
-                  {allComponents.map((c) => <option key={c.id} value={c.name} />)}
-                </datalist>
-                {/* Indicador de reutilización */}
-                {selectedExistingId && (
-                  <div style={{ fontSize: 11, color: "rgba(134,239,172,0.85)", marginTop: 2 }}>
-                    ↩ Reutilizando componente de tu biblioteca
+                {brandOptions.length === 0 && (
+                  <div style={styles.hint}>
+                    Todavía no hay marcas sugeridas para “{partCategory}”. Escríbela y queda guardada
+                    para la próxima.
                   </div>
                 )}
               </div>
 
-              <div style={styles.grid2}>
-                <div style={styles.field}>
-                  <div style={styles.label}>Categoría</div>
-                  <select value={partCategory} onChange={(e) => setPartCategory(e.target.value)} className="dark-select" style={styles.input}>
-                    {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div style={styles.field}>
-                  <div style={styles.label}>Peso (g)</div>
-                  <input value={partWeight} onChange={(e) => setPartWeight(e.target.value)} placeholder="Ej: 342" inputMode="numeric" style={styles.input} />
+              {/* 3 · Modelo — sugerencias según la marca */}
+              <div style={styles.field}>
+                <div style={styles.label}>Modelo</div>
+                <ComboBox
+                  value={partModel}
+                  onChange={applyModel}
+                  options={modelOptions}
+                  placeholder={partBrand.trim() ? "Ej: MT5" : "Elige una marca primero"}
+                  style={styles.comboWrap}
+                />
+                {catalogHit && (
+                  <div style={styles.catalogHit}>
+                    ✓ Del catálogo · peso y SKU rellenados
+                    {catalogHit.confidence === "likely" && " · peso estimado"}
+                  </div>
+                )}
+              </div>
+
+              {/* 4 · Nombre — texto libre y opcional */}
+              <div style={styles.field}>
+                <div style={styles.label}>Nombre <span style={styles.optional}>(opcional)</span></div>
+                <input
+                  value={partName}
+                  onChange={(e) => setPartName(e.target.value)}
+                  placeholder="Ej: Cassette 11-42"
+                  style={styles.input}
+                />
+                <div style={styles.hint}>
+                  Si lo dejas vacío, se nombra como “
+                  {[partBrand.trim(), partModel.trim()].filter(Boolean).join(" ") || partCategory}”.
                 </div>
               </div>
 
-              <div style={styles.grid2}>
-                <div style={styles.field}>
-                  <div style={styles.label}>Marca</div>
-                  <input value={partBrand} onChange={(e) => setPartBrand(e.target.value)} placeholder="Ej: Shimano" style={styles.input} />
-                </div>
-                <div style={styles.field}>
-                  <div style={styles.label}>SKU / Código</div>
-                  <input value={partSku} onChange={(e) => setPartSku(e.target.value)} placeholder="Ej: CS-M7100-12" style={styles.input} />
-                </div>
+              {/* 4 · Peso — solo si se activa */}
+              <div style={styles.field}>
+                <label style={styles.checkRow}>
+                  <input
+                    type="checkbox"
+                    checked={partHasWeight}
+                    onChange={(e) => {
+                      setPartHasWeight(e.target.checked);
+                      if (!e.target.checked) setPartWeight("");
+                    }}
+                    style={styles.checkbox}
+                  />
+                  <span>Añadir peso</span>
+                </label>
+                {partHasWeight && (
+                  <input
+                    value={partWeight}
+                    onChange={(e) => setPartWeight(e.target.value)}
+                    placeholder="Ej: 342"
+                    inputMode="numeric"
+                    autoFocus
+                    style={{ ...styles.input, marginTop: 8 }}
+                  />
+                )}
+              </div>
+
+              {/* 5 · SKU */}
+              <div style={styles.field}>
+                <div style={styles.label}>SKU / Código <span style={styles.optional}>(opcional)</span></div>
+                <input value={partSku} onChange={(e) => setPartSku(e.target.value)} placeholder="Ej: CS-M7100-12" style={styles.input} />
               </div>
 
               <div style={styles.btnRowRight}>
@@ -709,7 +830,7 @@ export default function BikeDetailPage() {
 
               <div style={styles.tipRow}>
                 <div style={styles.tipDot} aria-hidden="true" />
-                <div style={styles.tipText}>Tip: si ya tienes este componente en otra bici, aparecerá como sugerencia.</div>
+                <div style={styles.tipText}>Tip: si ya tienes este componente con el mismo nombre y categoría, se reutiliza el de tu biblioteca en vez de duplicarlo.</div>
               </div>
             </form>
           </div>
@@ -791,6 +912,12 @@ const styles = {
   editRow: { marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" },
   field: { display: "grid", gap: 6 },
   label: { fontSize: 12, color: "rgba(255,255,255,0.65)" },
+  optional: { color: "rgba(255,255,255,0.38)", fontWeight: 400 },
+  hint: { fontSize: 11, color: "rgba(255,255,255,0.42)", lineHeight: 1.4 },
+  comboWrap: { width: "100%" },
+  catalogHit: { fontSize: 11, color: "rgba(134,239,172,0.85)", lineHeight: 1.4, marginTop: 2 },
+  checkRow: { display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: "rgba(255,255,255,0.85)", cursor: "pointer", padding: "10px 0", userSelect: "none" },
+  checkbox: { width: 18, height: 18, accentColor: "rgba(99,102,241,0.9)", cursor: "pointer" },
   input: { padding: "12px 12px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(0,0,0,0.22)", color: "rgba(255,255,255,0.92)", outline: "none", fontSize: 14 },
   primaryBtn: { border: 0, fontWeight: 900, padding: "12px 14px", borderRadius: 14, color: "#0b1220", background: "linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.82))", boxShadow: "0 14px 30px rgba(0,0,0,0.35)", cursor: "pointer" },
   secondaryBtn: { border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.88)", fontWeight: 900, padding: "12px 14px", borderRadius: 14, cursor: "pointer" },
