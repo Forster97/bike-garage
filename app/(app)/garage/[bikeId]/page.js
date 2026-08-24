@@ -171,12 +171,18 @@ export default function BikeDetailPage() {
     return uid;
   };
 
-  // Registra evento en part_logs (part_id = component_id)
-  const logEvent = async ({ userId, bikeId: bid, partId, action, oldW, newW }) => {
+  // Registra un evento en el historial.
+  //
+  // Guarda una FOTO del nombre y la categoría, no solo el id: un historial que
+  // depende de que la pieza siga existiendo no es un historial. Así sobrevive a
+  // que el modelo se borre, se renombre o se recategorice.
+  const logEvent = async ({ userId, bikeId: bid, partId, name, category, action, oldW, newW }) => {
     const { error } = await supabase.from("part_logs").insert([{
       user_id: userId,
       bike_id: bid,
       part_id: partId,
+      part_name: name ?? null,
+      part_category: category ?? null,
       action,
       old_weight_g: oldW ?? null,
       new_weight_g: newW ?? null,
@@ -416,6 +422,7 @@ export default function BikeDetailPage() {
 
     await logEvent({
       userId, bikeId, partId: modeloDelCatalogo.id,
+      name: nuevoMontaje.name, category: nuevoMontaje.category,
       action: "created", oldW: null, newW: nuevoMontaje.weight_g,
     });
 
@@ -440,6 +447,7 @@ export default function BikeDetailPage() {
     const part = parts.find((p) => p.id === mountId);
     await logEvent({
       userId, bikeId, partId: part?.catalog_id ?? null,
+      name: part?.name, category: part?.category,
       action: "deleted", oldW: part?.weight_g ?? null, newW: null,
     });
 
@@ -478,6 +486,7 @@ export default function BikeDetailPage() {
 
     await logEvent({
       userId, bikeId, partId: actualizado.catalog_id,
+      name: actualizado.name, category: actualizado.category,
       action: "updated", oldW: old?.weight_g ?? null, newW: actualizado.weight_g,
     });
 

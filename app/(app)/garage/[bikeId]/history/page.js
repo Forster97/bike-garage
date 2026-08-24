@@ -46,19 +46,18 @@ function groupLogsByDay(logs) {
   return Object.fromEntries(map.entries());
 }
 
+// El evento guarda una foto del nombre al momento de ocurrir. Esa es la fuente
+// buena: sobrevive a que la pieza se borre o se renombre después.
+// El catálogo queda solo como respaldo para eventos viejos sin foto.
 function getPartDisplayName(l, partsById) {
-  const direct = l.part_name ?? l.new_name ?? l.old_name ?? l.name;
-  if (direct) return direct;
+  if (l.part_name) return l.part_name;
 
   const p = l.part_id ? partsById?.[l.part_id] : null;
-  if (p?.name) return p.name;
-
-  return "Componente";
+  return p?.name || "Componente";
 }
 
 function getPartCategory(l, partsById) {
-  const direct = l.new_category ?? l.old_category ?? l.category;
-  if (direct) return direct;
+  if (l.part_category) return l.part_category;
 
   const p = l.part_id ? partsById?.[l.part_id] : null;
   return p?.category ?? null;
