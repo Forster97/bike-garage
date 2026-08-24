@@ -157,26 +157,24 @@ alter table public.bike_components alter column catalog_id    drop not null;
 alter table public.bike_components alter column component_id  drop not null;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- PASO 5 · Eliminar lo que sobra   [⛔ PENDIENTE — requiere aprobación]
+-- PASO 5 · Eliminar lo que sobra   [APLICADO 2026-08-23]
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Se ejecutó DESPUÉS de que producción quedara corriendo el código nuevo.
+-- Ese orden es la parte importante: al revés, la app se cae.
+
+alter table public.bike_components drop column if exists component_id;
+alter table public.bike_components alter column catalog_id set not null;
+
+drop table if exists public.components;
+drop table if exists public.component_catalog_submissions;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- PASO 6 · Los respaldos   [⛔ PENDIENTE — a propósito]
 -- ─────────────────────────────────────────────────────────────────────────────
 --
--- NO EJECUTAR hasta que el código escriba `catalog_id` al montar una pieza.
--- Hoy la app todavía usa `components`; si se borra ahora, la app deja de andar.
+-- Se conservan hasta que la app lleve un tiempo estable. Son la única forma de
+-- reconstruir el estado previo a esta migración.
 --
--- Orden correcto:
---   1. Reescribir el código para que use catalog_id            (pendiente)
---   2. Verificar en preview que agregar y quitar piezas anda   (pendiente)
---   3. Recién ahí ejecutar este bloque
---
--- alter table public.bike_components drop column if exists component_id;
--- alter table public.bike_components alter column catalog_id set not null;
--- drop table if exists public.components;
---
--- La tabla de propuestas queda sin rol: la cola de revisión del admin pasa a ser
--- el estado 'unverified' del catálogo.
--- drop table if exists public.component_catalog_submissions;
---
--- Y cuando todo esté estable y verificado, los respaldos:
 -- drop table if exists _backup_20260823_components;
 -- drop table if exists _backup_20260823_bike_components;
 -- drop table if exists _backup_20260823_bike_maintenance;
