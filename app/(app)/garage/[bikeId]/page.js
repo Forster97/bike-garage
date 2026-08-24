@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
-import { DEFAULT_CATEGORIES, CATEGORY_TO_CATALOG } from "../../../../lib/constants";
+import { DEFAULT_CATEGORIES, CATEGORY_TO_CATALOG, MULTI_COMPONENT_CATEGORIES } from "../../../../lib/constants";
 import ComboBox from "../../../../components/ComboBox";
 
 // ── Constantes y funciones helper ─────────────────────────────────────────────
@@ -82,6 +82,7 @@ export default function BikeDetailPage() {
   const [partSku, setPartSku] = useState("");
   const [partModel, setPartModel] = useState("");
   const [catalogHit, setCatalogHit] = useState(null); // pieza del catálogo que rellenó los datos
+  const [confirmDupOpen, setConfirmDupOpen] = useState(false); // aviso de segunda pieza en la misma categoría
   const [selectedExistingId, setSelectedExistingId] = useState(null); // ID si se reutiliza un componente existente
 
   const [query, setQuery] = useState("");
@@ -317,6 +318,45 @@ export default function BikeDetailPage() {
     setCatalogHit(null);
   };
 
+  // Componentes que ESTA bici ya tiene en la categoría elegida.
+  // En las categorías que llevan varias piezas por diseño no se advierte nada.
+  const sameCategoryParts = useMemo(() => {
+    if (MULTI_COMPONENT_CATEGORIES.includes(partCategory)) return [];
+    return parts.filter((p) => p.category === partCategory);
+  }, [parts, partCategory]);
+
+  // Si la marca+modelo no está en el catálogo, se propone para que un admin la revise.
+  // Es best-effort: si falla, el componente se guarda igual.
+  const proposeToCatalog = async (userId, w) => {
+    const brand = partBrand.trim();
+    if (!brand) return;
+
+    const model = partModel.trim() || null;
+    const yaEstaEnCatalogo = catalogForCategory.some((c) => {
+      if ((c.brand || "").toLowerCase() !== brand.toLowerCase()) return false;
+      if (!model) return true; // la marca ya existe en el catálogo
+      const label = [c.series, c.variant].filter(Boolean).join(" ") || c.model;
+      return (label || "").toLowerCase() === model.toLowerCase();
+    });
+    if (yaEstaEnCatalogo) return;
+
+    const { error } = await supabase
+      .from("component_catalog_submissions")
+      .insert([{
+        user_id: userId,
+        category: partCategory,
+        brand,
+        model,
+        weight_g: w,
+        sku: partSku.trim() || null,
+      }]);
+
+    // 23505 = ya propuso esta misma combinación antes. No es un error para el usuario.
+    if (error && error.code !== "23505") {
+      console.error("catalog submission error:", error);
+    }
+  };
+
   const addPart = async (e) => {
     e?.preventDefault?.();
 
@@ -325,6 +365,14 @@ export default function BikeDetailPage() {
     if (partHasWeight && partWeight !== "" && (Number.isNaN(w) || w < 0)) {
       return alert("Peso inválido.");
     }
+
+    // Una segunda pieza en una categoría que normalmente lleva una sola
+    // suele ser un error de carga: se confirma antes de guardar.
+    if (sameCategoryParts.length > 0 && !confirmDupOpen) {
+      setConfirmDupOpen(true);
+      return;
+    }
+    setConfirmDupOpen(false);
 
     // El nombre es opcional: se deriva de marca + modelo, igual que las bicis.
     // components.name es NOT NULL en la base, así que siempre debe quedar con algo.
@@ -363,6 +411,9 @@ export default function BikeDetailPage() {
         if (compErr) return alert(compErr.message);
         componentId = newComp.id;
         setAllComponents((prev) => [newComp, ...prev]);
+
+        // Pieza nueva: si su marca/modelo no está en el catálogo, la proponemos.
+        await proposeToCatalog(userId, w);
       }
     }
 
@@ -398,6 +449,7 @@ export default function BikeDetailPage() {
 
     setPartName(""); setPartWeight(""); setPartHasWeight(false); setPartBrand("");
     setPartModel(""); setPartSku(""); setSelectedExistingId(null); setCatalogHit(null);
+    setConfirmDupOpen(false);
     setAddOpen(false);
   };
 
@@ -838,6 +890,36 @@ export default function BikeDetailPage() {
       ) : null}
 
       {/* ── Modal confirmación quitar / eliminar componente ── */}
+      {/* Aviso: la bici ya tiene una pieza en una categoría que suele llevar una sola */}
+      {confirmDupOpen && (
+        <div style={{ ...styles.modalWrap, zIndex: 70 }} onClick={() => setConfirmDupOpen(false)}>
+          <div style={{ ...styles.modal, maxWidth: 400, padding: 24 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: 32, textAlign: "center", marginBottom: 8 }}>⚠️</div>
+            <div style={{ fontWeight: 800, fontSize: 16, color: "rgba(255,255,255,0.92)", textAlign: "center", marginBottom: 8 }}>
+              Esta bici ya tiene {partCategory.toLowerCase()}
+            </div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", textAlign: "center", lineHeight: 1.5, marginBottom: 4 }}>
+              Ya está{sameCategoryParts.length > 1 ? "n" : ""}:
+            </div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", textAlign: "center", lineHeight: 1.6, marginBottom: 14 }}>
+              {sameCategoryParts.map((p) => p.name).join(" · ")}
+            </div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", textAlign: "center", lineHeight: 1.5, marginBottom: 18 }}>
+              Normalmente una bici lleva una sola pieza de esta categoría.
+              Si es a propósito, puedes agregarla igual.
+            </div>
+            <div style={{ display: "grid", gap: 8 }}>
+              <button style={styles.primaryBtn} onClick={() => setConfirmDupOpen(false)}>
+                Volver a revisar
+              </button>
+              <button style={styles.secondaryBtn} onClick={() => addPart()}>
+                Agregar igual
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {confirmPartId && (
         <div style={{ ...styles.modalWrap, zIndex: 60 }} onClick={() => setConfirmPartId(null)}>
           <div style={{ ...styles.modal, maxWidth: 380, padding: 24 }} onClick={(e) => e.stopPropagation()}>
