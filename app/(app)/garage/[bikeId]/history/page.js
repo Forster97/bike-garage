@@ -183,13 +183,16 @@ export default function BikeHistoryPage() {
           .order("created_at", { ascending: false }),
         supabase
           .from("bike_components")
-          .select("component:components(weight_g)")
+          .select("weight_g_override, modelo:component_catalog(weight_g)")
           .eq("bike_id", bikeId),
       ]);
 
       const logsData = logsRes.data || [];
       // Aplanar el join para que sumWeights reciba { weight_g } por cada componente
-      const currentTotal = sumWeights((partsResAll.data || []).map((bc) => ({ weight_g: bc.component?.weight_g })));
+      // El peso que cuenta es el ajuste de esta bici; si no hay, el del catálogo.
+      const currentTotal = sumWeights((partsResAll.data || []).map((bc) => ({
+        weight_g: bc.weight_g_override ?? bc.modelo?.weight_g,
+      })));
       const daily = buildDailyWeightHistory(logsData, currentTotal);
 
       // ✅ Buscar part_id únicos y traer nombre/categoría desde parts
@@ -197,12 +200,16 @@ export default function BikeHistoryPage() {
 
       let partsMap = {};
       if (ids.length > 0) {
+        // part_logs guarda el id del MODELO del catálogo (antes era el de la copia privada)
         const partsRes = await supabase
-          .from("components")
-          .select("id,name,category,weight_g")
+          .from("component_catalog")
+          .select("id,brand,model,variant,category,weight_g")
           .in("id", ids);
 
-        const partsData = partsRes.data || [];
+        const partsData = (partsRes.data || []).map((m) => ({
+          ...m,
+          name: [m.brand, m.model, m.variant].filter(Boolean).join(" ").trim() || m.category,
+        }));
         partsMap = Object.fromEntries(partsData.map((p) => [p.id, p]));
       }
 

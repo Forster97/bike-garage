@@ -76,7 +76,7 @@ export default function BikeMaintenancePage() {
           supabase.from("bike_profiles").select("profile").eq("bike_id", bikeId).maybeSingle(),
           supabase.from("bike_stats").select("odometer_km").eq("bike_id", bikeId).maybeSingle(),
           supabase.from("maintenance_rules").select("*").eq("bike_id", bikeId),
-          supabase.from("bike_components").select("component:components(id, name, category)").eq("bike_id", bikeId),
+          supabase.from("bike_components").select("catalog_id, modelo:component_catalog(id, brand, model, variant, category)").eq("bike_id", bikeId),
         ]);
 
         if (cancelled) return;
@@ -87,9 +87,14 @@ export default function BikeMaintenancePage() {
         setBikeStats(statsRes.data || null);
         setCustomRules(rulesRes.data || []);
         // Aplanar el join para obtener { id, name, category } por cada bike_component
-        setBikeParts((partsRes.data || []).map((bc) => ({
-          id: bc.component?.id, name: bc.component?.name, category: bc.component?.category,
-        })).filter((p) => p.category));
+        setBikeParts((partsRes.data || []).map((bc) => {
+          const m = bc.modelo;
+          return {
+            id: m?.id,
+            name: [m?.brand, m?.model, m?.variant].filter(Boolean).join(" ").trim() || m?.category,
+            category: m?.category,
+          };
+        }).filter((p) => p.category));
         setOdometerInput(String(statsRes.data?.odometer_km ?? ""));
       } finally {
         if (!cancelled) setLoading(false);

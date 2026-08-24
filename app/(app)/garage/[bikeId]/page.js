@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
-import { DEFAULT_CATEGORIES, CATEGORY_TO_CATALOG, MULTI_COMPONENT_CATEGORIES } from "../../../../lib/constants";
+import { DEFAULT_CATEGORIES, MULTI_COMPONENT_CATEGORIES } from "../../../../lib/constants";
 import ComboBox from "../../../../components/ComboBox";
 
 // ── Constantes y funciones helper ─────────────────────────────────────────────
@@ -49,6 +49,40 @@ function uniq(arr) {
   return arr.filter((x, i) => arr.indexOf(x) === i);
 }
 
+/** Nombre legible de un modelo del catálogo: "Fox F100 RCL". */
+function nombreDeModelo(m) {
+  if (!m) return "Componente";
+  return (
+    [m.brand, m.series, m.model, m.variant].filter(Boolean).join(" ").trim() ||
+    m.subcategory ||
+    m.category ||
+    "Componente"
+  );
+}
+
+/**
+ * Aplana un montaje (bike_components) con su modelo del catálogo.
+ * El peso que manda es el ajuste de esta bici; si no hay, el del catálogo.
+ */
+function flattenMount(bc, m) {
+  return {
+    id: bc.id,                       // el MONTAJE es la identidad
+    catalog_id: bc.catalog_id,
+    name: nombreDeModelo(m),
+    category: m?.category ?? "",
+    subcategory: m?.subcategory ?? null,
+    brand: m?.brand ?? null,
+    model: m?.model ?? null,
+    variant: m?.variant ?? null,
+    sku: m?.sku ?? null,
+    confidence: m?.confidence ?? null,
+    catalogWeight: m?.weight_g ?? null,
+    weight_override: bc.weight_g_override ?? null,
+    weight_g: bc.weight_g_override ?? m?.weight_g ?? null,
+    created_at: bc.created_at,
+  };
+}
+
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
@@ -62,13 +96,12 @@ export default function BikeDetailPage() {
   const [loading, setLoading] = useState(true);
   const [bike, setBike] = useState(null);
 
-  // parts: lista aplanada de bike_components + components para esta bici
-  // Cada item: { id (=component_id), bc_id, component_id, name, category, weight_g, created_at }
+  // parts: los montajes de esta bici, aplanados con su modelo del catálogo.
+  // La identidad de cada item es el MONTAJE (bike_components.id) — ver flattenMount.
   const [parts, setParts] = useState([]);
 
-  // allComponents: todos los componentes del usuario (para búsqueda al agregar)
-  const [allComponents, setAllComponents] = useState([]);
-  const [catalog, setCatalog] = useState([]); // component_catalog: sugerencias de marca y modelo
+  // catalog: el registro de modelos. Alimenta todas las sugerencias.
+  const [catalog, setCatalog] = useState([]);
 
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
 
@@ -80,10 +113,10 @@ export default function BikeDetailPage() {
   const [partHasWeight, setPartHasWeight] = useState(false); // el peso solo se guarda si se activa
   const [partBrand, setPartBrand] = useState("");
   const [partSku, setPartSku] = useState("");
+  const [partSubcategory, setPartSubcategory] = useState("");
   const [partModel, setPartModel] = useState("");
-  const [catalogHit, setCatalogHit] = useState(null); // pieza del catálogo que rellenó los datos
+  const [catalogHit, setCatalogHit] = useState(null); // modelo del catálogo que rellenó los datos
   const [confirmDupOpen, setConfirmDupOpen] = useState(false); // aviso de segunda pieza en la misma categoría
-  const [selectedExistingId, setSelectedExistingId] = useState(null); // ID si se reutiliza un componente existente
 
   const [query, setQuery] = useState("");
 
@@ -95,8 +128,7 @@ export default function BikeDetailPage() {
   const [bikeEditMode, setBikeEditMode] = useState(false);
   const [bikeDraft, setBikeDraft] = useState(emptyBikeDraft());
 
-  // Confirmación: quitar/eliminar componente
-  // null = cerrado, string (component_id) = abierto para ese componente
+  // Confirmación de quitar una pieza. null = cerrado, id del montaje = abierto.
   const [confirmPartId, setConfirmPartId] = useState(null);
 
   // ── Valores calculados ─────────────────────────────────────────────────────
@@ -163,19 +195,17 @@ export default function BikeDetailPage() {
         const { data: userData } = await supabase.auth.getUser();
         if (!userData?.user) return router.replace("/login");
 
-        const [catsRes, hiddenRes, bikeRes, bcRes, allCompsRes, catalogRes] = await Promise.all([
+        const [catsRes, hiddenRes, bikeRes, bcRes, catalogRes] = await Promise.all([
           supabase.from("categories").select("name").order("created_at", { ascending: true }),
           supabase.from("category_hidden").select("name"),
           supabase.from("bikes").select("*").eq("id", bikeId).single(),
           // Cargar componentes de esta bici vía bike_components + join a components
           supabase.from("bike_components")
-            .select("id, component_id, component:components(*)")
+            .select("id, catalog_id, weight_g_override, created_at, modelo:component_catalog(*)")
             .eq("bike_id", bikeId)
             .order("created_at", { ascending: false }),
-          // Cargar todos los componentes del usuario para la búsqueda al agregar
-          supabase.from("components").select("*").eq("user_id", userData.user.id),
-          // Catálogo maestro: alimenta las sugerencias de marca y modelo
-          supabase.from("component_catalog").select("category, brand, series, model, variant, weight_g, sku, confidence"),
+          // El catálogo es EL registro de componentes: alimenta todas las sugerencias
+          supabase.from("component_catalog").select("*"),
         ]);
 
         if (cancelled) return;
@@ -191,26 +221,14 @@ export default function BikeDetailPage() {
         setCategories(finalCats);
         if (finalCats.length > 0 && !finalCats.includes(partCategory)) setPartCategory(finalCats[0]);
 
-        // Aplanar bike_components: usar component_id como id principal
-        const rows = (bcRes.data || []).map((bc) => ({
-          id: bc.component_id,
-          bc_id: bc.id,
-          component_id: bc.component_id,
-          name: bc.component?.name ?? "",
-          category: bc.component?.category ?? "",
-          weight_g: bc.component?.weight_g ?? null,
-          brand: bc.component?.brand ?? null,
-          sku: bc.component?.sku ?? null,
-          created_at: bc.created_at,
-        }));
+        // Aplanar los montajes. La identidad ahora es el MONTAJE (bike_components.id),
+        // no el modelo: una bici puede llevar dos piezas del mismo modelo.
+        const rows = (bcRes.data || []).map((bc) => flattenMount(bc, bc.modelo));
         setParts(rows);
-
-        setAllComponents(allCompsRes.data || []);
         setCatalog(catalogRes.data || []);
 
         const nextEdit = {};
-        for (const p of rows)
-          nextEdit[p.id] = { name: p.name ?? "", category: p.category, weight_g: p.weight_g ?? "", brand: p.brand ?? "", sku: p.sku ?? "" };
+        for (const p of rows) nextEdit[p.id] = { weight_g: p.weight_override ?? "" };
         setEditById(nextEdit);
       } finally {
         if (!cancelled) setLoading(false);
@@ -251,122 +269,84 @@ export default function BikeDetailPage() {
   // Agrega un componente a la bici.
   // Si el nombre+categoría coincide con uno existente de la biblioteca → lo reutiliza.
   // Si no → crea un componente nuevo y lo vincula.
-  // ── Sugerencias en cascada: categoría → marca → modelo ─────────────────────
-  // Se alimentan de DOS fuentes: el catálogo maestro y los componentes que el
-  // usuario ya tiene cargados. Así hay sugerencias útiles incluso en las
-  // categorías que el catálogo todavía no cubre. Nunca obligan: son texto libre.
+  // ── Sugerencias en cascada: categoria > subcategoria > marca > modelo ──────
+  // Todas salen del catalogo, que ahora habla el mismo idioma que el usuario.
+  // Ninguna obliga: si el modelo no existe, se escribe y se crea.
 
-  // Filas del catálogo que corresponden a la categoría elegida (puede ser ninguna).
-  const catalogForCategory = useMemo(() => {
-    const mapped = CATEGORY_TO_CATALOG[partCategory];
-    if (!mapped) return [];
-    return catalog.filter((c) => mapped.includes(c.category));
-  }, [catalog, partCategory]);
+  const catalogForCategory = useMemo(
+    () => catalog.filter((c) => c.category === partCategory),
+    [catalog, partCategory]
+  );
 
-  // Marcas: las del catálogo para esa categoría + las que el usuario ya usó ahí.
+  const subcategoryOptions = useMemo(() => {
+    const set = new Set();
+    for (const c of catalogForCategory) if (c.subcategory) set.add(c.subcategory);
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [catalogForCategory]);
+
+  // Si el usuario eligio subcategoria, filtramos por ella.
+  const catalogScope = useMemo(() => {
+    if (!partSubcategory.trim()) return catalogForCategory;
+    return catalogForCategory.filter(
+      (c) => (c.subcategory || "").toLowerCase() === partSubcategory.trim().toLowerCase()
+    );
+  }, [catalogForCategory, partSubcategory]);
+
   const brandOptions = useMemo(() => {
     const set = new Set();
-    for (const c of catalogForCategory) if (c.brand) set.add(c.brand);
-    for (const c of allComponents) {
-      if (c.category === partCategory && c.brand) set.add(c.brand);
-    }
+    for (const c of catalogScope) if (c.brand) set.add(c.brand);
     return [...set].sort((a, b) => a.localeCompare(b));
-  }, [catalogForCategory, allComponents, partCategory]);
+  }, [catalogScope]);
 
-  // Modelos de la marca elegida. En el catálogo el nombre comercial vive en
-  // `series` (Deore, Code, GX Eagle) y el código en `model` (CS-M8100).
   const modelOptions = useMemo(() => {
     if (!partBrand.trim()) return [];
     const b = partBrand.trim().toLowerCase();
     const set = new Set();
-    for (const c of catalogForCategory) {
+    for (const c of catalogScope) {
       if ((c.brand || "").toLowerCase() !== b) continue;
-      const label = [c.series, c.variant].filter(Boolean).join(" ") || c.model;
+      const label = [c.series, c.model, c.variant].filter(Boolean).join(" ").trim();
       if (label) set.add(label);
     }
-    for (const c of allComponents) {
-      if (c.category !== partCategory) continue;
-      if ((c.brand || "").toLowerCase() !== b) continue;
-      if (c.model) set.add(c.model);
-    }
     return [...set].sort((a, b2) => a.localeCompare(b2));
-  }, [catalogForCategory, allComponents, partCategory, partBrand]);
+  }, [catalogScope, partBrand]);
 
-  // Al elegir un modelo, si está en el catálogo rellenamos peso y SKU.
+  // Busca el modelo exacto en el catalogo, sin distinguir mayusculas.
+  const findCatalogModel = (categoria, subcat, marca, modelo) => {
+    const norm = (x) => (x || "").trim().toLowerCase();
+    return catalog.find((c) => {
+      if (norm(c.category) !== norm(categoria)) return false;
+      if (norm(c.brand) !== norm(marca)) return false;
+      const label = [c.series, c.model, c.variant].filter(Boolean).join(" ").trim();
+      return norm(label) === norm(modelo);
+    }) || null;
+  };
+
+  // Al elegir un modelo del catalogo, trae su peso y su SKU.
   const applyModel = (value) => {
     setPartModel(value);
-    const b = partBrand.trim().toLowerCase();
-    const hit = catalogForCategory.find((c) => {
-      if ((c.brand || "").toLowerCase() !== b) return false;
-      const label = [c.series, c.variant].filter(Boolean).join(" ") || c.model;
-      return label === value;
-    });
+    const hit = findCatalogModel(partCategory, partSubcategory, partBrand, value);
+    setCatalogHit(hit);
     if (hit) {
       if (hit.weight_g != null) { setPartWeight(String(hit.weight_g)); setPartHasWeight(true); }
       if (hit.sku) setPartSku(hit.sku);
-      setCatalogHit(hit);
-      return;
-    }
-    // Si no vino del catálogo, puede venir de una pieza propia del usuario
-    const own = allComponents.find(
-      (c) => c.category === partCategory && (c.brand || "").toLowerCase() === b && c.model === value
-    );
-    if (own) {
-      if (own.weight_g != null) { setPartWeight(String(own.weight_g)); setPartHasWeight(true); }
-      if (own.sku) setPartSku(own.sku);
-    }
-    setCatalogHit(null);
-  };
-
-  // Componentes que ESTA bici ya tiene en la categoría elegida.
-  // En las categorías que llevan varias piezas por diseño no se advierte nada.
-  const sameCategoryParts = useMemo(() => {
-    if (MULTI_COMPONENT_CATEGORIES.includes(partCategory)) return [];
-    return parts.filter((p) => p.category === partCategory);
-  }, [parts, partCategory]);
-
-  // Si la marca+modelo no está en el catálogo, se propone para que un admin la revise.
-  // Es best-effort: si falla, el componente se guarda igual.
-  const proposeToCatalog = async (userId, w) => {
-    const brand = partBrand.trim();
-    if (!brand) return;
-
-    const model = partModel.trim() || null;
-    const yaEstaEnCatalogo = catalogForCategory.some((c) => {
-      if ((c.brand || "").toLowerCase() !== brand.toLowerCase()) return false;
-      if (!model) return true; // la marca ya existe en el catálogo
-      const label = [c.series, c.variant].filter(Boolean).join(" ") || c.model;
-      return (label || "").toLowerCase() === model.toLowerCase();
-    });
-    if (yaEstaEnCatalogo) return;
-
-    const { error } = await supabase
-      .from("component_catalog_submissions")
-      .insert([{
-        user_id: userId,
-        category: partCategory,
-        brand,
-        model,
-        weight_g: w,
-        sku: partSku.trim() || null,
-      }]);
-
-    // 23505 = ya propuso esta misma combinación antes. No es un error para el usuario.
-    if (error && error.code !== "23505") {
-      console.error("catalog submission error:", error);
+      if (hit.subcategory && !partSubcategory) setPartSubcategory(hit.subcategory);
     }
   };
 
   const addPart = async (e) => {
     e?.preventDefault?.();
 
-    // El peso solo se considera si el usuario activó la casilla.
+    const marca = partBrand.trim();
+    const modelo = partModel.trim();
+    if (!marca && !modelo) return alert("Ponle al menos una marca o un modelo.");
+
+    // El peso solo se considera si el usuario activo la casilla.
     const w = partHasWeight ? parseNullableNumber(partWeight) : null;
     if (partHasWeight && partWeight !== "" && (Number.isNaN(w) || w < 0)) {
-      return alert("Peso inválido.");
+      return alert("Peso invalido.");
     }
 
-    // Una segunda pieza en una categoría que normalmente lleva una sola
+    // Una segunda pieza en una categoria que normalmente lleva una sola
     // suele ser un error de carga: se confirma antes de guardar.
     if (sameCategoryParts.length > 0 && !confirmDupOpen) {
       setConfirmDupOpen(true);
@@ -374,161 +354,129 @@ export default function BikeDetailPage() {
     }
     setConfirmDupOpen(false);
 
-    // El nombre es opcional: se deriva de marca + modelo, igual que las bicis.
-    // components.name es NOT NULL en la base, así que siempre debe quedar con algo.
-    const finalName =
-      partName.trim() ||
-      [partBrand.trim(), partModel.trim()].filter(Boolean).join(" ") ||
-      partCategory;
-
     const userId = await getUserIdOrRedirect();
     if (!userId) return;
 
-    let componentId = selectedExistingId;
+    // 1. Buscar el modelo en el catalogo. Si no esta, lo creamos.
+    let modeloDelCatalogo = findCatalogModel(partCategory, partSubcategory, marca, modelo);
 
-    if (!componentId) {
-      // Busca coincidencia exacta por nombre+categoría en la biblioteca del usuario
-      const existing = allComponents.find(
-        (c) => c.name.toLowerCase() === finalName.toLowerCase() && c.category === partCategory
-      );
-      if (existing) {
-        componentId = existing.id;
+    if (!modeloDelCatalogo) {
+      const { data: creado, error: catErr } = await supabase
+        .from("component_catalog")
+        .insert([{
+          category: partCategory,
+          subcategory: partSubcategory.trim() || null,
+          brand: marca || null,
+          model: modelo || null,
+          weight_g: w,
+          sku: partSku.trim() || null,
+          confidence: "unverified",   // lo creo un usuario, nadie lo reviso
+          created_by: userId,
+        }])
+        .select("*")
+        .single();
+
+      if (catErr) {
+        // 23505 = otra persona creo el mismo modelo entremedio. Lo buscamos de nuevo.
+        if (catErr.code !== "23505") return alert(catErr.message);
+        const { data: existente } = await supabase
+          .from("component_catalog").select("*")
+          .eq("category", partCategory).ilike("brand", marca).ilike("model", modelo)
+          .maybeSingle();
+        if (!existente) return alert("No se pudo crear el modelo.");
+        modeloDelCatalogo = existente;
       } else {
-        // Crea el componente en la biblioteca
-        const { data: newComp, error: compErr } = await supabase
-          .from("components")
-          .insert([{
-            user_id: userId,
-            name: finalName,
-            category: partCategory,
-            weight_g: w,
-            brand: partBrand.trim() || null,
-            model: partModel.trim() || null,
-            variant: catalogHit?.variant || null,
-            sku: partSku.trim() || null,
-          }])
-          .select("*").single();
-        if (compErr) return alert(compErr.message);
-        componentId = newComp.id;
-        setAllComponents((prev) => [newComp, ...prev]);
-
-        // Pieza nueva: si su marca/modelo no está en el catálogo, la proponemos.
-        await proposeToCatalog(userId, w);
+        modeloDelCatalogo = creado;
+        setCatalog((prev) => [...prev, creado]);
       }
     }
 
-    // Verifica que no esté ya en esta bici
-    if (parts.some((p) => p.component_id === componentId)) {
-      return alert("Este componente ya está asignado a esta bici.");
-    }
+    // 2. Montarlo en la bici. Si el peso que puso difiere del catalogo, se guarda
+    //    como ajuste SOLO de esta bici: el catalogo no se toca.
+    const override =
+      w != null && modeloDelCatalogo.weight_g != null && w !== modeloDelCatalogo.weight_g
+        ? w
+        : (modeloDelCatalogo.weight_g == null ? w : null);
 
-    // Vincula el componente a esta bici
     const { data: bc, error: bcErr } = await supabase
       .from("bike_components")
-      .insert([{ bike_id: bikeId, component_id: componentId, user_id: userId }])
-      .select("id, component_id, component:components(*)")
+      .insert([{ bike_id: bikeId, catalog_id: modeloDelCatalogo.id, user_id: userId, weight_g_override: override }])
+      .select("id, catalog_id, weight_g_override, created_at, modelo:component_catalog(*)")
       .single();
     if (bcErr) return alert(bcErr.message);
 
-    const newPart = {
-      id: bc.component_id,
-      bc_id: bc.id,
-      component_id: bc.component_id,
-      name: bc.component?.name ?? finalName,
-      category: bc.component?.category ?? partCategory,
-      weight_g: bc.component?.weight_g ?? w,
-      brand: bc.component?.brand ?? null,
-      sku: bc.component?.sku ?? null,
-      created_at: bc.created_at,
-    };
+    const nuevoMontaje = flattenMount(bc, bc.modelo ?? modeloDelCatalogo);
 
-    await logEvent({ userId, bikeId, partId: componentId, action: "created", oldW: null, newW: newPart.weight_g });
+    await logEvent({
+      userId, bikeId, partId: modeloDelCatalogo.id,
+      action: "created", oldW: null, newW: nuevoMontaje.weight_g,
+    });
 
-    setParts((prev) => [newPart, ...prev]);
-    setEditById((prev) => ({ ...prev, [newPart.id]: { name: newPart.name, category: newPart.category, weight_g: newPart.weight_g ?? "", brand: newPart.brand ?? "", sku: newPart.sku ?? "" } }));
+    setParts((prev) => [nuevoMontaje, ...prev]);
+    setEditById((prev) => ({ ...prev, [nuevoMontaje.id]: { weight_g: nuevoMontaje.weight_override ?? "" } }));
 
     setPartName(""); setPartWeight(""); setPartHasWeight(false); setPartBrand("");
-    setPartModel(""); setPartSku(""); setSelectedExistingId(null); setCatalogHit(null);
-    setConfirmDupOpen(false);
+    setPartModel(""); setPartSubcategory(""); setPartSku("");
+    setCatalogHit(null); setConfirmDupOpen(false);
     setAddOpen(false);
   };
 
-  // Quita el componente de ESTA bici (no lo elimina de la biblioteca)
+  // Quita la pieza de ESTA bici. El modelo sigue vivo en el catalogo para todos:
+  // por eso ya no existe la opcion de "eliminar de todas las bicis".
   const removePart = async () => {
-    const componentId = confirmPartId;
+    const mountId = confirmPartId;
     setConfirmPartId(null);
 
     const userId = await getUserIdOrRedirect();
     if (!userId) return;
 
-    const part = parts.find((p) => p.component_id === componentId);
-    await logEvent({ userId, bikeId, partId: componentId, action: "deleted", oldW: part?.weight_g ?? null, newW: null });
+    const part = parts.find((p) => p.id === mountId);
+    await logEvent({
+      userId, bikeId, partId: part?.catalog_id ?? null,
+      action: "deleted", oldW: part?.weight_g ?? null, newW: null,
+    });
 
-    const { error } = await supabase
-      .from("bike_components")
-      .delete()
-      .eq("bike_id", bikeId)
-      .eq("component_id", componentId);
+    const { error } = await supabase.from("bike_components").delete().eq("id", mountId);
     if (error) return alert(error.message);
 
-    setParts((prev) => prev.filter((p) => p.component_id !== componentId));
-    setEditById((prev) => { const next = { ...prev }; delete next[componentId]; return next; });
-    if (editingPartId === componentId) setEditingPartId(null);
+    setParts((prev) => prev.filter((p) => p.id !== mountId));
+    setEditById((prev) => { const next = { ...prev }; delete next[mountId]; return next; });
+    if (editingPartId === mountId) setEditingPartId(null);
   };
 
-  // Elimina el componente de la biblioteca (cascade: se quita de TODAS las bicis)
-  const deleteComponent = async () => {
-    const componentId = confirmPartId;
-    setConfirmPartId(null);
-
-    const userId = await getUserIdOrRedirect();
-    if (!userId) return;
-
-    const part = parts.find((p) => p.component_id === componentId);
-    await logEvent({ userId, bikeId, partId: componentId, action: "deleted", oldW: part?.weight_g ?? null, newW: null });
-
-    const { error } = await supabase.from("components").delete().eq("id", componentId);
-    if (error) return alert(error.message);
-
-    setParts((prev) => prev.filter((p) => p.component_id !== componentId));
-    setAllComponents((prev) => prev.filter((c) => c.id !== componentId));
-    setEditById((prev) => { const next = { ...prev }; delete next[componentId]; return next; });
-    if (editingPartId === componentId) setEditingPartId(null);
-  };
-
-  // Guarda los cambios de un componente editado inline (actualiza la biblioteca)
-  const savePart = async (partId) => {
-    const row = editById[partId];
+  // La edicion inline ahora ajusta SOLO el peso de esta bici.
+  // Los datos del modelo (marca, modelo, SKU) son compartidos y se corrigen
+  // desde el catalogo, no desde aca.
+  const savePart = async (mountId) => {
+    const row = editById[mountId];
     if (!row) return;
-    const nextName = (row.name ?? "").trim();
-    if (!nextName) return alert("Nombre inválido.");
 
     const userId = await getUserIdOrRedirect();
     if (!userId) return;
 
-    const old = parts.find((p) => p.id === partId);
-    const oldWeight = old?.weight_g ?? null;
-    const w = parseNullableNumber(String(row.weight_g ?? ""));
-    if (row.weight_g !== "" && (Number.isNaN(w) || w < 0)) return alert("Peso inválido.");
+    const old = parts.find((p) => p.id === mountId);
+    const texto = String(row.weight_g ?? "").trim();
+    const w = texto === "" ? null : parseNullableNumber(texto);
+    if (texto !== "" && (Number.isNaN(w) || w < 0)) return alert("Peso invalido.");
 
     const { data, error } = await supabase
-      .from("components")
-      .update({
-        name: nextName,
-        category: row.category,
-        weight_g: w,
-        brand: (row.brand ?? "").trim() || null,
-        sku: (row.sku ?? "").trim() || null,
-      })
-      .eq("id", partId)
-      .select("*").single();
+      .from("bike_components")
+      .update({ weight_g_override: w })
+      .eq("id", mountId)
+      .select("id, catalog_id, weight_g_override, created_at, modelo:component_catalog(*)")
+      .single();
     if (error) return alert(error.message);
 
-    await logEvent({ userId, bikeId, partId, action: "updated", oldW: oldWeight, newW: w ?? null });
+    const actualizado = flattenMount(data, data.modelo);
 
-    setParts((prev) => prev.map((p) => p.id === partId ? { ...p, name: data.name, category: data.category, weight_g: data.weight_g, brand: data.brand, sku: data.sku } : p));
-    setAllComponents((prev) => prev.map((c) => c.id === partId ? data : c));
-    setEditById((prev) => ({ ...prev, [partId]: { name: data.name, category: data.category, weight_g: data.weight_g ?? "", brand: data.brand ?? "", sku: data.sku ?? "" } }));
+    await logEvent({
+      userId, bikeId, partId: actualizado.catalog_id,
+      action: "updated", oldW: old?.weight_g ?? null, newW: actualizado.weight_g,
+    });
+
+    setParts((prev) => prev.map((p) => (p.id === mountId ? actualizado : p)));
+    setEditById((prev) => ({ ...prev, [mountId]: { weight_g: actualizado.weight_override ?? "" } }));
+    setEditingPartId(null);
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -573,7 +521,7 @@ export default function BikeDetailPage() {
   }
 
   const partCount = parts.length;
-  const confirmPart = parts.find((p) => p.component_id === confirmPartId);
+  const confirmPart = parts.find((p) => p.id === confirmPartId);
 
   return (
     <>
@@ -687,69 +635,52 @@ export default function BikeDetailPage() {
       ) : (
         <div style={styles.grid}>
           {filteredParts.map((p) => {
-            const row = editById[p.id] || { name: p.name ?? "", category: p.category, weight_g: p.weight_g ?? "" };
+            const row = editById[p.id] || { weight_g: p.weight_override ?? "" };
             const isEditing = editingPartId === p.id;
             const pct = totalWeightG > 0 ? ((Number(p.weight_g) || 0) / totalWeightG) * 100 : 0;
+            const guardar = () => savePart(p.id);
 
             return (
               <div key={p.id} style={styles.partCard}>
                 <div style={styles.partTop}>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={styles.partName}>{isEditing ? (row.name ?? p.name) : p.name}</div>
+                    <div style={styles.partName}>
+                      {p.name}
+                      {p.confidence === "unverified" && (
+                        <span style={styles.badgeUnverified} title="Nadie ha verificado los datos de este modelo">
+                          sin verificar
+                        </span>
+                      )}
+                    </div>
 
                     {!isEditing ? (
                       <div style={styles.partMeta}>
-                        {p.category} • {p.weight_g ?? "—"} g
-                        {p.weight_g != null ? <span style={styles.partMetaSoft}> • {pct.toFixed(1)}%</span> : null}
-                        {(p.brand || p.sku) ? (
-                          <div style={styles.partSubMeta}>
-                            {p.brand ? p.brand : ""}
-                            {p.brand && p.sku ? " • " : ""}
-                            {p.sku ? `SKU ${p.sku}` : ""}
-                          </div>
+                        {p.category}
+                        {p.subcategory ? ` › ${p.subcategory}` : ""}
+                        {" • "}{p.weight_g ?? "—"} g
+                        {p.weight_override != null ? (
+                          <span style={styles.partMetaSoft} title={`El catalogo dice ${p.catalogWeight ?? "?"} g`}>
+                            {" • peso ajustado"}
+                          </span>
                         ) : null}
+                        {p.weight_g != null ? <span style={styles.partMetaSoft}> {"•"} {pct.toFixed(1)}%</span> : null}
+                        {p.sku ? <div style={styles.partSubMeta}>SKU {p.sku}</div> : null}
                       </div>
                     ) : (
                       <div style={styles.editRow}>
-                        <input autoFocus value={String(row.name ?? "")}
-                          onChange={(e) => setEditById((prev) => ({ ...prev, [p.id]: { ...row, name: e.target.value } }))}
+                        <div style={styles.hint}>
+                          Ajusta el peso solo para esta bici. El catalogo dice{" "}
+                          <strong>{p.catalogWeight ?? "—"} g</strong>.
+                        </div>
+                        <input autoFocus value={String(row.weight_g ?? "")}
+                          onChange={(e) => setEditById((prev) => ({ ...prev, [p.id]: { weight_g: e.target.value } }))}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") { e.preventDefault(); savePart(p.id); setEditingPartId(null); }
+                            if (e.key === "Enter") { e.preventDefault(); guardar(); }
                             if (e.key === "Escape") setEditingPartId(null);
                           }}
-                          placeholder="Nombre" style={{ ...styles.input, minWidth: 220 }} />
-
-                        <select value={row.category}
-                          onChange={(e) => setEditById((prev) => ({ ...prev, [p.id]: { ...row, category: e.target.value } }))}
-                          className="dark-select" style={{ ...styles.input, padding: "10px 12px" }}>
-                          {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-                        </select>
-
-                        <input value={String(row.weight_g ?? "")}
-                          onChange={(e) => setEditById((prev) => ({ ...prev, [p.id]: { ...row, weight_g: e.target.value } }))}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") { e.preventDefault(); savePart(p.id); setEditingPartId(null); }
-                            if (e.key === "Escape") setEditingPartId(null);
-                          }}
-                          placeholder="peso (g)" inputMode="numeric" style={{ ...styles.input, width: 140 }} />
-
-                        <input value={String(row.brand ?? "")}
-                          onChange={(e) => setEditById((prev) => ({ ...prev, [p.id]: { ...row, brand: e.target.value } }))}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") { e.preventDefault(); savePart(p.id); setEditingPartId(null); }
-                            if (e.key === "Escape") setEditingPartId(null);
-                          }}
-                          placeholder="marca" style={{ ...styles.input, width: 160 }} />
-
-                        <input value={String(row.sku ?? "")}
-                          onChange={(e) => setEditById((prev) => ({ ...prev, [p.id]: { ...row, sku: e.target.value } }))}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") { e.preventDefault(); savePart(p.id); setEditingPartId(null); }
-                            if (e.key === "Escape") setEditingPartId(null);
-                          }}
-                          placeholder="SKU" style={{ ...styles.input, width: 160 }} />
-
-                        <button style={styles.primaryBtn} onClick={async () => { await savePart(p.id); setEditingPartId(null); }}>Guardar</button>
+                          placeholder={p.catalogWeight != null ? String(p.catalogWeight) : "peso (g)"}
+                          inputMode="numeric" style={{ ...styles.input, width: 160 }} />
+                        <button style={styles.primaryBtn} onClick={guardar}>Guardar</button>
                         <button style={styles.secondaryBtn} onClick={() => setEditingPartId(null)}>Cancelar</button>
                       </div>
                     )}
@@ -757,9 +688,9 @@ export default function BikeDetailPage() {
 
                   <div style={styles.partBtns}>
                     {!isEditing ? (
-                      <button style={styles.secondaryBtn} onClick={() => setEditingPartId(p.id)}>Editar</button>
+                      <button style={styles.secondaryBtn} onClick={() => setEditingPartId(p.id)}>Peso</button>
                     ) : null}
-                    <button style={styles.ghostBtn} onClick={() => setConfirmPartId(p.component_id)}>Quitar</button>
+                    <button style={styles.ghostBtn} onClick={() => setConfirmPartId(p.id)}>Quitar</button>
                   </div>
                 </div>
               </div>
@@ -787,63 +718,75 @@ export default function BikeDetailPage() {
               {/* 1 · Categoría */}
               <div style={styles.field}>
                 <div style={styles.label}>Categoría</div>
-                <select value={partCategory} onChange={(e) => setPartCategory(e.target.value)} className="dark-select" style={styles.input}>
+                <select
+                  value={partCategory}
+                  onChange={(e) => {
+                    setPartCategory(e.target.value);
+                    setPartSubcategory(""); setPartBrand(""); setPartModel(""); setCatalogHit(null);
+                  }}
+                  className="dark-select" style={styles.input}
+                >
                   {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
 
-              {/* 2 · Marca — sugerencias según la categoría */}
+              {/* 2 · Subcategoría — solo si el catálogo tiene alguna */}
+              {subcategoryOptions.length > 0 && (
+                <div style={styles.field}>
+                  <div style={styles.label}>Tipo <span style={styles.optional}>(opcional)</span></div>
+                  <ComboBox
+                    value={partSubcategory}
+                    onChange={(v) => { setPartSubcategory(v); setPartBrand(""); setPartModel(""); setCatalogHit(null); }}
+                    options={subcategoryOptions}
+                    placeholder="Ej: Cassette"
+                    style={styles.comboWrap}
+                  />
+                </div>
+              )}
+
+              {/* 3 · Marca */}
               <div style={styles.field}>
                 <div style={styles.label}>Marca</div>
                 <ComboBox
                   value={partBrand}
                   onChange={(v) => { setPartBrand(v); setPartModel(""); setCatalogHit(null); }}
                   options={brandOptions}
-                  placeholder="Ej: Shimano"
+                  placeholder="Ej: Fox"
                   style={styles.comboWrap}
                 />
                 {brandOptions.length === 0 && (
                   <div style={styles.hint}>
-                    Todavía no hay marcas sugeridas para “{partCategory}”. Escríbela y queda guardada
-                    para la próxima.
+                    El catálogo todavía no tiene marcas en “{partCategory}”.
+                    Escríbela y queda disponible para todos.
                   </div>
                 )}
               </div>
 
-              {/* 3 · Modelo — sugerencias según la marca */}
+              {/* 4 · Modelo */}
               <div style={styles.field}>
                 <div style={styles.label}>Modelo</div>
                 <ComboBox
                   value={partModel}
                   onChange={applyModel}
                   options={modelOptions}
-                  placeholder={partBrand.trim() ? "Ej: MT5" : "Elige una marca primero"}
+                  placeholder={partBrand.trim() ? "Ej: F100 RCL" : "Elige una marca primero"}
                   style={styles.comboWrap}
                 />
-                {catalogHit && (
+                {catalogHit ? (
                   <div style={styles.catalogHit}>
                     ✓ Del catálogo · peso y SKU rellenados
                     {catalogHit.confidence === "likely" && " · peso estimado"}
+                    {catalogHit.confidence === "unverified" && " · sin verificar"}
                   </div>
-                )}
+                ) : (partBrand.trim() && partModel.trim()) ? (
+                  <div style={styles.hint}>
+                    Este modelo no está en el catálogo. Se va a crear y quedará disponible
+                    para todos, marcado como “sin verificar”.
+                  </div>
+                ) : null}
               </div>
 
-              {/* 4 · Nombre — texto libre y opcional */}
-              <div style={styles.field}>
-                <div style={styles.label}>Nombre <span style={styles.optional}>(opcional)</span></div>
-                <input
-                  value={partName}
-                  onChange={(e) => setPartName(e.target.value)}
-                  placeholder="Ej: Cassette 11-42"
-                  style={styles.input}
-                />
-                <div style={styles.hint}>
-                  Si lo dejas vacío, se nombra como “
-                  {[partBrand.trim(), partModel.trim()].filter(Boolean).join(" ") || partCategory}”.
-                </div>
-              </div>
-
-              {/* 4 · Peso — solo si se activa */}
+              {/* 5 · Peso — solo si se activa */}
               <div style={styles.field}>
                 <label style={styles.checkRow}>
                   <input
@@ -863,13 +806,12 @@ export default function BikeDetailPage() {
                     onChange={(e) => setPartWeight(e.target.value)}
                     placeholder="Ej: 342"
                     inputMode="numeric"
-                    autoFocus
                     style={{ ...styles.input, marginTop: 8 }}
                   />
                 )}
               </div>
 
-              {/* 5 · SKU */}
+              {/* 6 · SKU */}
               <div style={styles.field}>
                 <div style={styles.label}>SKU / Código <span style={styles.optional}>(opcional)</span></div>
                 <input value={partSku} onChange={(e) => setPartSku(e.target.value)} placeholder="Ej: CS-M7100-12" style={styles.input} />
@@ -927,24 +869,22 @@ export default function BikeDetailPage() {
             <div style={{ fontWeight: 800, fontSize: 16, color: "rgba(255,255,255,0.92)", textAlign: "center", marginBottom: 6 }}>
               {confirmPart?.name ?? "Componente"}
             </div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", textAlign: "center", marginBottom: 20 }}>
-              ¿Qué quieres hacer con este componente?
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", textAlign: "center", lineHeight: 1.5, marginBottom: 20 }}>
+              Se quita de esta bici.
+              <br />
+              <span style={{ color: "rgba(255,255,255,0.4)" }}>
+                El modelo sigue en el catálogo, disponible para volver a montarlo.
+              </span>
             </div>
             <div style={{ display: "grid", gap: 8 }}>
               <button
-                style={{ ...styles.secondaryBtn, width: "100%", textAlign: "center" }}
+                style={{ ...styles.ghostBtn, width: "100%", textAlign: "center", color: "rgba(239,68,68,0.85)", borderColor: "rgba(239,68,68,0.25)" }}
                 onClick={removePart}
               >
                 Quitar de esta bici
               </button>
               <button
-                style={{ ...styles.ghostBtn, width: "100%", textAlign: "center", color: "rgba(239,68,68,0.85)", borderColor: "rgba(239,68,68,0.25)" }}
-                onClick={deleteComponent}
-              >
-                Eliminar de todas las bicis
-              </button>
-              <button
-                style={{ ...styles.secondaryBtn, width: "100%", textAlign: "center", marginTop: 4 }}
+                style={{ ...styles.secondaryBtn, width: "100%", textAlign: "center" }}
                 onClick={() => setConfirmPartId(null)}
               >
                 Cancelar
@@ -995,6 +935,7 @@ const styles = {
   field: { display: "grid", gap: 6 },
   label: { fontSize: 12, color: "rgba(255,255,255,0.65)" },
   optional: { color: "rgba(255,255,255,0.38)", fontWeight: 400 },
+  badgeUnverified: { marginLeft: 8, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999, background: "rgba(234,179,8,0.12)", color: "#facc15", border: "1px solid rgba(234,179,8,0.22)", verticalAlign: "middle" },
   hint: { fontSize: 11, color: "rgba(255,255,255,0.42)", lineHeight: 1.4 },
   comboWrap: { width: "100%" },
   catalogHit: { fontSize: 11, color: "rgba(134,239,172,0.85)", lineHeight: 1.4, marginTop: 2 },

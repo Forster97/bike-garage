@@ -70,8 +70,6 @@ export default function AdminCatalogPage() {
   const [modalError, setModalError] = useState("");
 
   // borrar
-  const [subs, setSubs] = useState([]); // propuestas de usuarios pendientes de revision
-  const [subBusy, setSubBusy] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -84,10 +82,8 @@ export default function AdminCatalogPage() {
         return;
       }
       const { data: sd } = await supabase.auth.getSession();
-      const tk = sd?.session?.access_token ?? null;
-      setToken(tk);
+      setToken(sd?.session?.access_token ?? null);
       await loadItems();
-      await loadSubs(tk);
       setLoading(false);
     };
     init();
@@ -102,50 +98,6 @@ export default function AdminCatalogPage() {
       .order("brand")
       .order("model");
     setItems(data ?? []);
-  }
-
-  // ── propuestas de los usuarios ───────────────────────────────────────────
-  async function loadSubs(tk) {
-    const t = tk ?? token;
-    if (!t) return;
-    const res = await fetch("/api/admin/submissions?status=pending", {
-      headers: { Authorization: `Bearer ${t}` },
-    });
-    if (!res.ok) return;
-    const json = await res.json();
-    setSubs(json.data ?? []);
-  }
-
-  // Aprobar abre el modal normal precargado: el admin traduce la categoria
-  // en espanol a la tecnica del catalogo y completa lo que falte.
-  function openApprove(sub) {
-    setModal({
-      mode: "create",
-      fromSubmission: sub.id,
-      form: {
-        ...EMPTY,
-        brand: sub.brand ?? "",
-        series: sub.model ?? "",
-        weight_g: sub.weight_g ?? "",
-        sku: sub.sku ?? "",
-        confidence: "likely",
-      },
-    });
-    setModalError("");
-  }
-
-  async function rejectSub(sub) {
-    setSubBusy(sub.id);
-    try {
-      await fetch("/api/admin/submissions", {
-        method: "POST",
-        headers: apiHeaders(),
-        body: JSON.stringify({ id: sub.id, action: "reject" }),
-      });
-      setSubs((prev) => prev.filter((x) => x.id !== sub.id));
-    } finally {
-      setSubBusy(null);
-    }
   }
 
   // ── lista filtrada ───────────────────────────────────────────────────────
@@ -190,22 +142,6 @@ export default function AdminCatalogPage() {
     setModalError("");
     try {
       const payload = parseForm(modal.form);
-
-      // Si viene de una propuesta de usuario, la aprobacion es el UNICO camino:
-      // ese endpoint crea la fila del catalogo y cierra la propuesta de una vez.
-      if (modal.fromSubmission) {
-        const r = await fetch("/api/admin/submissions", {
-          method: "POST",
-          headers: apiHeaders(),
-          body: JSON.stringify({ id: modal.fromSubmission, action: "approve", catalogRow: payload }),
-        });
-        const j = await r.json();
-        if (!r.ok) { setModalError(j.error ?? "Error al aprobar"); return; }
-        setItems((prev) => [...prev, j.data]);
-        setSubs((prev) => prev.filter((x) => x.id !== modal.fromSubmission));
-        setModal(null);
-        return;
-      }
 
       let res;
       if (modal.mode === "create") {
@@ -257,50 +193,6 @@ export default function AdminCatalogPage() {
         </div>
         <button style={s.addBtn} onClick={openCreate}>+ Nuevo</button>
       </div>
-
-      {/* Propuestas de los usuarios */}
-      {subs.length > 0 && (
-        <div style={s.subsPanel}>
-          <div style={s.subsHead}>
-            <span style={s.subsTitle}>
-              {subs.length} propuesta{subs.length !== 1 ? "s" : ""} de usuarios
-            </span>
-            <span style={s.subsHint}>
-              Marcas y modelos que alguien cargo y no estan en el catalogo
-            </span>
-          </div>
-          {subs.map((sub) => (
-            <div key={sub.id} style={s.subRow}>
-              <div style={{ minWidth: 0 }}>
-                <div style={s.subMain}>
-                  {sub.brand}{sub.model ? ` ${sub.model}` : ""}
-                </div>
-                <div style={s.subMeta}>
-                  {sub.category}
-                  {sub.weight_g != null ? ` · ${sub.weight_g} g` : ""}
-                  {sub.sku ? ` · SKU ${sub.sku}` : ""}
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                <button
-                  style={s.subApprove}
-                  onClick={() => openApprove(sub)}
-                  disabled={subBusy === sub.id}
-                >
-                  Revisar y aprobar
-                </button>
-                <button
-                  style={s.subReject}
-                  onClick={() => rejectSub(sub)}
-                  disabled={subBusy === sub.id}
-                >
-                  Descartar
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Filtros */}
       <div style={s.filters}>
@@ -450,15 +342,6 @@ function Field({ label, children, full }) {
 
 // ── estilos ──────────────────────────────────────────────────────────────────
 const s = {
-  subsPanel: { border: "1px solid rgba(234,179,8,0.25)", background: "rgba(234,179,8,0.06)", borderRadius: 16, padding: 16, marginBottom: 16, display: "grid", gap: 10 },
-  subsHead: { display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 10 },
-  subsTitle: { fontWeight: 800, fontSize: 14, color: "#facc15" },
-  subsHint: { fontSize: 12, color: "rgba(255,255,255,0.5)" },
-  subRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: "10px 12px", borderRadius: 12, background: "rgba(0,0,0,0.22)", border: "1px solid rgba(255,255,255,0.07)" },
-  subMain: { fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.92)" },
-  subMeta: { fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 2 },
-  subApprove: { padding: "8px 14px", borderRadius: 10, border: "1px solid rgba(34,197,94,0.3)", background: "rgba(34,197,94,0.14)", color: "#4ade80", fontSize: 13, fontWeight: 700, cursor: "pointer" },
-  subReject: { padding: "8px 14px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", color: "rgba(255,255,255,0.55)", fontSize: 13, cursor: "pointer" },
 
   page: { display: "flex", flexDirection: "column", gap: 20 },
   center: { display: "flex", alignItems: "center", justifyContent: "center", height: 200, color: "rgba(255,255,255,0.4)" },
