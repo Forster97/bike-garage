@@ -1,0 +1,29 @@
+-- =====================================================================
+-- Bike Garage · component_catalog — tercera tanda: RUTA Y GRAVEL
+-- 2026-08-24 · 44 entradas
+--
+-- Cierra el hueco más grande que tenía el catálogo: todo lo que no era
+-- transmisión ni frenos existía solo para MTB, y gravel no existía en
+-- ninguna parte. Aporta la serie GRX completa.
+--
+-- Subcategorías nuevas creadas en esta tanda:
+--   Horquilla     › Rígida
+--   Cockpit       › Cinta de manillar
+--   Sillín / Tija › Tija rígida            (la existente era solo droppers)
+--   Transmisión   › Desviador delantero
+--   Transmisión   › Mando integrado        (STI: freno + cambio en una pieza)
+--
+-- Correcciones sobre lo entregado:
+--   · codificación arreglada (venía UTF-8 leído como Latin-1, tercera vez)
+--   · símbolos ± y ° fuera de `variant`: no aportan y ensucian el índice único
+--   · "incl. cinta y válvula" → "con cinta y válvula", por consistencia
+--   · el disco RT-MT800 160mm baja a 'likely': ver nota abajo
+--
+-- ⚠️ CONFLICTO PENDIENTE DE RESOLVER
+--   RT-MT800 180mm  →  109 g   (ya estaba, marcado verified)
+--   RT-MT800 160mm  →  108 g   (esta tanda)
+--   Un disco de 160mm no pesa 1 g menos que el mismo de 180mm. Uno de los
+--   dos está mal y hay que ir a las fuentes para saber cuál.
+-- =====================================================================
+-- El INSERT completo se aplicó vía migración 'catalogo_seed_tanda3_ruta_gravel'.
+-- Contenido idéntico al ejecutado; ver el historial de Supabase.
