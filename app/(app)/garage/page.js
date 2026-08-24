@@ -22,6 +22,7 @@ export default function GaragePage() {
   const [newYear, setNewYear] = useState("");
   const [newSize, setNewSize] = useState("");
   const [newType, setNewType] = useState("Gravel");
+  const [newName, setNewName] = useState(""); // opcional: si va vacío se deriva de marca + modelo
 
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -212,7 +213,9 @@ export default function GaragePage() {
       // 2) Crear bici + autocargar componentes si existe plantilla
       const bike = await createBikeWithTemplate({
         userId: uid,
-        name: `${brand} ${model}`.trim(),
+        // vacío a propósito: el trigger de la base pone "marca modelo" por
+        // defecto, y respeta el nombre si el usuario escribió uno (BG-027)
+        name: newName.trim(),
         brand,
         model,
         year: yearNum,
@@ -225,6 +228,7 @@ export default function GaragePage() {
       setAddOpen(false);
       setNewBrand("");
       setNewModel("");
+      setNewName("");
       setNewYear("");
       setNewSize("");
       setNewType("Gravel");
@@ -336,6 +340,19 @@ export default function GaragePage() {
                 placeholder="Talla (ej: S / 54)"
                 style={s.comboWrapper}
               />
+
+              <div style={{ display: "grid", gap: 4 }}>
+                <input
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder={
+                    `${newBrand} ${newModel}`.trim()
+                      ? `Nombre (opcional) — por defecto: ${`${newBrand} ${newModel}`.trim()}`
+                      : "Nombre (opcional)"
+                  }
+                  style={s.input}
+                />
+              </div>
 
               <select
                 value={newType}
