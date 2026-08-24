@@ -654,7 +654,7 @@ export default function BikeDetailPage() {
                     <div style={styles.partName}>
                       {p.name}
                       {p.confidence === "unverified" && (
-                        <span style={styles.badgeUnverified} title="Nadie ha verificado los datos de este modelo">
+                        <span style={styles.badgeUnverified} title="Nadie ha comprobado este peso todavía">
                           sin verificar
                         </span>
                       )}
@@ -666,7 +666,7 @@ export default function BikeDetailPage() {
                         {p.subcategory ? ` › ${p.subcategory}` : ""}
                         {" • "}{p.weight_g ?? "—"} g
                         {p.weight_override != null ? (
-                          <span style={styles.partMetaSoft} title={`El catalogo dice ${p.catalogWeight ?? "?"} g`}>
+                          <span style={styles.partMetaSoft} title={`Peso de referencia: ${p.catalogWeight ?? "?"} g`}>
                             {" • peso ajustado"}
                           </span>
                         ) : null}
@@ -676,7 +676,7 @@ export default function BikeDetailPage() {
                     ) : (
                       <div style={styles.editRow}>
                         <div style={styles.hint}>
-                          Ajusta el peso solo para esta bici. El catalogo dice{" "}
+                          Pesa tu pieza y ajústalo. La referencia es{" "}
                           <strong>{p.catalogWeight ?? "—"} g</strong>.
                         </div>
                         <input autoFocus value={String(row.weight_g ?? "")}
@@ -763,8 +763,8 @@ export default function BikeDetailPage() {
                 />
                 {brandOptions.length === 0 && (
                   <div style={styles.hint}>
-                    El catálogo todavía no tiene marcas en “{partCategory}”.
-                    Escríbela y queda disponible para todos.
+                    Todavía no hay marcas sugeridas para “{partCategory}”.
+                    Escríbela y queda guardada para la próxima.
                   </div>
                 )}
               </div>
@@ -781,14 +781,13 @@ export default function BikeDetailPage() {
                 />
                 {catalogHit ? (
                   <div style={styles.catalogHit}>
-                    ✓ Del catálogo · peso y SKU rellenados
+                    ✓ Peso y SKU rellenados solos
                     {catalogHit.confidence === "likely" && " · peso estimado"}
-                    {catalogHit.confidence === "unverified" && " · sin verificar"}
+                    {catalogHit.confidence === "unverified" && " · peso sin comprobar"}
                   </div>
                 ) : (partBrand.trim() && partModel.trim()) ? (
                   <div style={styles.hint}>
-                    Este modelo no está en el catálogo. Se va a crear y quedará disponible
-                    para todos, marcado como “sin verificar”.
+                    Componente nuevo. Queda guardado para la próxima vez.
                   </div>
                 ) : null}
               </div>
@@ -877,18 +876,14 @@ export default function BikeDetailPage() {
               {confirmPart?.name ?? "Componente"}
             </div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", textAlign: "center", lineHeight: 1.5, marginBottom: 20 }}>
-              Se quita de esta bici.
-              <br />
-              <span style={{ color: "rgba(255,255,255,0.4)" }}>
-                El modelo sigue en el catálogo, disponible para volver a montarlo.
-              </span>
+              ¿Quitar este componente de la bici?
             </div>
             <div style={{ display: "grid", gap: 8 }}>
               <button
                 style={{ ...styles.ghostBtn, width: "100%", textAlign: "center", color: "rgba(239,68,68,0.85)", borderColor: "rgba(239,68,68,0.25)" }}
                 onClick={removePart}
               >
-                Quitar de esta bici
+                Quitar
               </button>
               <button
                 style={{ ...styles.secondaryBtn, width: "100%", textAlign: "center" }}
