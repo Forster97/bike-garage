@@ -142,6 +142,21 @@ create policy "catalogo: crear modelos"
   with check (created_by = auth.uid());
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- PASO 4.5 · Estado transitorio   [APLICADO]
+-- ─────────────────────────────────────────────────────────────────────────────
+--
+-- Mientras la tabla vieja siga en pie, ninguna de sus columnas puede ser
+-- obligatoria: el código nuevo ya no las escribe.
+--
+-- `catalog_id` tampoco puede ser obligatoria todavía, porque producción sigue
+-- corriendo el código viejo, que monta piezas sin ese campo.
+--
+-- Las dos vuelven a su estado definitivo en el paso 5.
+
+alter table public.bike_components alter column catalog_id    drop not null;
+alter table public.bike_components alter column component_id  drop not null;
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- PASO 5 · Eliminar lo que sobra   [⛔ PENDIENTE — requiere aprobación]
 -- ─────────────────────────────────────────────────────────────────────────────
 --
