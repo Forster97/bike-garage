@@ -10,9 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 import { formatDateShort, bikeName } from "../../../lib/dateHelpers";
-import {
-  resolveRule, calculateTaskStatus, getStatusBadge,
-} from "../../../lib/maintenanceHelpers";
+import { buildGarageView, toAlerts } from "../../../lib/maintenanceView";
 
 // ── Componente principal ───────────────────────────────────────────────────────
 export default function NotificationsPage() {
@@ -26,6 +24,8 @@ export default function NotificationsPage() {
   const [profiles, setProfiles] = useState([]);
   const [stats, setStats] = useState([]);
   const [rules, setRules] = useState([]);
+  const [prefs, setPrefs] = useState([]);
+  const [categoriasPorBici, setCategoriasPorBici] = useState({});
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState(null); // { ok, message }
 
@@ -39,10 +39,14 @@ export default function NotificationsPage() {
         if (!ud?.user) return router.replace("/login");
         setUserEmail(ud.user.email ?? "");
 
-        const [bikesRes, typesRes, rulesRes] = await Promise.all([
-          supabase.from("bikes").select("id, brand, model, type, created_at").eq("user_id", ud.user.id),
+        const [bikesRes, typesRes, rulesRes, prefsRes] = await Promise.all([
+          supabase.from("bikes").select("id, name, brand, model, type, created_at").eq("user_id", ud.user.id),
           supabase.from("maintenance_types").select("*").order("name"),
           supabase.from("maintenance_rules").select("*").eq("user_id", ud.user.id),
+          // Las mismas preferencias que respeta el correo. Sin esto, la pantalla
+          // mostraba alertas que el correo omitía y nadie entendía por qué (BG-005).
+          supabase.from("notification_preferences")
+            .select("type_id, notify_email, silent_mode").eq("user_id", ud.user.id),
         ]);
 
         if (cancelled) return;
@@ -51,19 +55,29 @@ export default function NotificationsPage() {
         setBikes(bikesData);
         setTypes(typesRes.data || []);
         setRules(rulesRes.data || []);
+        setPrefs(prefsRes.data || []);
 
         // Carga registros, perfiles y odómetros de todas las bicis
         if (bikesData.length > 0) {
           const bikeIds = bikesData.map((b) => b.id);
-          const [recsRes, profilesRes, statsRes] = await Promise.all([
+          const [recsRes, profilesRes, statsRes, montRes] = await Promise.all([
             supabase.from("bike_maintenance").select("*").in("bike_id", bikeIds).order("performed_at", { ascending: false }),
             supabase.from("bike_profiles").select("bike_id, profile").in("bike_id", bikeIds),
             supabase.from("bike_stats").select("bike_id, odometer_km").in("bike_id", bikeIds),
+            supabase.from("bike_components")
+              .select("bike_id, modelo:component_catalog(category)").in("bike_id", bikeIds),
           ]);
           if (!cancelled) {
             setAllRecords(recsRes.data || []);
             setProfiles(profilesRes.data || []);
             setStats(statsRes.data || []);
+            const porBici = {};
+            for (const bc of montRes.data || []) {
+              const cat = bc.modelo?.category;
+              if (!cat) continue;
+              (porBici[bc.bike_id] ??= new Set()).add(cat);
+            }
+            setCategoriasPorBici(porBici);
           }
         }
       } finally {
@@ -76,47 +90,18 @@ export default function NotificationsPage() {
 
   // ── Alertas calculadas ─────────────────────────────────────────────────────
   // Para cada bici × tipo con intervalo → calcula estado → filtra overdue/soon
-  const alerts = useMemo(() => {
-    // Último registro por "bikeId:typeName"
-    const lastByKey = {};
-    for (const r of allRecords) {
-      const key = `${r.bike_id}:${r.type_name}`;
-      if (!lastByKey[key]) lastByKey[key] = r;
-    }
-    // Perfil, odómetro y reglas custom indexados
-    const profileByBike = {};
-    for (const p of profiles) profileByBike[p.bike_id] = p.profile;
-    const kmByBike = {};
-    for (const s of stats) kmByBike[s.bike_id] = s.odometer_km;
-    const ruleByBikeType = {};
-    for (const r of rules) ruleByBikeType[`${r.bike_id}:${r.type_id}`] = r;
-
-    const result = [];
-    for (const bike of bikes) {
-      const profile = profileByBike[bike.id] || "balanced";
-      const currentKm = kmByBike[bike.id] ?? null;
-      const bikeCreated = bike.created_at ? bike.created_at.split("T")[0] : null;
-      const creationFallback = bikeCreated ? { performed_at: bikeCreated, odometer_km: null } : null;
-
-      for (const type of types) {
-        const rule = resolveRule(type, ruleByBikeType[`${bike.id}:${type.id}`], profile);
-        if (!rule.interval_days && !rule.interval_km) continue;
-        const last = lastByKey[`${bike.id}:${type.name}`] || null;
-        const st = calculateTaskStatus(rule, last ?? creationFallback, currentKm);
-        if (st.status === "overdue" || st.status === "soon") {
-          result.push({ bike, type, last, status: st.status, nextDate: st.nextDueDate, badge: getStatusBadge(st) });
-        }
-      }
-    }
-
-    // Ordenar: overdue primero, luego por bici
-    return result.sort((a, b) => {
-      const ord = { overdue: 0, soon: 1 };
-      const diff = (ord[a.status] ?? 2) - (ord[b.status] ?? 2);
-      if (diff !== 0) return diff;
-      return bikeName(a.bike).localeCompare(bikeName(b.bike));
-    });
-  }, [bikes, types, allRecords, profiles, stats, rules]);
+  // Mismo ensamblado que usa el correo. Las silenciadas NO se ocultan: se
+  // muestran atenuadas, para que se entienda por qué no llegaron por correo.
+  const alerts = useMemo(
+    () =>
+      toAlerts(
+        buildGarageView({
+          bikes, types, records: allRecords, rules, profiles, stats, prefs, categoriasPorBici,
+        }),
+        { excluirSilenciadas: false }
+      ),
+    [bikes, types, allRecords, rules, profiles, stats, prefs, categoriasPorBici]
+  );
 
   const overdueCount = alerts.filter((a) => a.status === "overdue").length;
   const soonCount = alerts.filter((a) => a.status === "soon").length;
@@ -224,15 +209,22 @@ export default function NotificationsPage() {
 
           <div style={{ display: "grid", gap: 8 }}>
             {alerts.map((alert) => {
-              const { bike, type, last, status, badge, nextDate } = alert;
+              const { bike, type, last, status, badge, nextDate, muted } = alert;
 
               return (
                 <div
                   key={`${bike.id}-${type.id}`}
                   style={{
                     ...S.alertCard,
-                    borderColor: status === "overdue" ? "rgba(239,68,68,0.22)" : "rgba(251,191,36,0.18)",
-                    background: status === "overdue" ? "rgba(239,68,68,0.06)" : "rgba(251,191,36,0.04)",
+                    // Silenciada: se ve, pero apagada. Está pendiente igual;
+                    // lo que no pasa es que llegue por correo.
+                    opacity: muted ? 0.45 : 1,
+                    borderColor: muted
+                      ? "rgba(255,255,255,0.10)"
+                      : status === "overdue" ? "rgba(239,68,68,0.22)" : "rgba(251,191,36,0.18)",
+                    background: muted
+                      ? "rgba(255,255,255,0.02)"
+                      : status === "overdue" ? "rgba(239,68,68,0.06)" : "rgba(251,191,36,0.04)",
                   }}
                 >
                   <div className="notif-alert-row">
@@ -243,6 +235,14 @@ export default function NotificationsPage() {
                         {badge && (
                           <span style={{ ...S.badge, color: badge.color, background: badge.bg, border: `1px solid ${badge.border}` }}>
                             {badge.label}
+                          </span>
+                        )}
+                        {muted && (
+                          <span
+                            style={{ ...S.badge, color: "rgba(255,255,255,0.55)", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
+                            title="Tienes este tipo apagado en tu perfil, así que no te llega por correo"
+                          >
+                            🔕 sin avisos
                           </span>
                         )}
                       </div>

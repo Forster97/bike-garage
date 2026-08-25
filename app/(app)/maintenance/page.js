@@ -5,12 +5,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabase } from "../../../lib/supabaseClient";
-import {
-  resolveRule,
-  calculateTaskStatus,
-  bikeHealthScore,
-  healthColor,
-} from "../../../lib/maintenanceHelpers";
+import { healthColor } from "../../../lib/maintenanceHelpers";
+import { buildGarageView } from "../../../lib/maintenanceView";
 
 export default function MaintenanceDashboardPage() {
   const router = useRouter();
@@ -24,80 +20,52 @@ export default function MaintenanceDashboardPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return router.replace("/login");
 
-      const [
-        bikesRes,
-        typesRes,
-        recordsRes,
-        profilesRes,
-        statsRes,
-        rulesRes,
-      ] = await Promise.all([
-        supabase.from("bikes").select("id,name,type,brand,model,year").eq("user_id", user.id).order("name"),
+      const [bikesRes, typesRes, rulesRes] = await Promise.all([
+        supabase.from("bikes").select("id,name,type,brand,model,year,created_at").eq("user_id", user.id).order("name"),
         supabase.from("maintenance_types").select("*"),
-        supabase.from("bike_maintenance").select("bike_id,type_id,performed_at,odometer_km").eq("user_id", user.id).order("performed_at", { ascending: false }),
-        supabase.from("bike_profiles").select("bike_id,profile").in("bike_id", []),
-        supabase.from("bike_stats").select("bike_id,odometer_km").in("bike_id", []),
         supabase.from("maintenance_rules").select("*").eq("user_id", user.id),
       ]);
 
       const bikes = bikesRes.data ?? [];
       const types = typesRes.data ?? [];
-      const allRecords = recordsRes.data ?? [];
-
-      // Fetch profiles + stats for actual bike IDs
       const bikeIds = bikes.map((b) => b.id);
-      let profiles = [], statsArr = [];
+
+      let records = [], profiles = [], stats = [], montados = [];
       if (bikeIds.length) {
-        const [pRes, sRes] = await Promise.all([
+        const [recRes, pRes, sRes, mRes] = await Promise.all([
+          supabase.from("bike_maintenance")
+            .select("bike_id,type_id,type_name,performed_at,odometer_km")
+            .in("bike_id", bikeIds).order("performed_at", { ascending: false }),
           supabase.from("bike_profiles").select("bike_id,profile").in("bike_id", bikeIds),
           supabase.from("bike_stats").select("bike_id,odometer_km").in("bike_id", bikeIds),
+          // Qué tiene montado cada bici: el mismo filtro que usa la página por
+          // bici. Sin esto, la misma bici mostraba dos porcentajes de salud
+          // distintos según dónde la miraras (BG-003).
+          supabase.from("bike_components")
+            .select("bike_id, modelo:component_catalog(category)")
+            .in("bike_id", bikeIds),
         ]);
+        records = recRes.data ?? [];
         profiles = pRes.data ?? [];
-        statsArr = sRes.data ?? [];
+        stats = sRes.data ?? [];
+        montados = mRes.data ?? [];
       }
 
-      const rules = rulesRes.data ?? [];
-
-      // Index lookups
-      const profileByBike = Object.fromEntries(profiles.map((p) => [p.bike_id, p.profile]));
-      const statsByBike = Object.fromEntries(statsArr.map((s) => [s.bike_id, s.odometer_km]));
-      const rulesByBikeType = {};
-      for (const r of rules) {
-        rulesByBikeType[`${r.bike_id}:${r.type_id}`] = r;
+      const categoriasPorBici = {};
+      for (const bc of montados) {
+        const cat = bc.modelo?.category;
+        if (!cat) continue;
+        (categoriasPorBici[bc.bike_id] ??= new Set()).add(cat);
       }
 
-      // Last event per bike+type
-      const lastEventMap = {};
-      for (const rec of allRecords) {
-        const key = `${rec.bike_id}:${rec.type_id}`;
-        if (!lastEventMap[key]) lastEventMap[key] = rec;
-      }
-
-      // Compute per-bike data
-      const result = bikes.map((bike) => {
-        const profile = profileByBike[bike.id] ?? "balanced";
-        const currentKm = statsByBike[bike.id] ?? null;
-
-        const bikeCreatedDate = bike.created_at ? bike.created_at.split("T")[0] : null;
-        const creationFallback = bikeCreatedDate ? { performed_at: bikeCreatedDate, odometer_km: null } : null;
-
-        const taskStatuses = types.map((mType) => {
-          const rule = rulesByBikeType[`${bike.id}:${mType.id}`] ?? null;
-          const resolved = resolveRule(mType, rule, profile);
-          const lastEvent = lastEventMap[`${bike.id}:${mType.id}`] ?? null;
-          const lastForCalc = lastEvent ?? creationFallback;
-          const status = calculateTaskStatus(resolved, lastForCalc, currentKm);
-          return { ...status, severity: mType.severity, name: mType.name };
-        });
-
-        const activeTasks = taskStatuses.filter((t) => t.status !== "none");
-        const overdue = activeTasks.filter((t) => t.status === "overdue").length;
-        const soon = activeTasks.filter((t) => t.status === "soon").length;
-        const health = bikeHealthScore(activeTasks);
-        const lastMaintenance = allRecords.find((r) => r.bike_id === bike.id)?.performed_at ?? null;
-
-        return { bike, profile, currentKm, overdue, soon, health, lastMaintenance };
-      });
+      const result = buildGarageView({
+        bikes, types, records,
+        rules: rulesRes.data ?? [],
+        profiles, stats, categoriasPorBici,
+      }).map((v) => ({
+        ...v,
+        lastMaintenance: records.find((r) => r.bike_id === v.bike.id)?.performed_at ?? null,
+      }));
 
       setBikeData(result);
       setLoading(false);

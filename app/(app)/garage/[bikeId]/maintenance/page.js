@@ -8,8 +8,9 @@ import Link from "next/link";
 import { supabase } from "../../../../../lib/supabaseClient";
 import { formatDate, formatDateShort, formatCLP, todayISO } from "../../../../../lib/dateHelpers";
 import {
-  PROFILES, resolveRule, calculateTaskStatus, getStatusBadge, bikeHealthScore, healthColor,
+  PROFILES, healthColor, resolveRule,
 } from "../../../../../lib/maintenanceHelpers";
+import { buildBikeView, indexLastRecords, tipoAplica } from "../../../../../lib/maintenanceView";
 
 const emptyForm = () => ({
   type_id: "", type_name: "", performed_at: todayISO(),
@@ -115,9 +116,6 @@ export default function BikeMaintenancePage() {
     const m = {}; for (const p of partsWithId) m[p.id] = p.name; return m;
   }, [partsWithId]);
 
-  const lastByTypeName = useMemo(() => {
-    const m = {}; for (const r of records) { if (!m[r.type_name]) m[r.type_name] = r; } return m;
-  }, [records]);
 
   const recordsByTypeName = useMemo(() => {
     const m = {};
@@ -130,65 +128,45 @@ export default function BikeMaintenancePage() {
     const m = {}; for (const r of customRules) m[String(r.type_id)] = r; return m;
   }, [customRules]);
 
-  // Mapping: categoría de maintenance_type → categorías de partes correspondientes
-  // null = siempre mostrar
-  const MAINT_TO_PART_CAT = {
-    transmision: ["Transmisión"],
-    frenos:      ["Frenos"],
-    suspension:  ["Horquilla", "Sillín / Tija"],
-    estructura:  null, // rodamientos / torque → aplica a toda bici
-    ruedas:      ["Ruedas", "Neumáticos"],
-    general:     null,
-  };
-
-  // Tipos filtrados según los componentes instalados en esta bici.
-  // Si la bici no tiene ningún componente aún, se muestran todos.
-  const filteredTypes = useMemo(() => {
-    if (bikeParts.length === 0) return types;
-    const presentCats = new Set(bikeParts.map((p) => p.category));
-    return types.filter((t) => {
-      const mapped = MAINT_TO_PART_CAT[t.category];
-      if (mapped === null || mapped === undefined) return true;
-      return mapped.some((cat) => presentCats.has(cat));
-    });
-  }, [types, bikeParts]);
-
   const currentKm = bikeStats?.odometer_km ?? null;
 
-  // ── Panel de estado con lógica de perfil + km ──────────────────────────────
-  const statusPanel = useMemo(() => {
-    // Fecha de creación de la bici como punto de partida si no hay registro
-    const bikeCreatedDate = bike?.created_at ? bike.created_at.split("T")[0] : null;
-    const creationFallback = bikeCreatedDate ? { performed_at: bikeCreatedDate, odometer_km: null } : null;
+  // Categorías montadas en esta bici: filtran qué mantenciones aplican.
+  // Si no tiene componentes cargados, aplican todas.
+  const categoriasMontadas = useMemo(() => {
+    if (bikeParts.length === 0) return null;
+    return new Set(bikeParts.map((p) => p.category));
+  }, [bikeParts]);
 
-    return filteredTypes
-      .map((t) => {
-        const rule = resolveRule(t, customRulesByTypeId[String(t.id)], bikeProfile);
-        if (!rule.interval_days && !rule.interval_km) return null;
-        const last = lastByTypeName[t.name] || null;
-        const lastForCalc = last ?? creationFallback;
-        const taskStatus = calculateTaskStatus(rule, lastForCalc, currentKm);
-        const badge = getStatusBadge(taskStatus);
-        return { type: t, last, rule, ...taskStatus, badge };
-      })
-      .filter(Boolean)
-      .sort((a, b) => {
-        const order = { overdue: 0, soon: 1, ok: 2, none: 3 };
-        return (order[a.status] ?? 3) - (order[b.status] ?? 3);
-      });
-  }, [filteredTypes, customRulesByTypeId, bikeProfile, lastByTypeName, currentKm, bike]);
+  // Los tipos que aplican, para los selectores del formulario.
+  const filteredTypes = useMemo(
+    () => types.filter((t) => tipoAplica(t, categoriasMontadas)),
+    [types, categoriasMontadas]
+  );
+
+  // ── El estado de la bici ───────────────────────────────────────────────────
+  // Mismo ensamblado que el dashboard global y que el correo: un solo lugar
+  // decide qué tipos entran y cuál fue la última vez (BG-008).
+  const vista = useMemo(() => {
+    if (!bike) return { tasks: [], health: 100, overdue: 0, soon: 0 };
+    return buildBikeView({
+      bike,
+      types,
+      lastIndex: indexLastRecords(records),
+      rulesByTypeId: customRulesByTypeId,
+      profile: bikeProfile,
+      currentKm,
+      categoriasMontadas,
+    });
+  }, [bike, types, records, customRulesByTypeId, bikeProfile, currentKm, categoriasMontadas]);
+
+  const statusPanel = vista.tasks;
+  const overdueCount = vista.overdue;
+  const soonCount = vista.soon;
+  const healthScore = vista.health;
+  const hc = healthColor(healthScore);
 
   const panelTypeNames = useMemo(() => new Set(statusPanel.map((s) => s.type.name)), [statusPanel]);
   const otherRecords = useMemo(() => records.filter((r) => !panelTypeNames.has(r.type_name)), [records, panelTypeNames]);
-
-  const overdueCount = statusPanel.filter((s) => s.status === "overdue").length;
-  const soonCount = statusPanel.filter((s) => s.status === "soon").length;
-
-  const healthScore = useMemo(() => bikeHealthScore(
-    statusPanel.map((s) => ({ status: s.status, urgency: s.urgency, severity: s.type.severity }))
-  ), [statusPanel]);
-
-  const hc = healthColor(healthScore);
 
   // ── Acordeón ───────────────────────────────────────────────────────────────
   const toggleType = (name) => setExpandedTypes((p) => ({ ...p, [name]: !p[name] }));
