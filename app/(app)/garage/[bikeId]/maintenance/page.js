@@ -43,6 +43,8 @@ export default function BikeMaintenancePage() {
   const [modalMode, setModalMode] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
+  // PRD-11.1: en el caso común no hay nada que llenar. Lo opcional se pliega.
+  const [detallesAbiertos, setDetallesAbiertos] = useState(false);
   const [form, setForm] = useState(emptyForm());
 
   // ── Estado de componentes instalados ──────────────────────────────────────
@@ -252,15 +254,16 @@ export default function BikeMaintenancePage() {
 
   const openAdd = () => {
     setForm({ ...emptyForm(), odometer_km: currentKm != null ? String(currentKm) : "" });
-    setEditingId(null); setModalMode("add");
+    setEditingId(null); setModalMode("add"); setDetallesAbiertos(false);
   };
   const openAddForType = (type, e) => {
     e?.stopPropagation?.();
     setForm({ ...emptyForm(), type_id: String(type.id), type_name: type.name, odometer_km: currentKm != null ? String(currentKm) : "" });
-    setEditingId(null); setModalMode("add");
+    setEditingId(null); setModalMode("add"); setDetallesAbiertos(false);
   };
   const openEdit = (r, e) => {
     e?.stopPropagation?.();
+    setDetallesAbiertos(true);
     setForm(recordToForm(r)); setEditingId(r.id); setModalMode("edit");
   };
   const closeModal = () => { setModalMode(null); setEditingId(null); };
@@ -783,89 +786,135 @@ export default function BikeMaintenancePage() {
             </div>
 
             <form onSubmit={isEditing ? updateRecord : saveRecord} style={{ display: "grid", gap: 14, marginTop: 14 }}>
-              {/* Tipo */}
-              <div style={S.field}>
-                <div style={S.label}>Tipo de mantenimiento</div>
-                <select value={form.type_id} onChange={handleTypeChange} className="dark-select" style={S.input}>
-                  <option value="">— Personalizado —</option>
-                  {filteredTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-              </div>
 
-              {form.type_id === "" && (
+              {/* ── Sin tipo elegido: lista de botones grandes, no un selector
+                     nativo (en el teléfono abre una rueda). Lo vencido primero. ── */}
+              {!isEditing && !form.type_id && (
                 <div style={S.field}>
-                  <div style={S.label}>Nombre del mantenimiento</div>
-                  <input
-                    value={form.type_name}
-                    onChange={(e) => setField("type_name", e.target.value)}
-                    placeholder="Ej: Revisión frenos traseros"
-                    style={S.input} autoFocus
-                  />
-                </div>
-              )}
-
-              {/* Componente asociado (opcional) */}
-              {partsWithId.length > 0 && (
-                <div style={S.field}>
-                  <div style={S.label}>Componente (opcional)</div>
-                  <select value={form.component_id} onChange={(e) => setField("component_id", e.target.value)} className="dark-select" style={S.input}>
-                    <option value="">— Toda la bici —</option>
-                    {partsWithId.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                </div>
-              )}
-
-              {/* Fecha + Odómetro */}
-              <div className="m-grid2">
-                <div style={S.field}>
-                  <div style={S.label}>Fecha</div>
-                  <input type="date" value={form.performed_at} onChange={(e) => setField("performed_at", e.target.value)} style={S.input} />
-                </div>
-                <div style={S.field}>
-                  <div style={S.label}>Odómetro (km)</div>
-                  <input value={form.odometer_km} onChange={(e) => setField("odometer_km", e.target.value)} placeholder="Opcional" inputMode="numeric" style={S.input} />
-                </div>
-              </div>
-
-              {/* Costo + Notas */}
-              <div className="m-grid2">
-                <div style={S.field}>
-                  <div style={S.label}>Costo (CLP)</div>
-                  <input value={form.cost_clp} onChange={(e) => setField("cost_clp", e.target.value)} placeholder="Opcional" inputMode="numeric" style={S.input} />
-                </div>
-                <div style={S.field}>
-                  <div style={S.label}>Notas</div>
-                  <input value={form.notes} onChange={(e) => setField("notes", e.target.value)} placeholder="Opcional" style={S.input} />
-                </div>
-              </div>
-
-              {/* Hint del tipo seleccionado */}
-              {currentTypeData?.notes_hint && (
-                <div style={S.tipRow}>
-                  <div style={S.tipDot} />
-                  <div style={S.tipText}>{currentTypeData.notes_hint}</div>
-                </div>
-              )}
-
-              {/* Intervalo recomendado */}
-              {currentTypeData && (() => {
-                const rule = resolveRule(currentTypeData, customRulesByTypeId[String(currentTypeData.id)], bikeProfile);
-                const hints = [rule.interval_days && `${rule.interval_days} días`, rule.interval_km && `${rule.interval_km.toLocaleString("es-CL")} km`].filter(Boolean);
-                if (!hints.length) return null;
-                return (
-                  <div style={{ ...S.tipRow, color: "rgba(165,180,252,0.70)" }}>
-                    <div style={{ ...S.tipDot, background: "rgba(99,102,241,0.70)" }} />
-                    <div style={S.tipText}>Intervalo ({PROFILES.find(p => p.id === bikeProfile)?.label ?? bikeProfile}): {hints.join(" / ")}</div>
+                  <div style={S.label}>¿Qué hiciste?</div>
+                  <div style={S.tipoLista}>
+                    {statusPanel.map(({ type, badge }) => (
+                      <button
+                        key={type.id}
+                        type="button"
+                        style={S.tipoOpcion}
+                        onClick={() => {
+                          setField("type_id", String(type.id));
+                          setField("type_name", type.name);
+                        }}
+                      >
+                        <span style={S.tipoOpcionNombre}>{type.name}</span>
+                        {badge && (
+                          <span style={{ ...S.badge, color: badge.color, background: badge.bg, border: `1px solid ${badge.border}` }}>
+                            {badge.label}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      style={{ ...S.tipoOpcion, color: "rgba(255,255,255,0.55)" }}
+                      onClick={() => { setField("type_id", ""); setDetallesAbiertos(true); }}
+                    >
+                      Otro — lo escribo yo
+                    </button>
                   </div>
-                );
-              })()}
+                </div>
+              )}
 
-              <div className="flex justify-end gap-3 flex-wrap">
-                <button type="button" style={S.secondaryBtnLg} onClick={closeModal}>Cancelar</button>
-                <button type="submit" style={S.primaryBtn} disabled={saving}>
-                  {saving ? "Guardando…" : isEditing ? "Actualizar" : "Guardar"}
-                </button>
-              </div>
+              {/* ── Con tipo elegido: todo resuelto, un solo botón ── */}
+              {(isEditing || form.type_id || detallesAbiertos) && (
+                <>
+                  {!isEditing && form.type_id && (
+                    <div style={S.confirmCard}>
+                      <div style={S.confirmTipo}>{form.type_name}</div>
+                      <div style={S.confirmMeta}>
+                        {formatDate(form.performed_at)}
+                        {form.odometer_km ? ` · ${Number(form.odometer_km).toLocaleString("es-CL")} km` : ""}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tipo, solo al editar o si escribe uno propio */}
+                  {(isEditing || !form.type_id) && (
+                    <div style={S.field}>
+                      <div style={S.label}>Tipo de mantenimiento</div>
+                      <select value={form.type_id} onChange={handleTypeChange} className="dark-select" style={S.input}>
+                        <option value="">— Personalizado —</option>
+                        {filteredTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+
+                  {form.type_id === "" && (
+                    <div style={S.field}>
+                      <div style={S.label}>Nombre del mantenimiento</div>
+                      <input
+                        value={form.type_name}
+                        onChange={(e) => setField("type_name", e.target.value)}
+                        placeholder="Ej: Cambio de pastillas"
+                        style={S.input}
+                      />
+                    </div>
+                  )}
+
+                  {/* ── Lo opcional, plegado ── */}
+                  {!isEditing && form.type_id && !detallesAbiertos && (
+                    <button type="button" style={S.verDetalles} onClick={() => setDetallesAbiertos(true)}>
+                      + Agregar fecha, costo, notas o componente
+                    </button>
+                  )}
+
+                  {(isEditing || detallesAbiertos) && (
+                    <>
+                      <div style={S.grid2}>
+                        <div style={S.field}>
+                          <div style={S.label}>Fecha</div>
+                          <input type="date" value={form.performed_at} onChange={(e) => setField("performed_at", e.target.value)} style={S.input} />
+                        </div>
+                        <div style={S.field}>
+                          <div style={S.label}>Odómetro (km)</div>
+                          <input value={form.odometer_km} onChange={(e) => setField("odometer_km", e.target.value)} placeholder="Opcional" inputMode="numeric" style={S.input} />
+                        </div>
+                      </div>
+
+                      <div style={S.grid2}>
+                        <div style={S.field}>
+                          <div style={S.label}>Costo (CLP)</div>
+                          <input value={form.cost_clp} onChange={(e) => setField("cost_clp", e.target.value)} placeholder="Opcional" inputMode="numeric" style={S.input} />
+                        </div>
+                        <div style={S.field}>
+                          <div style={S.label}>Notas</div>
+                          <input value={form.notes} onChange={(e) => setField("notes", e.target.value)} placeholder="Opcional" style={S.input} />
+                        </div>
+                      </div>
+
+                      {bikeParts.length > 0 && (
+                        <div style={S.field}>
+                          <div style={S.label}>Componente (opcional)</div>
+                          <select value={form.component_id} onChange={(e) => setField("component_id", e.target.value)} className="dark-select" style={S.input}>
+                            <option value="">— Ninguno —</option>
+                            {bikeParts.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                          </select>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {currentTypeData?.notes_hint && (
+                    <div style={S.tipRow}>
+                      <div style={S.tipDot} />
+                      <div style={S.tipText}>{currentTypeData.notes_hint}</div>
+                    </div>
+                  )}
+
+                  {/* El botón principal: ancho completo y abajo, al alcance del pulgar */}
+                  <button type="submit" style={S.registrarBtn} disabled={saving}>
+                    {saving ? "Guardando…" : isEditing ? "Actualizar" : "Registrar"}
+                  </button>
+                  <button type="button" style={S.cancelarLink} onClick={closeModal}>Cancelar</button>
+                </>
+              )}
             </form>
           </div>
         </div>
@@ -876,6 +925,36 @@ export default function BikeMaintenancePage() {
 
 // ── Design tokens ──────────────────────────────────────────────────────────────
 const S = {
+  // ── PRD-11.1 · registrar en 15 segundos ────────────────────────────────────
+  tipoLista: { display: "grid", gap: 8, maxHeight: "45vh", overflowY: "auto", paddingRight: 2 },
+  tipoOpcion: {
+    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+    width: "100%", minHeight: 52, padding: "12px 16px", borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.05)",
+    color: "rgba(255,255,255,0.92)", fontSize: 15, fontWeight: 600,
+    textAlign: "left", cursor: "pointer",
+  },
+  tipoOpcionNombre: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  confirmCard: {
+    padding: "18px 16px", borderRadius: 16, textAlign: "center",
+    border: "1px solid rgba(99,102,241,0.22)", background: "rgba(99,102,241,0.08)",
+  },
+  confirmTipo: { fontSize: 19, fontWeight: 800, color: "rgba(255,255,255,0.95)", lineHeight: 1.25 },
+  confirmMeta: { fontSize: 13, color: "rgba(255,255,255,0.55)", marginTop: 6 },
+  verDetalles: {
+    width: "100%", minHeight: 48, padding: "12px 16px", borderRadius: 14,
+    border: "1px dashed rgba(255,255,255,0.14)", background: "transparent",
+    color: "rgba(255,255,255,0.55)", fontSize: 14, cursor: "pointer",
+  },
+  registrarBtn: {
+    width: "100%", minHeight: 56, borderRadius: 16, border: 0,
+    background: "linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.82))",
+    color: "#0b1220", fontSize: 17, fontWeight: 800, cursor: "pointer",
+  },
+  cancelarLink: {
+    width: "100%", minHeight: 48, border: 0, background: "transparent",
+    color: "rgba(255,255,255,0.45)", fontSize: 14, cursor: "pointer",
+  },
   card: { borderRadius: 20, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.055)", boxShadow: "0 20px 50px rgba(0,0,0,0.30)", padding: 14 },
   kicker: { fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255,255,255,0.50)" },
   heroTitle: { marginTop: 5, fontSize: "clamp(20px, 5vw, 26px)", fontWeight: 900, letterSpacing: -0.5, color: "rgba(255,255,255,0.96)", lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
