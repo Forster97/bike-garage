@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "../../../../lib/supabaseClient";
 import Chevron from "../../../../components/Chevron";
 
@@ -457,6 +458,21 @@ export default function ProfilePage() {
           </div>}
         </div>
       )}
+
+      {/* ── Ajustes · PRD-11.2 ──
+           Categorías salió de la barra de navegación: se configura una vez.
+           Vive acá, que es donde uno busca los ajustes. */}
+      <Link href="/settings/categories" style={{ ...S.card, textDecoration: "none", display: "block" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <div>
+            <div style={S.sectionTitle}>Categorías de componentes</div>
+            <div style={{ marginTop: 6, fontSize: 13, color: "rgba(255,255,255,0.45)", lineHeight: 1.5 }}>
+              Qué partes de la bici te interesa seguir
+            </div>
+          </div>
+          <span style={{ color: "rgba(255,255,255,0.35)", flexShrink: 0, fontSize: 20 }} aria-hidden>›</span>
+        </div>
+      </Link>
 
       {/* ── Zona peligrosa ── */}
       <div style={{ ...S.card, borderColor: "rgba(239,68,68,0.15)" }}>

@@ -10,7 +10,6 @@ export default function AppGroupLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const [email, setEmail] = useState("");
-  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -69,35 +68,38 @@ export default function AppGroupLayout({ children }) {
             <button onClick={logout} style={s.logoutBtn}>Salir</button>
           </div>
 
-          {/* Mobile: hamburger */}
-          <style>{`@media(min-width:640px){.mobile-hamburger{display:none!important}}`}</style>
-          <button
-            className="mobile-hamburger"
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
-            style={s.hamburgerBtn}
-          >
-            {menuOpen ? "✕" : "☰"}
-          </button>
         </div>
-
-        {/* Mobile dropdown — visible solo en mobile cuando está abierto */}
-        {menuOpen && (
-          <div style={s.mobileMenu} onClick={() => setMenuOpen(false)}>
-            <Link href="/garage" style={{ ...s.mobileMenuItem, ...(isGarage ? s.mobileMenuItemActive : {}) }}>Garage</Link>
-            <Link href="/maintenance" style={{ ...s.mobileMenuItem, ...(isMaintenance ? s.mobileMenuItemActive : {}) }}>Mantenimiento</Link>
-            <Link href="/notifications" style={{ ...s.mobileMenuItem, ...(isNotifications ? s.mobileMenuItemActive : {}) }}>Notificaciones</Link>
-            <Link href="/settings/categories" style={{ ...s.mobileMenuItem, ...(isCategories ? s.mobileMenuItemActive : {}) }}>Categorías</Link>
-            <Link href="/settings/profile" style={{ ...s.mobileMenuItem, ...(isProfile ? s.mobileMenuItemActive : {}) }}>Perfil</Link>
-            <div style={s.mobileMenuDivider} />
-            {email && <div style={s.mobileMenuEmail}>{userLabel}</div>}
-            <button onClick={logout} style={s.mobileMenuLogout}>Salir</button>
-          </div>
-        )}
       </header>
 
       {/* ── Content ── */}
       <main style={s.main}>{children}</main>
+
+      {/* ── PRD-11.2 · Barra de navegación móvil ──
+           Cuatro destinos, siempre visibles, al alcance del pulgar.
+           En pantalla grande no aparece: ahí sigue el menú de arriba. */}
+      <style>{`
+        @media(min-width:640px){ .bottom-nav{display:none!important} }
+        @media(max-width:639px){ .bn-item:active{ background:rgba(255,255,255,0.06) } }
+      `}</style>
+      <nav className="bottom-nav" style={s.bottomNav} aria-label="Navegación principal">
+        {[
+          { href: "/garage", icon: "🚲", label: "Garage", activo: isGarage },
+          { href: "/maintenance", icon: "🔧", label: "Mantención", activo: isMaintenance },
+          { href: "/notifications", icon: "🔔", label: "Alertas", activo: isNotifications },
+          { href: "/settings/profile", icon: "👤", label: "Perfil", activo: isProfile || isCategories },
+        ].map((it) => (
+          <Link
+            key={it.href}
+            href={it.href}
+            className="bn-item"
+            aria-current={it.activo ? "page" : undefined}
+            style={{ ...s.bnItem, ...(it.activo ? s.bnItemActive : {}) }}
+          >
+            <span style={s.bnIcon} aria-hidden>{it.icon}</span>
+            <span style={s.bnLabel}>{it.label}</span>
+          </Link>
+        ))}
+      </nav>
     </div>
   );
 }
@@ -216,68 +218,33 @@ const s = {
     whiteSpace: "nowrap",
   },
 
-  hamburgerBtn: {
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.06)",
-    color: "rgba(255,255,255,0.90)",
-    borderRadius: 10,
-    padding: "7px 13px",
-    cursor: "pointer",
-    fontSize: 18,
-    lineHeight: 1,
-    fontWeight: 900,
+  // ── PRD-11.2 · barra de navegación móvil ──
+  bottomNav: {
+    position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 50,
+    display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
+    borderTop: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(11,18,32,0.92)",
+    backdropFilter: "blur(12px)",
+    // Deja libre el indicador de inicio del iPhone
+    paddingBottom: "env(safe-area-inset-bottom, 0px)",
   },
-  mobileMenu: {
-    borderTop: "1px solid rgba(255,255,255,0.07)",
-    background: "rgba(6,9,16,0.98)",
-    padding: "8px 16px 16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: 2,
+  bnItem: {
+    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+    gap: 3, minHeight: 58, textDecoration: "none",
+    color: "rgba(255,255,255,0.45)", transition: "color .15s",
   },
-  mobileMenuItem: {
-    textDecoration: "none",
-    fontSize: 15,
-    fontWeight: 500,
-    color: "rgba(255,255,255,0.65)",
-    padding: "12px 8px",
-    borderRadius: 8,
-    display: "block",
-    borderBottom: "1px solid rgba(255,255,255,0.04)",
-  },
-  mobileMenuItemActive: {
-    color: "rgba(255,255,255,0.95)",
-    background: "rgba(99,102,241,0.10)",
-  },
-  mobileMenuDivider: {
-    height: 1,
-    background: "rgba(255,255,255,0.07)",
-    margin: "8px 0",
-  },
-  mobileMenuEmail: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.35)",
-    padding: "4px 8px",
-  },
-  mobileMenuLogout: {
-    border: "1px solid rgba(255,255,255,0.10)",
-    background: "rgba(255,255,255,0.04)",
-    color: "rgba(255,255,255,0.60)",
-    cursor: "pointer",
-    borderRadius: 9,
-    padding: "10px 16px",
-    fontSize: 14,
-    fontWeight: 600,
-    textAlign: "left",
-    marginTop: 4,
-  },
+  bnItemActive: { color: "rgba(255,255,255,0.95)" },
+  bnIcon: { fontSize: 19, lineHeight: 1 },
+  bnLabel: { fontSize: 10.5, fontWeight: 700, letterSpacing: "0.01em" },
 
   main: {
     position: "relative",
     zIndex: 1,
     maxWidth: 1020,
     margin: "0 auto",
-    padding: "24px 20px 48px",
+    // El espacio de abajo deja pasar la barra de navegación móvil (PRD-11.2).
+    // En pantalla grande la barra no existe, pero el margen no molesta.
+    padding: "24px 20px calc(96px + env(safe-area-inset-bottom, 0px))",
     display: "flex",
     flexDirection: "column",
     gap: 16,
