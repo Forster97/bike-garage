@@ -14,6 +14,7 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
 import { DEFAULT_CATEGORIES, MULTI_COMPONENT_CATEGORIES } from "../../../../lib/constants";
 import ComboBox from "../../../../components/ComboBox";
+import Modal from "../../../../components/Modal";
 
 // ── Constantes y funciones helper ─────────────────────────────────────────────
 
@@ -132,6 +133,8 @@ export default function BikeDetailPage() {
   const [confirmPartId, setConfirmPartId] = useState(null);
   // Borrar la bici entera. Antes vivía en el Garage, a un toque del pulgar en la
   // pantalla principal; ahora está acá adentro, donde ya estás mirando esta bici.
+  // Si el historial no pudo guardar un evento, el usuario tiene que saberlo (BG-043).
+  const [avisoHistorial, setAvisoHistorial] = useState("");
   const [confirmarBorrarBici, setConfirmarBorrarBici] = useState(false);
   const [borrando, setBorrando] = useState(false);
 
@@ -180,6 +183,12 @@ export default function BikeDetailPage() {
   // Guarda una FOTO del nombre y la categoría, no solo el id: un historial que
   // depende de que la pieza siga existiendo no es un historial. Así sobrevive a
   // que el modelo se borre, se renombre o se recategorice.
+  // Guarda un evento en el historial. Devuelve true si quedó registrado.
+  //
+  // BG-043: esto fallaba en silencio desde marzo. Un console.error dentro de un
+  // catch no es manejar un error, es esconderlo: el usuario veía su cambio
+  // aplicado y el evento no se escribía nunca. Ahora quien llama decide qué
+  // hacer, y el usuario se entera.
   const logEvent = async ({ userId, bikeId: bid, partId, name, category, action, oldW, newW }) => {
     const { error } = await supabase.from("part_logs").insert([{
       user_id: userId,
@@ -191,7 +200,12 @@ export default function BikeDetailPage() {
       old_weight_g: oldW ?? null,
       new_weight_g: newW ?? null,
     }]);
-    if (error) console.error("part_logs insert error:", error);
+    if (error) {
+      console.error("part_logs insert error:", error);
+      setAvisoHistorial("El cambio se guardó, pero no se pudo anotar en el historial.");
+      return false;
+    }
+    return true;
   };
 
   // ── Carga inicial ──────────────────────────────────────────────────────────
@@ -514,6 +528,15 @@ export default function BikeDetailPage() {
     return (
       <>
         {pageNav}
+
+      {/* Aviso de historial no guardado (BG-043). Raro, pero si pasa se dice. */}
+      {avisoHistorial && (
+        <div style={styles.avisoHistorial} onClick={() => setAvisoHistorial("")} role="alert">
+          <span style={{ flexShrink: 0 }}>⚠</span>
+          <span style={{ flex: 1 }}>{avisoHistorial}</span>
+          <span style={{ opacity: 0.5, flexShrink: 0 }}>✕</span>
+        </div>
+      )}
         <div className="animate-pulse rounded-[18px] border p-4"
           style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)" }}>
           <div className="h-5 w-2/3 rounded-full" style={{ background: "rgba(255,255,255,0.10)" }} />
@@ -559,9 +582,6 @@ export default function BikeDetailPage() {
                   <button onClick={() => setBikeEditMode(true)} style={styles.iconBtn} title="Editar bici" aria-label="Editar bici">✏️</button>
                 </div>
                 <div style={styles.heroMeta}>
-                  <span style={styles.heroMetaStrong}>{formatKgFromGrams(totalWeightG)}</span>{" "}
-                  <span style={styles.heroMetaSoft}>({totalWeightG.toFixed(0)} g)</span>
-                  <span style={styles.heroDot} />
                   <span style={styles.heroMetaSoft}>{partCount} componente{partCount === 1 ? "" : "s"}</span>
                   <span style={styles.heroDot} />
                   <span style={styles.heroMetaSoft}>Top: {topCategory}</span>
@@ -638,9 +658,19 @@ export default function BikeDetailPage() {
       </div>
 
       {/* ── Barra de búsqueda + botón agregar ── */}
+      {/* BG-037: en un teléfono el botón caía debajo del buscador. Ahora el
+          buscador cede ancho y el botón acorta su texto en pantalla chica. */}
+      <style>{`@media(max-width:640px){ .texto-largo{display:none} }`}</style>
       <div style={styles.actionsRow}>
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar" style={{ ...styles.input, minWidth: 220 }} />
-        <button style={styles.primaryBtn} onClick={() => setAddOpen(true)}>+ Agregar componente</button>
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar"
+          style={{ ...styles.input, flex: 1, minWidth: 0 }}
+        />
+        <button style={{ ...styles.primaryBtn, flexShrink: 0, whiteSpace: "nowrap" }} onClick={() => setAddOpen(true)}>
+          + Agregar<span className="texto-largo"> componente</span>
+        </button>
       </div>
 
       {/* ── Lista de componentes ── */}
@@ -721,14 +751,8 @@ export default function BikeDetailPage() {
 
       {/* ── Zona peligrosa · PRD-11.3 ── */}
       <div style={styles.zonaPeligrosa}>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 14, color: "rgba(255,255,255,0.75)" }}>Eliminar esta bicicleta</div>
-          <div style={{ marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.40)", lineHeight: 1.5 }}>
-            Se van también sus componentes y todo su historial
-          </div>
-        </div>
         <button onClick={() => setConfirmarBorrarBici(true)} style={styles.borrarBiciBtn}>
-          Eliminar
+          Eliminar bicicleta
         </button>
       </div>
 
@@ -738,10 +762,7 @@ export default function BikeDetailPage() {
       </button>
 
       {/* ── Modal para agregar componente ── */}
-      {addOpen ? (
-        <div style={styles.modalWrap}>
-          <div style={styles.modalOverlay} onClick={() => setAddOpen(false)} />
-          <div style={styles.modal}>
+      <Modal open={addOpen} onClose={() => setAddOpen(false)}>
             <div style={styles.modalHeader}>
               <div style={styles.modalTitle}>Agregar componente</div>
               <button style={styles.iconBtn} onClick={() => setAddOpen(false)} aria-label="Cerrar">✕</button>
@@ -859,15 +880,12 @@ export default function BikeDetailPage() {
                 <div style={styles.tipText}>Tip: si ya tienes este componente con el mismo nombre y categoría, se reutiliza el de tu biblioteca en vez de duplicarlo.</div>
               </div>
             </form>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
 
       {/* ── Modal confirmación quitar / eliminar componente ── */}
       {/* Aviso: la bici ya tiene una pieza en una categoría que suele llevar una sola */}
       {confirmDupOpen && (
-        <div style={{ ...styles.modalWrap, zIndex: 70 }} onClick={() => setConfirmDupOpen(false)}>
-          <div style={{ ...styles.modal, maxWidth: 400, padding: 24 }} onClick={(e) => e.stopPropagation()}>
+        <Modal open onClose={() => setConfirmDupOpen(false)} maxWidth={400} zIndex={1020} padding={24}>
             <div style={{ fontSize: 32, textAlign: "center", marginBottom: 8 }}>⚠️</div>
             <div style={{ fontWeight: 800, fontSize: 16, color: "rgba(255,255,255,0.92)", textAlign: "center", marginBottom: 8 }}>
               Esta bici ya tiene {partCategory.toLowerCase()}
@@ -890,13 +908,11 @@ export default function BikeDetailPage() {
                 Agregar igual
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {confirmPartId && (
-        <div style={{ ...styles.modalWrap, zIndex: 60 }} onClick={() => setConfirmPartId(null)}>
-          <div style={{ ...styles.modal, maxWidth: 380, padding: 24 }} onClick={(e) => e.stopPropagation()}>
+        <Modal open onClose={() => setConfirmPartId(null)} maxWidth={380} zIndex={1010} padding={24}>
             <div style={{ fontSize: 32, textAlign: "center", marginBottom: 8 }}>🧩</div>
             <div style={{ fontWeight: 800, fontSize: 16, color: "rgba(255,255,255,0.92)", textAlign: "center", marginBottom: 6 }}>
               {confirmPart?.name ?? "Componente"}
@@ -918,13 +934,11 @@ export default function BikeDetailPage() {
                 Cancelar
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {confirmarBorrarBici && (
-        <div style={{ ...styles.modalWrap, zIndex: 60 }} onClick={() => setConfirmarBorrarBici(false)}>
-          <div style={{ ...styles.modal, maxWidth: 380, padding: 24 }} onClick={(e) => e.stopPropagation()}>
+        <Modal open onClose={() => setConfirmarBorrarBici(false)} maxWidth={380} zIndex={1010} padding={24}>
             <div style={{ fontSize: 32, textAlign: "center", marginBottom: 8 }}>🗑</div>
             <div style={{ fontWeight: 800, fontSize: 16, color: "rgba(255,255,255,0.92)", textAlign: "center", marginBottom: 6 }}>
               ¿Eliminar {bike?.name || "esta bicicleta"}?
@@ -953,8 +967,7 @@ export default function BikeDetailPage() {
                 Cancelar
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
     </>
@@ -969,7 +982,6 @@ const styles = {
   heroTitleRow: { display: "flex", alignItems: "center", gap: 8, marginTop: 6 },
   heroTitle: { margin: 0, fontSize: 26, lineHeight: 1.05, letterSpacing: -0.6, color: "rgba(255,255,255,0.96)", maxWidth: 640, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   heroMeta: { marginTop: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
-  heroMetaStrong: { fontWeight: 900, color: "rgba(255,255,255,0.92)" },
   heroMetaSoft: { color: "rgba(255,255,255,0.65)", fontSize: 13 },
   heroDot: { width: 4, height: 4, borderRadius: 999, background: "rgba(255,255,255,0.25)" },
   heroSubMeta: { marginTop: 8, fontSize: 12, color: "rgba(255,255,255,0.62)" },
@@ -985,15 +997,15 @@ const styles = {
   distTrack: { height: 8, borderRadius: 99, overflow: "hidden", background: "rgba(0,0,0,0.22)", border: "1px solid rgba(255,255,255,0.08)" },
   distFill: { height: "100%", borderRadius: 99, background: "linear-gradient(135deg, rgba(99,102,241,0.85), rgba(34,197,94,0.75))" },
   distVal: { textAlign: "right", fontSize: 12, color: "rgba(255,255,255,0.60)" },
-  actionsRow: { display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", marginTop: 2 },
+  actionsRow: { display: "flex", gap: 10, alignItems: "center", marginTop: 2 },
   grid: { marginTop: 2, display: "grid", gridTemplateColumns: "1fr", gap: 10 },
-  partCard: { padding: 14, borderRadius: 18, background: "rgba(0,0,0,0.22)", border: "1px solid rgba(255,255,255,0.08)" },
-  partTop: { display: "flex", alignItems: "flex-start", gap: 12 },
+  partCard: { padding: 14, minWidth: 0, overflow: "hidden", borderRadius: 18, background: "rgba(0,0,0,0.22)", border: "1px solid rgba(255,255,255,0.08)" },
+  partTop: { display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap", minWidth: 0 },
   partName: { fontWeight: 900, color: "rgba(255,255,255,0.92)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   partMeta: { marginTop: 6, fontSize: 13, color: "rgba(255,255,255,0.70)" },
   partMetaSoft: { color: "rgba(255,255,255,0.60)" },
   partSubMeta: { marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.52)" },
-  partBtns: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" },
+  partBtns: { display: "flex", gap: 8, alignItems: "center", flexShrink: 0, marginLeft: "auto" },
   editRow: { marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" },
   field: { display: "grid", gap: 6 },
   label: { fontSize: 12, color: "rgba(255,255,255,0.65)" },
@@ -1005,9 +1017,9 @@ const styles = {
   checkRow: { display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: "rgba(255,255,255,0.85)", cursor: "pointer", padding: "10px 0", userSelect: "none" },
   checkbox: { width: 18, height: 18, accentColor: "rgba(99,102,241,0.9)", cursor: "pointer" },
   input: { padding: "12px 12px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(0,0,0,0.22)", color: "rgba(255,255,255,0.92)", outline: "none", fontSize: 14 },
-  primaryBtn: { border: 0, fontWeight: 900, padding: "12px 14px", borderRadius: 14, color: "#0b1220", background: "linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.82))", boxShadow: "0 14px 30px rgba(0,0,0,0.35)", cursor: "pointer" },
-  secondaryBtn: { border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.88)", fontWeight: 900, padding: "12px 14px", borderRadius: 14, cursor: "pointer" },
-  ghostBtn: { border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.82)", fontWeight: 900, padding: "12px 14px", borderRadius: 14, cursor: "pointer" },
+  primaryBtn: { flexShrink: 0, whiteSpace: "nowrap", border: 0, fontWeight: 900, padding: "12px 14px", borderRadius: 14, color: "#0b1220", background: "linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.82))", boxShadow: "0 14px 30px rgba(0,0,0,0.35)", cursor: "pointer" },
+  secondaryBtn: { flexShrink: 0, whiteSpace: "nowrap", border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.88)", fontWeight: 900, padding: "12px 14px", borderRadius: 14, cursor: "pointer" },
+  ghostBtn: { flexShrink: 0, whiteSpace: "nowrap", border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.82)", fontWeight: 900, padding: "12px 14px", borderRadius: 14, cursor: "pointer" },
   iconBtn: { border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.88)", fontWeight: 900, padding: "8px 10px", borderRadius: 12, cursor: "pointer" },
   btnRow: { display: "flex", gap: 10, flexWrap: "wrap" },
   btnRowRight: { display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" },
@@ -1017,10 +1029,9 @@ const styles = {
   emptyTitle: { fontWeight: 900, color: "rgba(255,255,255,0.92)" },
   emptyText: { marginTop: 6, color: "rgba(255,255,255,0.68)", fontSize: 13 },
   fab: { position: "fixed", right: 18, bottom: "calc(78px + env(safe-area-inset-bottom, 0px))", width: 56, height: 56, borderRadius: 999, border: "1px solid rgba(255,255,255,0.12)", background: "linear-gradient(135deg, rgba(99,102,241,0.65), rgba(34,197,94,0.55))", color: "rgba(255,255,255,0.95)", fontWeight: 900, fontSize: 26, boxShadow: "0 18px 55px rgba(0,0,0,0.45)", cursor: "pointer" },
-  modalWrap: { position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 },
-  zonaPeligrosa: { marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: "16px 18px", borderRadius: 16, border: "1px solid rgba(239,68,68,0.15)", background: "rgba(239,68,68,0.04)" },
+  avisoHistorial: { display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 12, border: "1px solid rgba(251,191,36,0.25)", background: "rgba(251,191,36,0.08)", color: "rgba(251,191,36,0.95)", fontSize: 13, fontWeight: 600, cursor: "pointer", lineHeight: 1.4 },
+  zonaPeligrosa: { marginTop: 8, display: "flex", justifyContent: "center" },
   borrarBiciBtn: { padding: "10px 18px", minHeight: 44, borderRadius: 11, border: "1px solid rgba(239,68,68,0.30)", background: "rgba(239,68,68,0.08)", color: "rgba(239,68,68,0.85)", fontWeight: 700, fontSize: 13, cursor: "pointer" },
-  modalOverlay: { position: "absolute", inset: 0, background: "rgba(0,0,0,0.60)" },
   modal: { position: "relative", width: "100%", maxWidth: 720, borderRadius: 22, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(7,10,18,0.90)", backdropFilter: "blur(12px)", boxShadow: "0 25px 70px rgba(0,0,0,0.55)", padding: 14 },
   modalHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, paddingBottom: 10, borderBottom: "1px solid rgba(255,255,255,0.10)" },
   modalTitle: { fontWeight: 900, color: "rgba(255,255,255,0.92)" },

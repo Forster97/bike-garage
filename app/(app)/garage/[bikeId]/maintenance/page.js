@@ -3,6 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState } from "react";
+import Modal from "../../../../../components/Modal";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../../../../lib/supabaseClient";
@@ -376,7 +377,10 @@ export default function BikeMaintenancePage() {
         .m-hist-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: flex-start; padding-top: 2px; }
         .m-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .m-modal-wrap {
-          position: fixed; inset: 0; z-index: 50;
+          /* Por encima de la barra de navegación, que vive en z-index 50 (BG-042) */
+          position: fixed; inset: 0; z-index: 1000;
+          background: rgba(0,0,0,0.60); backdrop-filter: blur(4px);
+          overscroll-behavior: contain;
           display: flex; align-items: center; justify-content: center; padding: 16px;
         }
         .m-modal {
@@ -775,6 +779,7 @@ export default function BikeMaintenancePage() {
 
       {/* ── Modal ── */}
       {modalMode && (
+        <Modal open onClose={closeModal} unstyled>
         <div className="m-modal-wrap" onClick={closeModal}>
           <div className="m-modal" onClick={(e) => e.stopPropagation()}>
             <div style={S.sheetHandle} aria-hidden />
@@ -918,6 +923,7 @@ export default function BikeMaintenancePage() {
             </form>
           </div>
         </div>
+        </Modal>
       )}
     </>
   );
