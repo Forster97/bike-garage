@@ -130,6 +130,10 @@ export default function BikeDetailPage() {
 
   // Confirmación de quitar una pieza. null = cerrado, id del montaje = abierto.
   const [confirmPartId, setConfirmPartId] = useState(null);
+  // Borrar la bici entera. Antes vivía en el Garage, a un toque del pulgar en la
+  // pantalla principal; ahora está acá adentro, donde ya estás mirando esta bici.
+  const [confirmarBorrarBici, setConfirmarBorrarBici] = useState(false);
+  const [borrando, setBorrando] = useState(false);
 
   // ── Valores calculados ─────────────────────────────────────────────────────
   const totalWeightG = useMemo(
@@ -715,6 +719,19 @@ export default function BikeDetailPage() {
         </div>
       )}
 
+      {/* ── Zona peligrosa · PRD-11.3 ── */}
+      <div style={styles.zonaPeligrosa}>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: "rgba(255,255,255,0.75)" }}>Eliminar esta bicicleta</div>
+          <div style={{ marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.40)", lineHeight: 1.5 }}>
+            Se van también sus componentes y todo su historial
+          </div>
+        </div>
+        <button onClick={() => setConfirmarBorrarBici(true)} style={styles.borrarBiciBtn}>
+          Eliminar
+        </button>
+      </div>
+
       {/* ── FAB ── */}
       <button onClick={() => setAddOpen(true)} style={styles.fab} aria-label="Agregar componente" title="Agregar componente">
         +
@@ -905,6 +922,41 @@ export default function BikeDetailPage() {
         </div>
       )}
 
+      {confirmarBorrarBici && (
+        <div style={{ ...styles.modalWrap, zIndex: 60 }} onClick={() => setConfirmarBorrarBici(false)}>
+          <div style={{ ...styles.modal, maxWidth: 380, padding: 24 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: 32, textAlign: "center", marginBottom: 8 }}>🗑</div>
+            <div style={{ fontWeight: 800, fontSize: 16, color: "rgba(255,255,255,0.92)", textAlign: "center", marginBottom: 6 }}>
+              ¿Eliminar {bike?.name || "esta bicicleta"}?
+            </div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", textAlign: "center", lineHeight: 1.5, marginBottom: 20 }}>
+              Se eliminan también sus componentes y sus registros de mantención.
+              Esto no se puede deshacer.
+            </div>
+            <div style={{ display: "grid", gap: 8 }}>
+              <button
+                disabled={borrando}
+                style={{ ...styles.ghostBtn, width: "100%", textAlign: "center", color: "rgba(239,68,68,0.85)", borderColor: "rgba(239,68,68,0.25)", opacity: borrando ? 0.5 : 1 }}
+                onClick={async () => {
+                  setBorrando(true);
+                  const { error } = await supabase.from("bikes").delete().eq("id", bikeId);
+                  if (error) { setBorrando(false); alert(error.message); return; }
+                  router.replace("/garage");
+                }}
+              >
+                {borrando ? "Eliminando…" : "Eliminar"}
+              </button>
+              <button
+                style={{ ...styles.secondaryBtn, width: "100%", textAlign: "center" }}
+                onClick={() => setConfirmarBorrarBici(false)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </>
   );
 }
@@ -966,6 +1018,8 @@ const styles = {
   emptyText: { marginTop: 6, color: "rgba(255,255,255,0.68)", fontSize: 13 },
   fab: { position: "fixed", right: 18, bottom: "calc(78px + env(safe-area-inset-bottom, 0px))", width: 56, height: 56, borderRadius: 999, border: "1px solid rgba(255,255,255,0.12)", background: "linear-gradient(135deg, rgba(99,102,241,0.65), rgba(34,197,94,0.55))", color: "rgba(255,255,255,0.95)", fontWeight: 900, fontSize: 26, boxShadow: "0 18px 55px rgba(0,0,0,0.45)", cursor: "pointer" },
   modalWrap: { position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 },
+  zonaPeligrosa: { marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: "16px 18px", borderRadius: 16, border: "1px solid rgba(239,68,68,0.15)", background: "rgba(239,68,68,0.04)" },
+  borrarBiciBtn: { padding: "10px 18px", minHeight: 44, borderRadius: 11, border: "1px solid rgba(239,68,68,0.30)", background: "rgba(239,68,68,0.08)", color: "rgba(239,68,68,0.85)", fontWeight: 700, fontSize: 13, cursor: "pointer" },
   modalOverlay: { position: "absolute", inset: 0, background: "rgba(0,0,0,0.60)" },
   modal: { position: "relative", width: "100%", maxWidth: 720, borderRadius: 22, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(7,10,18,0.90)", backdropFilter: "blur(12px)", boxShadow: "0 25px 70px rgba(0,0,0,0.55)", padding: 14 },
   modalHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, paddingBottom: 10, borderBottom: "1px solid rgba(255,255,255,0.10)" },

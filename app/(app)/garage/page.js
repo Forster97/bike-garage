@@ -10,6 +10,8 @@ import { supabase } from "../../../lib/supabaseClient";
 import { createBikeWithTemplate } from "../../../lib/createBikeWithTemplate";
 import Chevron from "../../../components/Chevron";
 import { BIKE_TYPES } from "../../../lib/constants";
+import { bikeName } from "../../../lib/dateHelpers";
+import { loadGarageView, estadoDeBici } from "../../../lib/loadGarageView";
 
 // ── Componente principal de la página ─────────────────────────────────────────
 export default function GaragePage() {
@@ -27,7 +29,10 @@ export default function GaragePage() {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  // Estado de mantención por bici (PRD-11.3). Lo arma el mismo motor que la
+  // pantalla de Mantención: acá solo se muestra.
+  const [estadoPorBici, setEstadoPorBici] = useState({});
 
   // ── Catálogo para ComboBox ────────────────────────────────────────────────
   const [catalogBrands, setCatalogBrands] = useState([]);
@@ -138,10 +143,21 @@ export default function GaragePage() {
 
     const rows = (data || []).map((b) => ({
       ...b,
-      displayName: `${b.brand ?? ""} ${b.model ?? ""}`.trim() || b.name || "Bicicleta",
+      displayName: bikeName(b),
     }));
 
     setBikes(rows);
+
+    // El estado se carga después y por separado: si el motor falla, las bicis
+    // igual se ven. Nunca dejar la pantalla en blanco por un dato de adorno.
+    try {
+      const { views } = await loadGarageView(supabase, uid, { bikes: data || [] });
+      const porId = {};
+      for (const v of views) porId[v.bike.id] = estadoDeBici(v);
+      setEstadoPorBici(porId);
+    } catch (err) {
+      console.error("No se pudo cargar el estado de las bicis:", err);
+    }
   };
 
   // ── Efecto: carga inicial / valida sesión ─────────────────────────────────
@@ -252,16 +268,8 @@ export default function GaragePage() {
     }
   };
 
-  // ── Función: eliminar bicicleta ───────────────────────────────────────────
-  const deleteBike = (bikeId) => setConfirmDeleteId(bikeId);
-
-  const doDelete = async () => {
-    const bikeId = confirmDeleteId;
-    setConfirmDeleteId(null);
-    const { error } = await supabase.from("bikes").delete().eq("id", bikeId);
-    if (error) { alert(error.message); return; }
-    setBikes((prev) => prev.filter((b) => b.id !== bikeId));
-  };
+  // Cuántas bicis piden algo. Alimenta el subtítulo del encabezado (PRD-11.3).
+  const necesitanAtencion = bikes.filter((b) => estadoPorBici[b.id]?.atencion).length;
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -270,6 +278,12 @@ export default function GaragePage() {
         <div>
           <div style={s.titleLabel}>Mi colección</div>
           <h1 style={s.title}>Garage</h1>
+          {/* Si todas están al día no decimos nada: el silencio también informa. */}
+          {!loading && necesitanAtencion > 0 && (
+            <div style={s.subtitulo}>
+              {necesitanAtencion} necesita{necesitanAtencion !== 1 ? "n" : ""} atención
+            </div>
+          )}
         </div>
 
         {!loading && (
@@ -280,6 +294,63 @@ export default function GaragePage() {
         )}
       </div>
 
+      {loading ? (
+        <div style={s.list}>
+          {[1, 2, 3].map((i) => (
+            <div key={i} style={s.skeletonCard}>
+              <div style={s.skeletonAvatar} />
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={s.skeletonLine1} />
+                <div style={s.skeletonLine2} />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : bikes.length === 0 ? (
+        <div style={s.emptyState}>
+          <div style={s.emptyIcon}>🚲</div>
+          <div style={s.emptyTitle}>Tu garage está vacío</div>
+          <p style={s.emptyText}>Agrega tu primera bici acá abajo para empezar a registrar componentes y pesos.</p>
+        </div>
+      ) : (
+        <div style={s.list}>
+          {bikes.map((bike) => {
+            // Mientras el estado carga, la línea queda vacía en vez de mentir.
+            const estado = estadoPorBici[bike.id];
+            return (
+              <div key={bike.id} style={s.bikeCard}>
+                <Link href={`/garage/${bike.id}`} style={s.bikeLink}>
+                  <div style={s.bikeAvatar}>
+                    {bikeName(bike).slice(0, 1).toUpperCase()}
+                    {estado && estado.atencion && (
+                      <span style={{ ...s.puntoEstado, background: estado.color }} />
+                    )}
+                  </div>
+
+                  <div style={s.bikeInfo}>
+                    <div style={s.bikeName}>{bikeName(bike)}</div>
+
+                    <div style={s.bikeMeta}>
+                      {bike.type ? `${bike.type} · ` : ""}
+                      {estado ? (
+                        <span style={{ color: estado.color, fontWeight: 600 }}>{estado.texto}</span>
+                      ) : (
+                        <span style={{ color: "rgba(255,255,255,0.25)" }}>…</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={s.bikeArrow}>→</div>
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Agregar bicicleta · PRD-11.3 ──
+           Va debajo de la lista a propósito: se usa dos o tres veces en la
+           vida, y antes ocupaba el mejor espacio de la pantalla principal. */}
       <div style={s.addCard}>
         <button
           onClick={() => setAddOpen((o) => !o)}
@@ -450,73 +521,6 @@ export default function GaragePage() {
         )}
       </div>
 
-      {loading ? (
-        <div style={s.list}>
-          {[1, 2, 3].map((i) => (
-            <div key={i} style={s.skeletonCard}>
-              <div style={s.skeletonAvatar} />
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-                <div style={s.skeletonLine1} />
-                <div style={s.skeletonLine2} />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : bikes.length === 0 ? (
-        <div style={s.emptyState}>
-          <div style={s.emptyIcon}>🚲</div>
-          <div style={s.emptyTitle}>Tu garage está vacío</div>
-          <p style={s.emptyText}>Agrega tu primera bici arriba para empezar a registrar componentes y pesos.</p>
-        </div>
-      ) : (
-        <div style={s.list}>
-          {bikes.map((bike) => (
-            <div key={bike.id} style={s.bikeCard}>
-              <Link href={`/garage/${bike.id}`} style={s.bikeLink}>
-                <div style={s.bikeAvatar}>
-                  {(`${bike.brand ?? ""} ${bike.model ?? ""}`.trim() || "B").slice(0, 1).toUpperCase()}
-                </div>
-
-                <div style={s.bikeInfo}>
-                  <div style={s.bikeName}>
-                    {(`${bike.brand ?? ""} ${bike.model ?? ""}`.trim() || bike.name || "Bicicleta")}
-                  </div>
-
-                  <div style={s.bikeMeta}>
-                    {bike.type ? `${bike.type} · ` : ""}
-                    Creada{" "}
-                    {new Date(bike.created_at).toLocaleDateString("es-CL", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </div>
-                </div>
-
-                <div style={s.bikeArrow}>→</div>
-              </Link>
-
-              <button onClick={() => deleteBike(bike.id)} style={s.deleteBtn} title="Eliminar bicicleta">
-                🗑
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-      {/* Modal de confirmación eliminar bici */}
-      {confirmDeleteId && (
-        <div style={s.modalOverlay} onClick={() => setConfirmDeleteId(null)}>
-          <div style={s.modalBox} onClick={(e) => e.stopPropagation()}>
-            <div style={s.modalIcon}>🗑</div>
-            <p style={s.modalTitle}>¿Eliminar bicicleta?</p>
-            <p style={s.modalText}>Esto también eliminará sus componentes y registros. Esta acción no se puede deshacer.</p>
-            <div style={s.modalBtns}>
-              <button style={s.modalCancel} onClick={() => setConfirmDeleteId(null)}>Cancelar</button>
-              <button style={s.modalConfirm} onClick={doDelete}>Eliminar</button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
@@ -526,6 +530,8 @@ const s = {
   titleRow: { display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 8 },
   titleLabel: { fontSize: 11, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: 4 },
   title: { margin: 0, fontSize: "clamp(28px, 6vw, 38px)", fontWeight: 900, letterSpacing: "-1px", color: "rgba(255,255,255,0.95)", lineHeight: 1 },
+  subtitulo: { marginTop: 7, fontSize: 13, fontWeight: 600, color: "rgba(251,191,36,0.85)" },
+  puntoEstado: { position: "absolute", top: -3, right: -3, width: 12, height: 12, borderRadius: 999, border: "2px solid #060910" },
   countPill: { display: "flex", alignItems: "baseline", gap: 5, padding: "10px 16px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)" },
   countNum: { fontSize: 22, fontWeight: 900, color: "rgba(255,255,255,0.90)", letterSpacing: "-0.5px" },
   countLabel: { fontSize: 12, color: "rgba(255,255,255,0.40)", fontWeight: 500 },
@@ -555,19 +561,10 @@ const s = {
 
   bikeCard: { display: "flex", alignItems: "center", borderRadius: 16, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)", overflow: "hidden" },
   bikeLink: { display: "flex", alignItems: "center", gap: 14, flex: 1, padding: "14px 16px", textDecoration: "none", minWidth: 0 },
-  bikeAvatar: { width: 44, height: 44, borderRadius: 14, display: "grid", placeItems: "center", fontWeight: 900, fontSize: 18, color: "rgba(255,255,255,0.85)", background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.20)", flexShrink: 0 },
+  bikeAvatar: { position: "relative", width: 44, height: 44, borderRadius: 14, display: "grid", placeItems: "center", fontWeight: 900, fontSize: 18, color: "rgba(255,255,255,0.85)", background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.20)", flexShrink: 0 },
   bikeInfo: { flex: 1, minWidth: 0 },
   bikeName: { fontWeight: 700, fontSize: 16, color: "rgba(255,255,255,0.90)", letterSpacing: "-0.3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   bikeMeta: { marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.40)" },
   bikeArrow: { fontSize: 16, color: "rgba(255,255,255,0.25)", flexShrink: 0 },
-  deleteBtn: { padding: "14px 16px", border: 0, borderLeft: "1px solid rgba(255,255,255,0.07)", background: "transparent", color: "rgba(255,255,255,0.35)", cursor: "pointer", fontSize: 16, alignSelf: "stretch", display: "grid", placeItems: "center" },
 
-  modalOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.60)", backdropFilter: "blur(4px)", display: "grid", placeItems: "center", zIndex: 1000, padding: 20 },
-  modalBox: { background: "#111318", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 20, padding: "28px 24px", maxWidth: 360, width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 },
-  modalIcon: { fontSize: 36 },
-  modalTitle: { margin: 0, fontSize: 18, fontWeight: 800, color: "rgba(255,255,255,0.92)", letterSpacing: "-0.4px" },
-  modalText: { margin: 0, fontSize: 13, color: "rgba(255,255,255,0.45)", textAlign: "center", lineHeight: 1.6 },
-  modalBtns: { display: "flex", gap: 10, width: "100%", marginTop: 4 },
-  modalCancel: { flex: 1, padding: "11px 0", borderRadius: 12, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.75)", fontSize: 14, fontWeight: 600, cursor: "pointer" },
-  modalConfirm: { flex: 1, padding: "11px 0", borderRadius: 12, border: 0, background: "rgba(239,68,68,0.85)", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" },
 };

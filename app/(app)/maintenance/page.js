@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabase } from "../../../lib/supabaseClient";
 import { healthColor } from "../../../lib/maintenanceHelpers";
-import { buildGarageView } from "../../../lib/maintenanceView";
+import { loadGarageView } from "../../../lib/loadGarageView";
 
 export default function MaintenanceDashboardPage() {
   const router = useRouter();
@@ -20,49 +20,11 @@ export default function MaintenanceDashboardPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return router.replace("/login");
 
-      const [bikesRes, typesRes, rulesRes] = await Promise.all([
-        supabase.from("bikes").select("id,name,type,brand,model,year,created_at").eq("user_id", user.id).order("name"),
-        supabase.from("maintenance_types").select("*"),
-        supabase.from("maintenance_rules").select("*").eq("user_id", user.id),
-      ]);
+      // Un solo lugar arma el estado, y es el mismo que usa el Garage.
+      // Tener esto copiado fue lo que produjo BG-003.
+      const { views, records } = await loadGarageView(supabase, user.id);
 
-      const bikes = bikesRes.data ?? [];
-      const types = typesRes.data ?? [];
-      const bikeIds = bikes.map((b) => b.id);
-
-      let records = [], profiles = [], stats = [], montados = [];
-      if (bikeIds.length) {
-        const [recRes, pRes, sRes, mRes] = await Promise.all([
-          supabase.from("bike_maintenance")
-            .select("bike_id,type_id,type_name,performed_at,odometer_km")
-            .in("bike_id", bikeIds).order("performed_at", { ascending: false }),
-          supabase.from("bike_profiles").select("bike_id,profile").in("bike_id", bikeIds),
-          supabase.from("bike_stats").select("bike_id,odometer_km").in("bike_id", bikeIds),
-          // Qué tiene montado cada bici: el mismo filtro que usa la página por
-          // bici. Sin esto, la misma bici mostraba dos porcentajes de salud
-          // distintos según dónde la miraras (BG-003).
-          supabase.from("bike_components")
-            .select("bike_id, modelo:component_catalog(category)")
-            .in("bike_id", bikeIds),
-        ]);
-        records = recRes.data ?? [];
-        profiles = pRes.data ?? [];
-        stats = sRes.data ?? [];
-        montados = mRes.data ?? [];
-      }
-
-      const categoriasPorBici = {};
-      for (const bc of montados) {
-        const cat = bc.modelo?.category;
-        if (!cat) continue;
-        (categoriasPorBici[bc.bike_id] ??= new Set()).add(cat);
-      }
-
-      const result = buildGarageView({
-        bikes, types, records,
-        rules: rulesRes.data ?? [],
-        profiles, stats, categoriasPorBici,
-      }).map((v) => ({
+      const result = views.map((v) => ({
         ...v,
         lastMaintenance: records.find((r) => r.bike_id === v.bike.id)?.performed_at ?? null,
       }));
