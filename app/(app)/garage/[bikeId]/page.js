@@ -135,6 +135,8 @@ export default function BikeDetailPage() {
   // pantalla principal; ahora está acá adentro, donde ya estás mirando esta bici.
   // Si el historial no pudo guardar un evento, el usuario tiene que saberlo (BG-043).
   const [avisoHistorial, setAvisoHistorial] = useState("");
+  // Qué pieza está mostrando la explicación de "peso sin comprobar".
+  const [explicaPeso, setExplicaPeso] = useState(null);
   const [confirmarBorrarBici, setConfirmarBorrarBici] = useState(false);
   const [borrando, setBorrando] = useState(false);
 
@@ -694,14 +696,24 @@ export default function BikeDetailPage() {
               <div key={p.id} style={styles.partCard}>
                 <div style={styles.partTop}>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={styles.partName}>
-                      {p.name}
+                    <div style={styles.partNameRow}>
+                      <span style={styles.partName}>{p.name}</span>
                       {p.confidence === "unverified" && (
-                        <span style={styles.badgeUnverified} title="Nadie ha comprobado este peso todavía">
-                          sin verificar
-                        </span>
+                        <button
+                          type="button"
+                          style={styles.badgeUnverified}
+                          onClick={() => setExplicaPeso(explicaPeso === p.id ? null : p.id)}
+                          title="Nadie ha comprobado este peso todavía"
+                          aria-label="Peso sin comprobar"
+                        >
+                          ?
+                        </button>
                       )}
                     </div>
+
+                    {explicaPeso === p.id && (
+                      <div style={styles.explicaPeso}>Nadie ha comprobado este peso todavía.</div>
+                    )}
 
                     {!isEditing ? (
                       <div style={styles.partMeta}>
@@ -1001,7 +1013,8 @@ const styles = {
   grid: { marginTop: 2, display: "grid", gridTemplateColumns: "1fr", gap: 10 },
   partCard: { padding: 14, minWidth: 0, overflow: "hidden", borderRadius: 18, background: "rgba(0,0,0,0.22)", border: "1px solid rgba(255,255,255,0.08)" },
   partTop: { display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap", minWidth: 0 },
-  partName: { fontWeight: 900, color: "rgba(255,255,255,0.92)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  partNameRow: { display: "flex", alignItems: "center", gap: 7, minWidth: 0 },
+  partName: { fontWeight: 900, color: "rgba(255,255,255,0.92)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 },
   partMeta: { marginTop: 6, fontSize: 13, color: "rgba(255,255,255,0.70)" },
   partMetaSoft: { color: "rgba(255,255,255,0.60)" },
   partSubMeta: { marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.52)" },
@@ -1010,16 +1023,17 @@ const styles = {
   field: { display: "grid", gap: 6 },
   label: { fontSize: 12, color: "rgba(255,255,255,0.65)" },
   optional: { color: "rgba(255,255,255,0.38)", fontWeight: 400 },
-  badgeUnverified: { marginLeft: 8, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999, background: "rgba(234,179,8,0.12)", color: "#facc15", border: "1px solid rgba(234,179,8,0.22)", verticalAlign: "middle" },
+  explicaPeso: { marginTop: 6, fontSize: 12, color: "rgba(250,204,21,0.85)", lineHeight: 1.4 },
+  badgeUnverified: { flexShrink: 0, padding: 0, width: 18, height: 18, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 900, lineHeight: 1, borderRadius: 999, background: "rgba(234,179,8,0.12)", color: "#facc15", border: "1px solid rgba(234,179,8,0.30)", cursor: "help" },
   hint: { fontSize: 11, color: "rgba(255,255,255,0.42)", lineHeight: 1.4 },
   comboWrap: { width: "100%" },
   catalogHit: { fontSize: 11, color: "rgba(134,239,172,0.85)", lineHeight: 1.4, marginTop: 2 },
   checkRow: { display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: "rgba(255,255,255,0.85)", cursor: "pointer", padding: "10px 0", userSelect: "none" },
   checkbox: { width: 18, height: 18, accentColor: "rgba(99,102,241,0.9)", cursor: "pointer" },
   input: { padding: "12px 12px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(0,0,0,0.22)", color: "rgba(255,255,255,0.92)", outline: "none", fontSize: 14 },
-  primaryBtn: { flexShrink: 0, whiteSpace: "nowrap", border: 0, fontWeight: 900, padding: "12px 14px", borderRadius: 14, color: "#0b1220", background: "linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.82))", boxShadow: "0 14px 30px rgba(0,0,0,0.35)", cursor: "pointer" },
-  secondaryBtn: { flexShrink: 0, whiteSpace: "nowrap", border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.88)", fontWeight: 900, padding: "12px 14px", borderRadius: 14, cursor: "pointer" },
-  ghostBtn: { flexShrink: 0, whiteSpace: "nowrap", border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.82)", fontWeight: 900, padding: "12px 14px", borderRadius: 14, cursor: "pointer" },
+  primaryBtn: { flexShrink: 0, whiteSpace: "nowrap", border: 0, fontWeight: 800, fontSize: 13, padding: "0 14px", minHeight: 44, borderRadius: 12, color: "#0b1220", background: "linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.82))", boxShadow: "0 14px 30px rgba(0,0,0,0.35)", cursor: "pointer" },
+  secondaryBtn: { flexShrink: 0, whiteSpace: "nowrap", border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.88)", fontWeight: 800, fontSize: 13, padding: "0 12px", minHeight: 44, borderRadius: 12, cursor: "pointer" },
+  ghostBtn: { flexShrink: 0, whiteSpace: "nowrap", border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.82)", fontWeight: 800, fontSize: 13, padding: "0 12px", minHeight: 44, borderRadius: 12, cursor: "pointer" },
   iconBtn: { border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.88)", fontWeight: 900, padding: "8px 10px", borderRadius: 12, cursor: "pointer" },
   btnRow: { display: "flex", gap: 10, flexWrap: "wrap" },
   btnRowRight: { display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" },
