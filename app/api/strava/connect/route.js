@@ -15,6 +15,7 @@
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { getAppUrl } from "../../../../lib/appUrl";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,7 +51,7 @@ export async function GET(request) {
     );
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bike-garage.vercel.app";
+  const appUrl = getAppUrl();
   const authorizeUrl = new URL("https://www.strava.com/oauth/authorize");
   authorizeUrl.searchParams.set("client_id", clientId);
   authorizeUrl.searchParams.set("redirect_uri", `${appUrl}/api/strava/callback`);

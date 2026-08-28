@@ -12,6 +12,7 @@
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { getAppUrl } from "../../../../lib/appUrl";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,7 +36,7 @@ function verifyState(state) {
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bike-garage.vercel.app";
+  const appUrl = getAppUrl();
   const back = (status) => NextResponse.redirect(`${appUrl}/settings/profile?strava=${status}`);
 
   if (searchParams.get("error")) return back("denied");

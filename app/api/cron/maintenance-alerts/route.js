@@ -19,8 +19,27 @@ import { NextResponse } from "next/server";
 import { computeUserAlerts } from "../../../../lib/maintenanceAlerts";
 import { generateEmailHtml } from "../../../../lib/maintenanceEmail";
 import { todayISO, daysSince } from "../../../../lib/dateHelpers";
+import { getAppUrl } from "../../../../lib/appUrl";
 
 const DIGEST_COOLDOWN_DAYS = 7;
+
+/**
+ * Deja constancia de la corrida en `cron_runs`.
+ *
+ * Existe porque este cron nunca envió un correo y nadie se enteró durante
+ * meses: en el plan Hobby de Vercel los logs duran UNA HORA, así que una
+ * corrida de las 12:00 UTC no deja rastro para cuando uno va a mirar.
+ *
+ * Nunca revienta: si no se puede anotar la corrida, eso no puede ser motivo
+ * para que el cron falle.
+ */
+async function anotarCorrida(supabaseAdmin, fila) {
+  try {
+    await supabaseAdmin.from("cron_runs").insert([{ job: "maintenance-alerts", ...fila }]);
+  } catch (err) {
+    console.error("No se pudo anotar la corrida:", err);
+  }
+}
 
 export async function GET(request) {
   // 1. Verificar el CRON_SECRET que Vercel envía automáticamente
@@ -29,13 +48,17 @@ export async function GET(request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const empezó = Date.now();
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
   );
 
+  // Desde acá, cualquier cosa que salga mal queda escrita.
+  try {
+
   const resend = new Resend(process.env.RESEND_API_KEY);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bike-garage.vercel.app";
+  const appUrl = getAppUrl();
 
   // 2. Obtener todos los usuarios registrados
   const { data: { users }, error: usersError } = await supabaseAdmin.auth.admin.listUsers();
@@ -101,5 +124,21 @@ export async function GET(request) {
   }
 
   console.log("Cron maintenance-alerts:", results);
+  await anotarCorrida(supabaseAdmin, {
+    ok: results.errors === 0,
+    duration_ms: Date.now() - empezó,
+    ...results,
+  });
   return NextResponse.json({ ok: true, ...results });
+
+  } catch (err) {
+    // Lo que antes desaparecía con los logs, ahora queda en la base.
+    console.error("Cron maintenance-alerts falló:", err);
+    await anotarCorrida(supabaseAdmin, {
+      ok: false,
+      duration_ms: Date.now() - empezó,
+      error_message: String(err?.message ?? err).slice(0, 500),
+    });
+    return NextResponse.json({ error: "Cron falló", detalle: String(err?.message ?? err) }, { status: 500 });
+  }
 }

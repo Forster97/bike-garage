@@ -14,6 +14,7 @@ import { NextResponse } from "next/server";
 
 import { computeUserAlerts } from "../../../lib/maintenanceAlerts";
 import { generateEmailHtml } from "../../../lib/maintenanceEmail";
+import { getAppUrl } from "../../../lib/appUrl";
 
 export async function POST(request) {
   // 1. Verificar token de autenticación
@@ -50,7 +51,7 @@ export async function POST(request) {
 
   // 4. Generar y enviar el email con Resend
   const resend = new Resend(process.env.RESEND_API_KEY);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bike-garage.vercel.app";
+  const appUrl = getAppUrl();
   const html = generateEmailHtml({ alerts, userEmail: user.email, appUrl });
 
   const { error: sendError } = await resend.emails.send({

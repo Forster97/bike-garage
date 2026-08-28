@@ -1,0 +1,64 @@
+-- Limpieza de las tablas temporales de PRD-12, cinco días después.
+--
+-- La migración del catálogo dejó tres respaldos y una tabla de importación.
+-- Se conservaron a propósito "hasta que esto lleve un tiempo estable". Ya lo
+-- lleva: producción corre con el modelo nuevo desde el 2026-08-23 y el
+-- historial volvió a registrar.
+--
+-- Supabase las marcaba: RLS activo pero SIN NINGUNA POLÍTICA, y visibles en el
+-- esquema GraphQL. No filtraban datos —sin políticas no devuelven filas— pero
+-- son justo el tipo de resto que después nadie se atreve a borrar, como pasó
+-- con `parts`.
+--
+-- QUÉ SE VERIFICÓ ANTES DE BORRAR (2026-08-28)
+--
+--   bike_model_templates_import   56 filas · 0 que no estén ya en
+--                                 bike_model_templates → redundante
+--   _backup_20260823_bike_maintenance   4 filas · la tabla viva tiene 9 → creció
+--   _backup_20260823_bike_components   26 filas · las 28 vivas las contienen
+--   _backup_20260823_components        51 filas · 26 NO tienen equivalente en
+--                                 component_catalog
+--
+-- Esas 26 son las "huérfanas" que PRD-12 decidió NO migrar: restos de dos
+-- plantillas genéricas ("Frame (MTB) - incl hardware", "Chain", "Saddle") y dos
+-- filas de prueba. Nadie las echaría de menos. Pero borrar sin dejar rastro es
+-- exactamente el error que costó el historial, así que quedan escritas acá
+-- abajo antes de soltar las tablas.
+--
+-- Aplicada en producción el 2026-08-28.
+
+-- ── Las 26 filas huérfanas, para que existan fuera de Supabase ───────────────
+--
+-- (id, user_id, name, weight_g, category, sku)
+--
+-- ('7e097e1e-5ac6-4f07-8fe1-0bc5d2954925', 'b1d917e4-…', 'Bartape', 70, 'Cockpit', NULL),
+-- ('0d1221bd-22a2-4a3d-968d-a99a14749785', 'b1d917e4-…', 'Cassette', 360, 'Transmisión', NULL),
+-- ('9ef4b2d4-f000-4c81-81c6-e9c6f1c58bba', 'b1d917e4-…', 'Cassette 12s', 450, 'Transmisión', NULL),
+-- ('aa14af7d-889b-4331-9486-fb5ec642dc9d', 'b1d917e4-…', 'Chain', 250, 'Transmisión', NULL),
+-- ('03d310eb-139c-486e-9bc6-3ba27152a2ee', 'b1d917e4-…', 'Chain 12s', 260, 'Transmisión', NULL),
+-- ('ea18218e-9e9e-41a1-8c56-e615cae4983d', 'b1d917e4-…', 'Crankset gravel', 820, 'Transmisión', NULL),
+-- ('8187438f-41a7-4599-ac9c-928f33a7b629', 'b1d917e4-…', 'Crankset MTB 1x', 780, 'Transmisión', NULL),
+-- ('0a4e5fd5-9e1a-42b6-82f5-8615cd335ae3', 'b1d917e4-…', 'Dropper post (si aplica)', 650, 'Seat / Post', NULL),
+-- ('3504eb37-3a0f-4229-b910-4d30d0d7a0bc', 'b1d917e4-…', 'Fork (Gravel) - carbon/OEM', 520, 'Horquilla', NULL),
+-- ('4885f1d1-d6f6-4a19-bab3-0e134c64e57b', 'b1d917e4-…', 'Fork (MTB)', 2000, 'Horquilla', NULL),
+-- ('e6c9bebe-cdc1-4932-8230-0f4d27f377f2', 'b1d917e4-…', 'Frame (Gravel) - OEM', 1400, 'Marco', NULL),
+-- ('9425dc5e-1386-469c-9212-48a65d85a764', 'b1d917e4-…', 'Frame (MTB) - incl hardware', 2900, 'Marco', NULL),
+-- ('38b8bdb7-fdf6-4605-b583-c77913288f9d', 'b1d917e4-…', 'Handlebar', 310, 'Cockpit', NULL),
+-- ('4a2d292b-cebc-4b76-b592-2f345ab34124', 'b1d917e4-…', 'Hydraulic brakes (levers+calipers)', 950, 'Frenos', NULL),
+-- ('6ff4ec84-9ea1-4454-a408-ee62c5787f42', 'b1d917e4-…', 'Hydraulic disc brakes (levers+calipers)', 820, 'Frenos', NULL),
+-- ('ad47a9cd-1692-40ab-b338-9b1906b07b2d', 'b1d917e4-…', 'MTB tires (pair)', 2100, 'Neumáticos', NULL),
+-- ('4a1bf171-5230-45aa-8403-7fb591525e99', 'b1d917e4-…', 'Rear derailleur', 300, 'Transmisión', NULL),
+-- ('fcbd1078-29c1-42fb-a0b8-43fca42affe4', 'b1d917e4-…', 'Rotors (pair)', 320, 'Otros', NULL),
+-- ('0e54e041-385b-4426-973f-4011ccfddf28', 'b1d917e4-…', 'ryet teste', NULL, 'Sillín / Tija', NULL),
+-- ('755885d7-3404-4cc3-8ac2-4d47f430e3ce', 'b1d917e4-…', 'Saddle', 250, 'Seat / Post', NULL),
+-- ('4ab6198a-96f3-4f8e-bad7-45c9c27d7343', 'b1d917e4-…', 'Saddlemj', 250, 'Neumáticos', NULL),
+-- ('4a1fe413-c58b-4caf-9cda-6b435ba49dca', 'b1d917e4-…', 'Seatpost', 240, 'Seat / Post', NULL),
+-- ('e83527bf-dc73-4a78-be72-85dbe801dcb0', 'b1d917e4-…', 'Stem', 140, 'Cockpit', NULL),
+-- ('41668a55-2ef7-4f46-ad38-b5bc778ff5ed', 'b1d917e4-…', 'Tires 700c gravel (pair)', 900, 'Neumáticos', NULL),
+-- ('aef30899-74f6-43fe-958d-81dbb4ab7cd4', 'b1d917e4-…', 'Wheelset (Gravel) - alloy/OEM', 1800, 'Ruedas', NULL),
+-- ('bb9e4daa-5d27-4a03-913e-6a6bc38c1e61', 'b1d917e4-…', 'Wheelset 29" MTB', 2000, 'Ruedas', NULL)
+
+drop table if exists _backup_20260823_components;
+drop table if exists _backup_20260823_bike_components;
+drop table if exists _backup_20260823_bike_maintenance;
+drop table if exists bike_model_templates_import;
