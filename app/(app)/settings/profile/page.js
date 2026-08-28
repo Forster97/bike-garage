@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import TapLink from "../../../../components/TapLink";
 import { supabase } from "../../../../lib/supabaseClient";
 import Chevron from "../../../../components/Chevron";
 import { color, radio, sombra } from "../../../../lib/design";
@@ -463,7 +463,7 @@ export default function ProfilePage() {
       {/* ── Ajustes · PRD-11.2 ──
            Categorías salió de la barra de navegación: se configura una vez.
            Vive acá, que es donde uno busca los ajustes. */}
-      <Link href="/settings/categories" style={{ ...S.card, textDecoration: "none", display: "block" }}>
+      <TapLink href="/settings/categories" style={{ ...S.card, textDecoration: "none", display: "block" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <div>
             <div style={S.sectionTitle}>Categorías de componentes</div>
@@ -473,7 +473,7 @@ export default function ProfilePage() {
           </div>
           <span style={{ color: color.texto.tenue, flexShrink: 0, fontSize: 20 }} aria-hidden>›</span>
         </div>
-      </Link>
+      </TapLink>
 
       {/* ── Zona peligrosa ── */}
       <div style={{ ...S.card, borderColor: color.estado.vencidoBorde }}>

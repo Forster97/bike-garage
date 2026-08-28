@@ -12,6 +12,7 @@ import { supabase } from "../../../lib/supabaseClient";
 import { formatDateShort, bikeName } from "../../../lib/dateHelpers";
 import { buildGarageView, toAlerts } from "../../../lib/maintenanceView";
 import { color, radio, sombra } from "../../../lib/design";
+import TapLink from "../../../components/TapLink";
 
 // ── Componente principal ───────────────────────────────────────────────────────
 export default function NotificationsPage() {
@@ -255,9 +256,9 @@ export default function NotificationsPage() {
                       </div>
                     </div>
                     <div className="notif-alert-actions">
-                      <a href={`/garage/${bike.id}/maintenance`} style={S.linkChip}>
+                      <TapLink href={`/garage/${bike.id}/maintenance`} style={S.linkChip} reemplaza tam={14}>
                         Ver →
-                      </a>
+                      </TapLink>
                     </div>
                   </div>
                 </div>
@@ -302,7 +303,7 @@ export default function NotificationsPage() {
         )}
 
         <div style={{ marginTop: 12, fontSize: 12, color: color.texto.tenue, lineHeight: 1.5 }}>
-          Configura qué tipos reciben email en <a href="/settings/profile" style={{ color: color.identidad.texto, textDecoration: "none" }}>tu perfil →</a>
+          Configura qué tipos reciben email en <TapLink href="/settings/profile" style={{ color: color.identidad.texto }}>tu perfil →</TapLink>
         </div>
       </div>
     </>

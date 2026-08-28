@@ -3,7 +3,7 @@
 // Página de historial de cambios de una bicicleta.
 // Muestra un registro de todos los eventos (crear, editar, eliminar) de componentes,
 // agrupados por día y ordenados del más reciente al más antiguo.
-import Link from "next/link";
+import TapLink from "../../../../../components/TapLink";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "../../../../../lib/supabaseClient";
@@ -271,7 +271,7 @@ export default function BikeHistoryPage() {
   return (
     <>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <Link href={`/garage/${bikeId}`} style={linkStyle}>← Volver</Link>
+        <TapLink href={`/garage/${bikeId}`} style={linkStyle}>← Volver</TapLink>
       </div>
       {/* Hero */}
       <div

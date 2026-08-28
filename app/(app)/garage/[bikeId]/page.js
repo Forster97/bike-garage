@@ -16,6 +16,7 @@ import { DEFAULT_CATEGORIES, MULTI_COMPONENT_CATEGORIES } from "../../../../lib/
 import ComboBox from "../../../../components/ComboBox";
 import Modal from "../../../../components/Modal";
 import { color, radio, espacio, tacto, texto as textoT, sombra } from "../../../../lib/design";
+import TapLink from "../../../../components/TapLink";
 
 // ── Constantes y funciones helper ─────────────────────────────────────────────
 
@@ -519,10 +520,10 @@ export default function BikeDetailPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
   const pageNav = (
     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-      <button onClick={() => router.push("/garage")} style={styles.secondaryBtn}>← Garage</button>
+      <TapLink href="/garage" style={styles.secondaryBtn}>← Garage</TapLink>
       {bikeId && <>
-        <a href={`/garage/${bikeId}/maintenance`} style={{ color: color.texto.normal, textDecoration: "none", fontSize: 14, padding: "10px 12px", borderRadius: radio.md, border: `1px solid ${color.borde.normal}`, background: color.superficie.media }}>Mantenimiento</a>
-        <a href={`/garage/${bikeId}/history`} style={{ color: color.texto.normal, textDecoration: "none", fontSize: 14, padding: "10px 12px", borderRadius: radio.md, border: `1px solid ${color.borde.normal}`, background: color.superficie.media }}>Historial</a>
+        <TapLink href={`/garage/${bikeId}/maintenance`} style={{ color: color.texto.normal, textDecoration: "none", fontSize: 14, padding: "10px 12px", borderRadius: radio.md, border: `1px solid ${color.borde.normal}`, background: color.superficie.media }}>Mantenimiento</TapLink>
+        <TapLink href={`/garage/${bikeId}/history`} style={{ color: color.texto.normal, textDecoration: "none", fontSize: 14, padding: "10px 12px", borderRadius: radio.md, border: `1px solid ${color.borde.normal}`, background: color.superficie.media }}>Historial</TapLink>
       </>}
     </div>
   );
@@ -560,7 +561,7 @@ export default function BikeDetailPage() {
             style={{ border: `1px solid ${color.borde.fuerte}`, background: color.superficie.alta }}>🤕</div>
           <div className="font-black" style={{ color: color.texto.fuerte }}>No encontré esta bicicleta</div>
           <p className="mt-2 text-sm" style={{ color: color.texto.suave }}>Puede que no exista o no tengas permisos.</p>
-          <button onClick={() => router.push("/garage")} style={styles.primaryBtn} className="mt-4">Volver al Garage</button>
+          <TapLink href="/garage" style={{ ...styles.primaryBtn, display: "inline-flex", alignItems: "center", marginTop: 16 }}>Volver al Garage</TapLink>
         </div>
       </>
     );

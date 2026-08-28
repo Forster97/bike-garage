@@ -17,6 +17,7 @@
  */
 
 import { color, radio, texto, tacto, espacio } from "../lib/design";
+import Cargando from "./Cargando";
 
 const variantes = {
   accion: {
@@ -46,13 +47,16 @@ export default function Button({
   variant = "secundario",
   grande = false,
   ancho = false,
+  // Mientras `cargando`, el botón muestra la misma ruedita que el resto de la
+  // app y deja de aceptar toques: nadie envía dos veces el mismo formulario.
+  cargando = false,
   disabled,
   style,
   ...props
 }) {
   return (
     <button
-      disabled={disabled}
+      disabled={disabled || cargando}
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -69,13 +73,14 @@ export default function Button({
         whiteSpace: "nowrap",
         flexShrink: 0,
         cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.45 : 1,
+        opacity: disabled && !cargando ? 0.45 : 1,
         transition: "filter .15s, opacity .15s",
         ...(variantes[variant] ?? variantes.secundario),
         ...style,
       }}
       {...props}
     >
+      {cargando && <Cargando tam={15} />}
       {children}
     </button>
   );

@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from "react";
 import Modal from "../../../../../components/Modal";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import TapLink from "../../../../../components/TapLink";
 import { supabase } from "../../../../../lib/supabaseClient";
 import { formatDate, formatDateShort, formatCLP, todayISO } from "../../../../../lib/dateHelpers";
 import {
@@ -331,7 +331,7 @@ export default function BikeMaintenancePage() {
 
   const pageNav = (
     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-      <Link href={`/garage/${bikeId}`} style={S.linkBtn}>← Volver</Link>
+      <TapLink href={`/garage/${bikeId}`} style={S.linkBtn}>← Volver</TapLink>
     </div>
   );
 
@@ -353,9 +353,9 @@ export default function BikeMaintenancePage() {
       <div style={{ ...S.card, textAlign: "center", padding: "40px 16px" }}>
         <div style={S.emptyIcon}>🤕</div>
         <div style={S.emptyTitle}>No encontré esta bicicleta</div>
-        <button onClick={() => router.push("/garage")} style={{ ...S.primaryBtn, marginTop: 16 }}>
+        <TapLink href="/garage" style={{ ...S.primaryBtn, display: "inline-flex", alignItems: "center", marginTop: 16 }}>
           Volver al Garage
-        </button>
+        </TapLink>
       </div>
     </>
   );
@@ -515,9 +515,9 @@ export default function BikeMaintenancePage() {
           <div style={{ marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
             <div style={S.sectionTitle}>Estado del mantenimiento</div>
             {bikeParts.length > 0 && filteredTypes.length < types.length && (
-              <Link href={`/garage/${bikeId}`} style={{ fontSize: 11, color: color.identidad.texto, textDecoration: "none" }}>
+              <TapLink href={`/garage/${bikeId}`} style={{ fontSize: 11, color: color.identidad.texto, textDecoration: "none" }}>
                 {filteredTypes.length} de {types.length} tareas · por componentes ›
-              </Link>
+              </TapLink>
             )}
           </div>
 

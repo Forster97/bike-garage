@@ -43,3 +43,44 @@ select.dark-select option {
 input, select, textarea {
   color-scheme: dark;
 }
+
+/* ── Respuesta al toque ──────────────────────────────────────────────────────
+   Lo primero que tiene que pasar cuando el dedo toca algo es que algo se mueva.
+   Esto ocurre en el mismo instante del toque, sin esperar a nada: es lo que
+   separa "no funcionó" de "ya viene".
+
+   Las transiciones son cortas a propósito. Una animación de 300ms para
+   confirmar un toque se siente lenta, que es exactamente lo contrario de lo
+   que buscamos. */
+
+@keyframes bg-girar {
+  to { transform: rotate(360deg); }
+}
+
+.tap,
+button:not(:disabled),
+a[href] {
+  -webkit-tap-highlight-color: transparent;  /* el recuadro azul de iOS */
+  touch-action: manipulation;                /* quita los 300ms de espera al doble toque */
+  transition: transform 0.08s ease, opacity 0.08s ease, filter 0.12s ease;
+}
+
+.tap:active,
+button:not(:disabled):active,
+a[href]:active {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
+
+/* Un enlace que envuelve una tarjeta entera no debe encogerse tanto: a ese
+   tamaño el efecto se ve como un salto. */
+.tap-suave:active,
+.tap-suave button:active {
+  transform: scale(0.995);
+}
+
+/* Respeta a quien pidió menos movimiento en su teléfono. */
+@media (prefers-reduced-motion: reduce) {
+  .tap:active, button:active, a[href]:active { transform: none; }
+  @keyframes bg-girar { to { transform: rotate(360deg); } }
+}

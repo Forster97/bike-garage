@@ -3,7 +3,7 @@
 // useMemo: recalcula canSubmit solo cuando cambian los valores del formulario
 // useState: variables reactivas del formulario
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import TapLink from "../../../components/TapLink";
 import { useRouter } from "next/navigation";
 import { getSupabase } from "../../../lib/supabaseClient";
 import AuthShell, { Campo, ErrorCaja, enlaceTenue } from "../../../components/AuthShell";
@@ -122,7 +122,7 @@ export default function LoginPage() {
 
         <ErrorCaja>{errMsg}</ErrorCaja>
 
-        <Button type="submit" variant="accion" grande ancho disabled={!canSubmit}>
+        <Button type="submit" variant="accion" grande ancho disabled={!canSubmit} cargando={loading}>
           {loading ? "Entrando…" : "Entrar"}
         </Button>
 
@@ -130,9 +130,9 @@ export default function LoginPage() {
           <button type="button" onClick={() => router.push("/")} style={enlaceTenue}>
             ← Volver
           </button>
-          <Link href="/forgot-password" style={enlaceTenue}>
+          <TapLink href="/forgot-password" style={enlaceTenue}>
             ¿Olvidaste tu contraseña?
-          </Link>
+          </TapLink>
         </div>
       </form>
     </AuthShell>

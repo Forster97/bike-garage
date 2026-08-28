@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic"; // Fuerza que la página siempre se reca
 import { useEffect, useMemo, useState } from "react";
 import ComboBox from "../../../components/ComboBox";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import TapLink, { Pendiente } from "../../../components/TapLink";
 import { supabase } from "../../../lib/supabaseClient";
 import { createBikeWithTemplate } from "../../../lib/createBikeWithTemplate";
 import Chevron from "../../../components/Chevron";
@@ -320,7 +320,7 @@ export default function GaragePage() {
             const estado = estadoPorBici[bike.id];
             return (
               <div key={bike.id} style={s.bikeCard}>
-                <Link href={`/garage/${bike.id}`} style={s.bikeLink}>
+                <TapLink href={`/garage/${bike.id}`} style={s.bikeLink} sinIndicador className="tap-suave">
                   <div style={s.bikeAvatar}>
                     {bikeName(bike).slice(0, 1).toUpperCase()}
                     {estado && estado.atencion && (
@@ -341,8 +341,9 @@ export default function GaragePage() {
                     </div>
                   </div>
 
-                  <div style={s.bikeArrow}>→</div>
-                </Link>
+                  {/* Mientras la bici se abre, la flecha se convierte en la ruedita */}
+                  <div style={s.bikeArrow}><Pendiente tam={15}>→</Pendiente></div>
+                </TapLink>
               </div>
             );
           })}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import TapLink from "../../../components/TapLink";
 import { getSupabase } from "../../../lib/supabaseClient";
 import AuthShell, { Campo, ErrorCaja, enlaceTenue } from "../../../components/AuthShell";
 import Input from "../../../components/Input";
@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
             <span style={{ fontWeight: 800, color: color.estado.alDiaTexto }}>{email}</span>.
             Revisa tu bandeja de entrada (y el spam).
           </p>
-          <Link href="/login" style={enlaceTenue}>← Volver al login</Link>
+          <TapLink href="/login" style={enlaceTenue}>← Volver al login</TapLink>
         </div>
       ) : (
         <form onSubmit={onSubmit} style={{ display: "grid", gap: 16 }}>
@@ -91,11 +91,11 @@ export default function ForgotPasswordPage() {
 
           <ErrorCaja>{errMsg}</ErrorCaja>
 
-          <Button type="submit" variant="accion" grande ancho disabled={!isValidEmail(email) || loading}>
+          <Button type="submit" variant="accion" grande ancho disabled={!isValidEmail(email) || loading} cargando={loading}>
             {loading ? "Enviando…" : "Enviar link"}
           </Button>
 
-          <Link href="/login" style={enlaceTenue}>← Volver al login</Link>
+          <TapLink href="/login" style={enlaceTenue}>← Volver al login</TapLink>
         </form>
       )}
     </AuthShell>

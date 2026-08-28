@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import TapLink, { Pendiente } from "../../components/TapLink";
 import { usePathname, useRouter } from "next/navigation";
 import { getSupabase } from "../../lib/supabaseClient";
 import BackgroundGlow from "../../components/BackgroundGlow";
@@ -46,25 +46,25 @@ export default function AppGroupLayout({ children }) {
         <div style={s.headerInner}>
 
           {/* Brand */}
-          <Link href="/garage" style={s.brand}>
+          <TapLink href="/garage" style={s.brand}>
             <div style={s.logo}>BG</div>
             <span style={s.brandName}>Bike Garage</span>
-          </Link>
+          </TapLink>
 
           {/* Desktop: nav + user */}
           <style>{`@media(max-width:639px){.desktop-right{display:none!important}}`}</style>
           <div className="desktop-right" style={s.right}>
             <nav style={s.nav}>
-              <Link href="/garage" style={{ ...s.navItem, ...(isGarage ? s.navItemActive : {}) }}>Garage</Link>
-              <Link href="/maintenance" style={{ ...s.navItem, ...(isMaintenance ? s.navItemActive : {}) }}>Mantenimiento</Link>
-              <Link href="/notifications" style={{ ...s.navItem, ...(isNotifications ? s.navItemActive : {}) }}>Notificaciones</Link>
-              <Link href="/settings/categories" style={{ ...s.navItem, ...(isCategories ? s.navItemActive : {}) }}>Categorías</Link>
+              <TapLink href="/garage" style={{ ...s.navItem, ...(isGarage ? s.navItemActive : {}) }}>Garage</TapLink>
+              <TapLink href="/maintenance" style={{ ...s.navItem, ...(isMaintenance ? s.navItemActive : {}) }}>Mantenimiento</TapLink>
+              <TapLink href="/notifications" style={{ ...s.navItem, ...(isNotifications ? s.navItemActive : {}) }}>Notificaciones</TapLink>
+              <TapLink href="/settings/categories" style={{ ...s.navItem, ...(isCategories ? s.navItemActive : {}) }}>Categorías</TapLink>
             </nav>
             {email && (
-              <Link href="/settings/profile" style={{ ...s.userChip, textDecoration: "none", ...(isProfile ? { borderColor: color.identidad.borde, background: color.identidad.tenue } : {}) }} title={email}>
+              <TapLink href="/settings/profile" style={{ ...s.userChip, textDecoration: "none", ...(isProfile ? { borderColor: color.identidad.borde, background: color.identidad.tenue } : {}) }} title={email}>
                 <span style={s.onlineDot} />
                 <span style={s.userChipText}>{userLabel}</span>
-              </Link>
+              </TapLink>
             )}
             <button onClick={logout} style={s.logoutBtn}>Salir</button>
           </div>
@@ -89,16 +89,18 @@ export default function AppGroupLayout({ children }) {
           { href: "/notifications", icon: "🔔", label: "Alertas", activo: isNotifications },
           { href: "/settings/profile", icon: "👤", label: "Perfil", activo: isProfile || isCategories },
         ].map((it) => (
-          <Link
+          <TapLink
             key={it.href}
             href={it.href}
             className="bn-item"
+            sinIndicador
             aria-current={it.activo ? "page" : undefined}
             style={{ ...s.bnItem, ...(it.activo ? s.bnItemActive : {}) }}
           >
-            <span style={s.bnIcon} aria-hidden>{it.icon}</span>
+            {/* La ruedita toma el lugar del ícono: la barra no se mueve */}
+            <span style={s.bnIcon} aria-hidden><Pendiente tam={17}>{it.icon}</Pendiente></span>
             <span style={s.bnLabel}>{it.label}</span>
-          </Link>
+          </TapLink>
         ))}
       </nav>
     </div>

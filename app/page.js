@@ -1,7 +1,7 @@
 // Página de inicio (landing page) — la primera que ve un visitante en bike-garage.app
 // No requiere login. Su objetivo es presentar la app y convertir visitantes en usuarios.
 // Secciones: Header → Hero → Funcionalidades → Cómo funciona → CTA final → Footer
-import Link from "next/link";
+import TapLink from "../components/TapLink";
 import { color, radio } from "../lib/design";
 
 export default function Home() {
@@ -21,8 +21,8 @@ export default function Home() {
           </div>
           {/* Links de navegación: login (sutil) y signup (botón destacado) */}
           <nav style={s.nav}>
-            <Link href="/login" style={s.navLink}>Iniciar sesión</Link>
-            <Link href="/signup" style={s.cta}>Empezar gratis</Link>
+            <TapLink href="/login" style={s.navLink}>Iniciar sesión</TapLink>
+            <TapLink href="/signup" style={s.cta}>Empezar gratis</TapLink>
           </nav>
         </div>
       </header>
@@ -46,7 +46,7 @@ export default function Home() {
 
           {/* Botones de acción: signup (principal) y ancla al "cómo funciona" */}
           <div style={s.ctaRow}>
-            <Link href="/signup" style={s.primaryCta}>Crear mi garage →</Link>
+            <TapLink href="/signup" style={s.primaryCta}>Crear mi garage →</TapLink>
             <a href="#como-funciona" style={s.ghostCta}>Ver cómo funciona</a>
           </div>
 
@@ -170,7 +170,7 @@ export default function Home() {
             <p style={{ margin: 0, fontSize: 15, color: color.texto.suave, lineHeight: 1.6 }}>
               Crea tu cuenta, agrega tu primera bici y empieza hoy.
             </p>
-            <Link href="/signup" style={s.ctaBoxBtn}>Crear mi garage →</Link>
+            <TapLink href="/signup" style={s.ctaBoxBtn}>Crear mi garage →</TapLink>
           </div>
         </section>
       </main>
@@ -185,8 +185,8 @@ export default function Home() {
           </div>
           {/* Links de autenticación */}
           <div style={{ display: "flex", gap: 4 }}>
-            <Link href="/login" style={s.footerLink}>Ingresar</Link>
-            <Link href="/signup" style={s.footerLink}>Registrarse</Link>
+            <TapLink href="/login" style={s.footerLink}>Ingresar</TapLink>
+            <TapLink href="/signup" style={s.footerLink}>Registrarse</TapLink>
           </div>
         </div>
       </footer>

@@ -7,6 +7,7 @@ import AuthShell, { Campo, ErrorCaja, enlaceTenue } from "../../../components/Au
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
 import { color } from "../../../lib/design";
+import Cargando from "../../../components/Cargando";
 
 export const dynamic = "force-dynamic";
 
@@ -105,13 +106,7 @@ function ResetPasswordForm() {
         </div>
       ) : !ready ? (
         <div style={{ ...centrado, padding: "16px 0" }}>
-          <style>{`@keyframes girar { to { transform: rotate(360deg) } }`}</style>
-          <div style={{
-            width: 24, height: 24, borderRadius: 999,
-            border: `2px solid ${color.borde.fuerte}`,
-            borderTopColor: color.accion.base,
-            animation: "girar 0.8s linear infinite",
-          }} />
+          <Cargando tam={24} grosor={2} style={{ color: color.accion.base }} />
           <p style={{ margin: 0, fontSize: 14, color: color.texto.tenue }}>Verificando link…</p>
         </div>
       ) : (
@@ -149,7 +144,7 @@ function ResetPasswordForm() {
 
           <ErrorCaja>{errMsg}</ErrorCaja>
 
-          <Button type="submit" variant="accion" grande ancho disabled={!canSubmit}>
+          <Button type="submit" variant="accion" grande ancho disabled={!canSubmit} cargando={loading}>
             {loading ? "Guardando…" : "Guardar contraseña"}
           </Button>
         </form>

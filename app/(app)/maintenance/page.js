@@ -3,11 +3,12 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import TapLink from "../../../components/TapLink";
 import { getSupabase } from "../../../lib/supabaseClient";
 import { healthColor } from "../../../lib/maintenanceHelpers";
 import { loadGarageView } from "../../../lib/loadGarageView";
 import { color, radio } from "../../../lib/design";
+import Cargando from "../../../components/Cargando";
 
 export default function MaintenanceDashboardPage() {
   const router = useRouter();
@@ -42,7 +43,7 @@ export default function MaintenanceDashboardPage() {
   if (loading) {
     return (
       <div style={s.loadWrap}>
-        <div style={s.spinner} />
+        <Cargando tam={30} grosor={3} />
         <span style={s.loadText}>Calculando estado…</span>
       </div>
     );
@@ -98,7 +99,7 @@ export default function MaintenanceDashboardPage() {
           <div style={s.emptyIcon}>🚲</div>
           <p style={s.emptyTitle}>Sin bicis aún</p>
           <p style={s.emptyText}>Agrega bicicletas en tu Garage para ver su estado de mantenimiento aquí.</p>
-          <Link href="/garage" style={s.emptyLink}>Ir al Garage →</Link>
+          <TapLink href="/garage" style={s.emptyLink}>Ir al Garage →</TapLink>
         </div>
       ) : (
         <div style={s.grid}>
@@ -108,7 +109,7 @@ export default function MaintenanceDashboardPage() {
             const hasSoon = soon > 0 && overdue === 0;
 
             return (
-              <Link key={bike.id} href={`/garage/${bike.id}/maintenance`} style={{ ...s.card, ...(hasAlert ? s.cardAlert : hasSoon ? s.cardSoon : {}) }}>
+              <TapLink key={bike.id} href={`/garage/${bike.id}/maintenance`} style={{ ...s.card, ...(hasAlert ? s.cardAlert : hasSoon ? s.cardSoon : {}) }}>
                 {/* Card header */}
                 <div style={s.cardHeader}>
                   <div style={s.cardTitleGroup}>
@@ -155,7 +156,7 @@ export default function MaintenanceDashboardPage() {
                 )}
 
                 <div style={s.cardArrow}>Ver detalles →</div>
-              </Link>
+              </TapLink>
             );
           })}
         </div>
@@ -176,14 +177,6 @@ const s = {
     alignItems: "center",
     gap: 12,
     paddingTop: 80,
-  },
-  spinner: {
-    width: 32,
-    height: 32,
-    border: `3px solid ${color.borde.normal}`,
-    borderTop: `3px solid ${color.identidad.borde}`,
-    borderRadius: "50%",
-    animation: "spin 0.8s linear infinite",
   },
   loadText: {
     fontSize: 14,

@@ -6,7 +6,7 @@
 //   - Ocultar categorías (dejan de aparecer en los selects)
 //   - Agregar categorías personalizadas propias
 //   - Eliminar categorías personalizadas (las de por defecto no se pueden borrar)
-import Link from "next/link";
+import TapLink from "../../../../components/TapLink";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
@@ -229,9 +229,9 @@ export default function CategoriesPage() {
           </p>
         </div>
         {/* Se vuelve a Perfil, que es desde donde se llega acá (PRD-11.2) */}
-        <Link href="/settings/profile" style={{ textDecoration: "none" }}>
+        <TapLink href="/settings/profile" style={{ textDecoration: "none" }}>
           <Button>← Perfil</Button>
-        </Link>
+        </TapLink>
       </div>
 
       {/* Resumen */}
@@ -270,7 +270,7 @@ export default function CategoriesPage() {
             placeholder="Ej: Suspensión"
             style={{ flex: 1, minWidth: 0 }}
           />
-          <Button type="submit" variant="accion" disabled={saving || !newName.trim()}>
+          <Button type="submit" variant="accion" disabled={saving || !newName.trim()} cargando={saving}>
             {saving ? "Guardando…" : "Agregar"}
           </Button>
         </form>

@@ -3,7 +3,7 @@
 // useMemo: recalcula canSubmit solo cuando cambian los campos del formulario
 // useState: variables reactivas del formulario
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import TapLink from "../../../components/TapLink";
 import { getSupabase } from "../../../lib/supabaseClient";
 import AuthShell, { Campo, ErrorCaja, Aviso, enlaceTenue } from "../../../components/AuthShell";
 import Input from "../../../components/Input";
@@ -154,15 +154,15 @@ export default function SignupPage() {
           isSuccess ? <Aviso>{msg}</Aviso> : <ErrorCaja>{msg}</ErrorCaja>
         ) : null}
 
-        <Button type="submit" variant="accion" grande ancho disabled={!canSubmit}>
+        <Button type="submit" variant="accion" grande ancho disabled={!canSubmit} cargando={loading}>
           {loading ? "Creando…" : "Crear cuenta"}
         </Button>
 
         <p style={{ margin: 0, fontSize: 13, color: "inherit" }}>
           <span style={enlaceTenue}>¿Ya tienes cuenta? </span>
-          <Link href="/login" style={{ ...enlaceTenue, fontWeight: 700 }}>
+          <TapLink href="/login" style={{ ...enlaceTenue, fontWeight: 700 }}>
             Iniciar sesión
-          </Link>
+          </TapLink>
         </p>
       </form>
     </AuthShell>
