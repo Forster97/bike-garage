@@ -15,6 +15,7 @@ import { supabase } from "../../../../lib/supabaseClient";
 import { DEFAULT_CATEGORIES, MULTI_COMPONENT_CATEGORIES } from "../../../../lib/constants";
 import ComboBox from "../../../../components/ComboBox";
 import Modal from "../../../../components/Modal";
+import { color, radio, espacio, tacto, texto as textoT } from "../../../../lib/design";
 
 // ── Constantes y funciones helper ─────────────────────────────────────────────
 
@@ -1019,7 +1020,7 @@ const styles = {
   checkRow: { display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: "rgba(255,255,255,0.85)", cursor: "pointer", padding: "10px 0", userSelect: "none" },
   checkbox: { width: 18, height: 18, accentColor: "rgba(99,102,241,0.9)", cursor: "pointer" },
   input: { padding: "12px 12px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(0,0,0,0.22)", color: "rgba(255,255,255,0.92)", outline: "none", fontSize: 14 },
-  primaryBtn: { flexShrink: 0, whiteSpace: "nowrap", border: 0, fontWeight: 800, fontSize: 13, padding: "0 14px", minHeight: 44, borderRadius: 12, color: "#0b1220", background: "linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.82))", boxShadow: "0 14px 30px rgba(0,0,0,0.35)", cursor: "pointer" },
+  primaryBtn: { flexShrink: 0, whiteSpace: "nowrap", border: 0, fontWeight: textoT.peso.fuerte, fontSize: textoT.base, padding: `0 ${espacio.md}px`, minHeight: tacto.minimo, borderRadius: radio.md, color: color.texto.sobreAccion, background: color.accion.base, cursor: "pointer" },
   secondaryBtn: { flexShrink: 0, whiteSpace: "nowrap", border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.88)", fontWeight: 800, fontSize: 13, padding: "0 12px", minHeight: 44, borderRadius: 12, cursor: "pointer" },
   ghostBtn: { flexShrink: 0, whiteSpace: "nowrap", border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.82)", fontWeight: 800, fontSize: 13, padding: "0 12px", minHeight: 44, borderRadius: 12, cursor: "pointer" },
   iconBtn: { border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.88)", fontWeight: 900, padding: "8px 10px", borderRadius: 12, cursor: "pointer" },

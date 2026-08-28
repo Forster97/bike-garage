@@ -12,6 +12,7 @@ import {
   PROFILES, healthColor, resolveRule,
 } from "../../../../../lib/maintenanceHelpers";
 import { buildBikeView, indexLastRecords, tipoAplica } from "../../../../../lib/maintenanceView";
+import { color, radio, espacio, tacto, texto as textoT } from "../../../../../lib/design";
 
 const emptyForm = () => ({
   type_id: "", type_name: "", performed_at: todayISO(),
@@ -953,8 +954,8 @@ const S = {
   },
   registrarBtn: {
     width: "100%", minHeight: 56, borderRadius: 16, border: 0,
-    background: "linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.82))",
-    color: "#0b1220", fontSize: 17, fontWeight: 800, cursor: "pointer",
+    background: color.accion.base,
+    color: color.texto.sobreAccion, fontSize: 17, fontWeight: 800, cursor: "pointer",
   },
   cancelarLink: {
     width: "100%", minHeight: 48, border: 0, background: "transparent",
@@ -990,7 +991,7 @@ const S = {
   emptyTitle: { fontWeight: 900, fontSize: 16, color: "rgba(255,255,255,0.90)" },
   emptyText: { marginTop: 6, fontSize: 13, color: "rgba(255,255,255,0.60)", lineHeight: 1.5 },
   linkBtn: { color: "rgba(255,255,255,0.75)", textDecoration: "none", fontSize: 14, padding: "10px" },
-  primaryBtn: { border: 0, fontWeight: 900, padding: "13px 18px", borderRadius: 14, color: "#0b1220", background: "linear-gradient(135deg, rgba(255,255,255,0.96), rgba(255,255,255,0.82))", boxShadow: "0 10px 28px rgba(0,0,0,0.30)", cursor: "pointer", fontSize: 14 },
+  primaryBtn: { border: 0, fontWeight: textoT.peso.fuerte, minHeight: tacto.minimo, padding: `0 ${espacio.lg}px`, borderRadius: radio.md, color: color.texto.sobreAccion, background: color.accion.base, cursor: "pointer", fontSize: textoT.base, whiteSpace: "nowrap" },
   secondaryBtn: { border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.85)", fontWeight: 900, padding: "8px 12px", borderRadius: 12, cursor: "pointer", fontSize: 12, whiteSpace: "nowrap" },
   secondaryBtnLg: { border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.85)", fontWeight: 900, padding: "13px 18px", borderRadius: 14, cursor: "pointer", fontSize: 14 },
   ghostBtn: { border: "1px solid rgba(255,255,255,0.09)", background: "rgba(255,255,255,0.03)", color: "rgba(255,255,255,0.62)", fontWeight: 900, padding: "8px 12px", borderRadius: 12, cursor: "pointer", fontSize: 12, whiteSpace: "nowrap" },

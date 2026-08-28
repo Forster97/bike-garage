@@ -12,6 +12,7 @@ import Chevron from "../../../components/Chevron";
 import { BIKE_TYPES } from "../../../lib/constants";
 import { bikeName } from "../../../lib/dateHelpers";
 import { loadGarageView, estadoDeBici } from "../../../lib/loadGarageView";
+import { color, radio, espacio, tacto, texto as textoT } from "../../../lib/design";
 
 // ── Componente principal de la página ─────────────────────────────────────────
 export default function GaragePage() {
@@ -543,7 +544,7 @@ const s = {
   addRow: { display: "flex", gap: 8, flexWrap: "wrap" },
   comboWrapper: { flex: 1, minWidth: 180 },
   input: { flex: 1, minWidth: 180, padding: "11px 14px", borderRadius: 11, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(0,0,0,0.25)", color: "rgba(255,255,255,0.90)", fontSize: 14, outline: "none" },
-  addBtn: { padding: "11px 18px", borderRadius: 11, border: 0, fontWeight: 700, fontSize: 14, color: "#060910", background: "rgba(255,255,255,0.92)", whiteSpace: "nowrap" },
+  addBtn: { minHeight: tacto.minimo, padding: `0 ${espacio.lg}px`, borderRadius: radio.md, border: 0, fontWeight: textoT.peso.fuerte, fontSize: textoT.base, color: color.texto.sobreAccion, background: color.accion.base, whiteSpace: "nowrap", cursor: "pointer" },
   tip: { display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: "rgba(255,255,255,0.38)" },
   tipDot: { display: "block", width: 5, height: 5, borderRadius: 999, background: "rgba(99,102,241,0.6)", flexShrink: 0 },
 

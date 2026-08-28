@@ -12,6 +12,9 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
 import Card from "../../../../components/Card";
 import Button from "../../../../components/Button";
+import Input from "../../../../components/Input";
+import Badge from "../../../../components/Badge";
+import { color, radio, espacio, texto } from "../../../../lib/design";
 import { DEFAULT_CATEGORIES } from "../../../../lib/constants";
 
 // Limpia espacios al inicio y al final de un nombre de categoría
@@ -190,151 +193,164 @@ export default function CategoriesPage() {
     }
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render ───────────────────────────────────────────────
+  //
+  // Primera pantalla migrada al sistema de diseño. Era la única que usaba los
+  // primitivos viejos —escritos en Tailwind, con paleta lima y gris pizarra—,
+  // así que se veía distinta a las otras ocho sin que eso fuera una decisión.
+
+  const chip = {
+    display: "flex", alignItems: "center", gap: espacio.sm,
+    borderRadius: radio.md, border: "1px solid " + color.borde.sutil,
+    background: color.superficie.baja, padding: espacio.sm + "px " + espacio.md + "px",
+  };
+  const titulo = { fontSize: texto.md, fontWeight: texto.peso.fuerte, color: color.texto.fuerte };
+  const apoyo = { marginTop: 4, fontSize: texto.sm, color: color.texto.suave };
+  const vacio = { fontSize: texto.base, color: color.texto.tenue };
+  const caja = {
+    borderRadius: radio.md, border: "1px solid " + color.borde.sutil,
+    background: color.superficie.baja, padding: espacio.md,
+  };
+
   return (
-    <div className="space-y-4">
-      {/* Título de la página + email + botón volver */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div style={{ display: "flex", flexDirection: "column", gap: espacio.md }}>
+
+      {/* Título + volver */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: espacio.md, flexWrap: "wrap" }}>
         <div>
-          <div className="text-xs text-slate-400">Ajustes</div>
-          <h1 className="text-xl font-semibold text-slate-100">Categorías</h1>
-          <p className="mt-1 text-sm text-slate-300">
+          <div style={{ fontSize: texto.xs, fontWeight: texto.peso.fuerte, letterSpacing: "1px", textTransform: "uppercase", color: color.texto.tenue }}>
+            Ajustes
+          </div>
+          <h1 style={{ margin: "4px 0 0", fontSize: 28, fontWeight: texto.peso.maximo, letterSpacing: "-0.5px", color: color.texto.fuerte }}>
+            Categorías
+          </h1>
+          <p style={{ margin: "6px 0 0", fontSize: texto.md, color: color.texto.suave }}>
             Administra qué categorías aparecen en tus componentes.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href="/garage" className="rounded-xl border border-slate-700 px-3 py-2 text-sm text-slate-100 hover:bg-slate-800">
-            Volver
-          </Link>
-        </div>
+        {/* Se vuelve a Perfil, que es desde donde se llega acá (PRD-11.2) */}
+        <Link href="/settings/profile" style={{ textDecoration: "none" }}>
+          <Button>← Perfil</Button>
+        </Link>
       </div>
 
-      {/* Tarjeta resumen: muestra contadores de visibles, ocultas y personalizadas */}
+      {/* Resumen */}
       <Card>
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <div className="rounded-xl border border-slate-800 bg-slate-950/30 p-3">
-            <div className="text-lg font-bold text-slate-100">{visibleList.length}</div>
-            <div className="text-xs text-slate-400">Visibles</div>
-          </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-950/30 p-3">
-            <div className="text-lg font-bold text-slate-100">{hiddenList.length}</div>
-            <div className="text-xs text-slate-400">Ocultas</div>
-          </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-950/30 p-3">
-            <div className="text-lg font-bold text-slate-100">{custom.length}</div>
-            <div className="text-xs text-slate-400">Personalizadas</div>
-          </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: espacio.md, textAlign: "center" }}>
+          {[
+            ["Visibles", visibleList.length],
+            ["Ocultas", hiddenList.length],
+            ["Personalizadas", custom.length],
+          ].map(([etiqueta, valor]) => (
+            <div key={etiqueta} style={caja}>
+              <div style={{ fontSize: texto.xl, fontWeight: texto.peso.maximo, color: color.texto.fuerte, lineHeight: 1 }}>{valor}</div>
+              <div style={{ marginTop: 5, fontSize: texto.sm, color: color.texto.tenue }}>{etiqueta}</div>
+            </div>
+          ))}
         </div>
       </Card>
 
-      {/* Mensaje de error (si lo hay) */}
       {errorMsg ? (
-        <Card className="border-rose-500/30 bg-rose-500/10">
-          <div className="text-sm font-semibold text-rose-100">Error</div>
-          <div className="mt-1 text-sm text-rose-100/90">{errorMsg}</div>
+        <Card tono="peligro">
+          <div style={{ fontSize: texto.md, fontWeight: texto.peso.fuerte, color: color.estado.vencido }}>Error</div>
+          <div style={{ fontSize: texto.base, color: color.texto.normal }}>{errorMsg}</div>
         </Card>
       ) : null}
 
-      {/* Formulario para agregar una categoría personalizada */}
+      {/* Agregar */}
       <Card>
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold text-slate-100">Agregar categoría</div>
-            <div className="mt-1 text-xs text-slate-300">No se agregan duplicadas (incluye defaults).</div>
-          </div>
-          <div className="rounded-full border border-lime-500/30 bg-lime-500/10 px-3 py-1 text-xs font-semibold text-lime-200">Nuevo</div>
+        <div>
+          <div style={titulo}>Agregar categoría</div>
+          <div style={apoyo}>No se agregan duplicadas.</div>
         </div>
-        <form onSubmit={addCustom} className="flex flex-wrap items-center gap-2">
-          <input
+        <form onSubmit={addCustom} style={{ display: "flex", gap: espacio.sm }}>
+          <Input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="Ej: Suspension"
-            className="w-full flex-1 min-w-[220px] rounded-xl border border-slate-700 bg-slate-950/40 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:ring-2 focus:ring-lime-400"
+            placeholder="Ej: Suspensión"
+            style={{ flex: 1, minWidth: 0 }}
           />
-          <Button type="submit" disabled={saving || !newName.trim()}>
+          <Button type="submit" variant="accion" disabled={saving || !newName.trim()}>
             {saving ? "Guardando…" : "Agregar"}
           </Button>
         </form>
       </Card>
 
-      {/* Lista de categorías VISIBLES */}
+      {/* Visibles */}
       <Card>
-        <div className="text-sm font-semibold text-slate-100">Visibles</div>
-        <div className="mt-1 text-xs text-slate-300">Aparecen en tus selects.</div>
+        <div>
+          <div style={titulo}>Visibles</div>
+          <div style={apoyo}>Aparecen al agregar un componente.</div>
+        </div>
         {loading ? (
-          <div className="mt-3 text-sm text-slate-300">Cargando…</div>
+          <div style={vacio}>Cargando…</div>
         ) : visibleList.length === 0 ? (
-          <div className="mt-3 text-sm text-slate-300">No tienes categorías visibles.</div>
+          <div style={vacio}>No tienes categorías visibles.</div>
         ) : (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: espacio.sm }}>
             {visibleList.map((name) => (
-              <div key={`vis-${name}`} className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-950/30 px-3 py-2">
-                <span className="text-sm font-semibold text-slate-100">{name}</span>
-                {/* Botón para ocultar esta categoría */}
-                <Button type="button" variant="ghost" onClick={() => hideCategory(name)} className="px-3 py-1 text-xs">
-                  Ocultar
-                </Button>
+              <div key={"vis-" + name} style={chip}>
+                <span style={{ fontSize: texto.base, fontWeight: texto.peso.medio, color: color.texto.fuerte }}>{name}</span>
+                <Button variant="fantasma" onClick={() => hideCategory(name)}>Ocultar</Button>
               </div>
             ))}
           </div>
         )}
       </Card>
 
-      {/* Lista de categorías OCULTAS */}
+      {/* Ocultas */}
       <Card>
-        <div className="text-sm font-semibold text-slate-100">Ocultas</div>
-        <div className="mt-1 text-xs text-slate-300">No aparecerán en tus selects.</div>
+        <div>
+          <div style={titulo}>Ocultas</div>
+          <div style={apoyo}>No aparecen al agregar un componente.</div>
+        </div>
         {hiddenList.length === 0 ? (
-          <div className="mt-3 text-sm text-slate-300">No tienes categorías ocultas.</div>
+          <div style={vacio}>No tienes categorías ocultas.</div>
         ) : (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: espacio.sm }}>
             {hiddenList.map((name) => (
-              <div key={`hid-${name}`} className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/40 px-3 py-2">
-                <span className="text-sm font-semibold text-slate-100">{name}</span>
-                {/* Botón para volver a mostrar esta categoría */}
-                <Button type="button" variant="ghost" onClick={() => unhideCategory(name)} className="px-3 py-1 text-xs">
-                  Mostrar
-                </Button>
+              <div key={"hid-" + name} style={chip}>
+                <span style={{ fontSize: texto.base, fontWeight: texto.peso.medio, color: color.texto.suave }}>{name}</span>
+                <Button variant="fantasma" onClick={() => unhideCategory(name)}>Mostrar</Button>
               </div>
             ))}
           </div>
         )}
       </Card>
 
-      {/* Lista de categorías PERSONALIZADAS (las que creó el usuario) */}
+      {/* Personalizadas */}
       <Card>
-        <div className="text-sm font-semibold text-slate-100">Personalizadas</div>
-        <div className="mt-1 text-xs text-slate-300">Puedes ocultarlas o eliminarlas.</div>
+        <div>
+          <div style={titulo}>Personalizadas</div>
+          <div style={apoyo}>Las que creaste tú. Puedes ocultarlas o eliminarlas.</div>
+        </div>
         {custom.length === 0 ? (
-          <div className="mt-3 text-sm text-slate-300">Aún no agregas categorías personalizadas.</div>
+          <div style={vacio}>Aún no agregas categorías personalizadas.</div>
         ) : (
-          <div className="mt-4 space-y-2">
+          <div style={{ display: "flex", flexDirection: "column", gap: espacio.sm }}>
             {custom.map((row) => {
-              const isHidden = hidden.has(row.name); // comprueba si esta categoría está oculta
+              const oculta = hidden.has(row.name);
               return (
-                <div key={row.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-950/30 p-3">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-slate-100">{row.name}</div>
-                    <div className="mt-1 text-xs text-slate-400">{isHidden ? "Oculta" : "Visible"}</div>
+                <div key={row.id} style={{ ...caja, display: "flex", alignItems: "center", justifyContent: "space-between", gap: espacio.md, flexWrap: "wrap" }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: texto.base, fontWeight: texto.peso.fuerte, color: color.texto.fuerte, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {row.name}
+                    </div>
+                    <Badge nivel={oculta ? "sinDatos" : "alDia"} style={{ marginTop: 4 }}>
+                      {oculta ? "Oculta" : "Visible"}
+                    </Badge>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {/* Botón que alterna entre ocultar y mostrar según el estado actual */}
-                    <Button type="button" variant="ghost" onClick={() => isHidden ? unhideCategory(row.name) : hideCategory(row.name)} className="text-xs">
-                      {isHidden ? "Mostrar" : "Ocultar"}
+                  <div style={{ display: "flex", alignItems: "center", gap: espacio.sm }}>
+                    <Button variant="fantasma" onClick={() => (oculta ? unhideCategory(row.name) : hideCategory(row.name))}>
+                      {oculta ? "Mostrar" : "Ocultar"}
                     </Button>
-                    {/* Botón rojo de eliminar — solo para categorías personalizadas */}
-                    <button type="button" onClick={() => deleteCustom(row)} className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-100 hover:bg-rose-500/20 transition">
-                      Eliminar
-                    </button>
+                    <Button variant="peligro" onClick={() => deleteCustom(row)}>Eliminar</Button>
                   </div>
                 </div>
               );
             })}
           </div>
         )}
-        <div className="mt-3 text-xs text-slate-400">
-          Nota: eliminar solo borra la categoría personalizada (no toca defaults).
-        </div>
       </Card>
     </div>
   );

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../../../lib/supabaseClient";
 import Chevron from "../../../../components/Chevron";
+import { color } from "../../../../lib/design";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -538,8 +539,8 @@ const S = {
     fontWeight: 900,
     padding: "12px 24px",
     borderRadius: 12,
-    color: "#0b1220",
-    background: "linear-gradient(135deg, rgba(255,255,255,0.96), rgba(255,255,255,0.82))",
+    color: color.texto.sobreAccion,
+    background: color.accion.base,
     boxShadow: "0 10px 28px rgba(0,0,0,0.30)",
     fontSize: 14,
   },

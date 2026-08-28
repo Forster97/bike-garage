@@ -13,7 +13,8 @@
 html, body { margin: 0; padding: 0; overflow-x: hidden; }
 
 body {
-  background-color: #0b0f19;
+  /* El mismo negro que color.fondo en lib/design.js. Antes eran dos distintos. */
+  background-color: #060910;
   color: #f8fafc;
 }
 
