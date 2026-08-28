@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 import { formatDateShort, bikeName } from "../../../lib/dateHelpers";
 import { buildGarageView, toAlerts } from "../../../lib/maintenanceView";
+import { color, radio, sombra } from "../../../lib/design";
 
 // ── Componente principal ───────────────────────────────────────────────────────
 export default function NotificationsPage() {
@@ -140,9 +141,9 @@ export default function NotificationsPage() {
     <div style={{ display: "grid", gap: 12 }}>
       {[1, 2, 3].map((i) => (
         <div key={i} className="animate-pulse rounded-[18px] border p-4"
-          style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)" }}>
-          <div className="h-4 w-1/2 rounded-full mb-3" style={{ background: "rgba(255,255,255,0.10)" }} />
-          <div className="h-3 w-3/4 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }} />
+          style={{ border: `1px solid ${color.borde.normal}`, background: color.superficie.media }}>
+          <div className="h-4 w-1/2 rounded-full mb-3" style={{ background: color.superficie.alta }} />
+          <div className="h-3 w-3/4 rounded-full" style={{ background: color.superficie.alta }} />
         </div>
       ))}
     </div>
@@ -156,7 +157,7 @@ export default function NotificationsPage() {
         .notif-alert-actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
         @media (max-width: 600px) {
           .notif-alert-row { flex-wrap: wrap; }
-          .notif-alert-actions { width: 100%; justify-content: flex-end; border-top: 1px solid rgba(255,255,255,0.07); padding-top: 8px; margin-top: 4px; }
+          .notif-alert-actions { width: 100%; justify-content: flex-end; border-top: 1px solid ${color.borde.sutil}; padding-top: 8px; margin-top: 4px; }
         }
       `}</style>
 
@@ -168,7 +169,7 @@ export default function NotificationsPage() {
             <div style={S.heroTitle}>Alertas de mantenimiento</div>
             <div style={S.heroSub}>
               {userEmail && (
-                <span style={{ color: "rgba(255,255,255,0.55)" }}>{userEmail}</span>
+                <span style={{ color: color.texto.suave }}>{userEmail}</span>
               )}
             </div>
           </div>
@@ -176,17 +177,17 @@ export default function NotificationsPage() {
           {/* Chips de resumen */}
           <div className="flex items-center gap-2 flex-wrap">
             {overdueCount > 0 && (
-              <span style={{ ...S.chip, color: "rgba(239,68,68,0.90)", background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.22)" }}>
+              <span style={{ ...S.chip, color: color.estado.vencido, background: color.estado.vencidoTenue, border: `1px solid ${color.estado.vencidoBorde}` }}>
                 {overdueCount} vencido{overdueCount > 1 ? "s" : ""}
               </span>
             )}
             {soonCount > 0 && (
-              <span style={{ ...S.chip, color: "rgba(251,191,36,0.90)", background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.20)" }}>
+              <span style={{ ...S.chip, color: color.estado.proximo, background: color.estado.proximoTenue, border: `1px solid ${color.estado.proximoBorde}` }}>
                 {soonCount} próximo{soonCount > 1 ? "s" : ""}
               </span>
             )}
             {overdueCount === 0 && soonCount === 0 && (
-              <span style={{ ...S.chip, color: "rgba(134,239,172,0.85)", background: "rgba(134,239,172,0.08)", border: "1px solid rgba(134,239,172,0.20)" }}>
+              <span style={{ ...S.chip, color: color.estado.alDiaTexto, background: color.estado.alDiaTexto, border: `1px solid ${color.estado.alDiaTexto}` }}>
                 Todo al día
               </span>
             )}
@@ -220,11 +221,11 @@ export default function NotificationsPage() {
                     // lo que no pasa es que llegue por correo.
                     opacity: muted ? 0.45 : 1,
                     borderColor: muted
-                      ? "rgba(255,255,255,0.10)"
-                      : status === "overdue" ? "rgba(239,68,68,0.22)" : "rgba(251,191,36,0.18)",
+                      ? color.borde.normal
+                      : status === "overdue" ? color.estado.vencidoBorde : color.estado.proximoBorde,
                     background: muted
-                      ? "rgba(255,255,255,0.02)"
-                      : status === "overdue" ? "rgba(239,68,68,0.06)" : "rgba(251,191,36,0.04)",
+                      ? color.superficie.baja
+                      : status === "overdue" ? color.estado.vencidoTenue : color.estado.proximoTenue,
                   }}
                 >
                   <div className="notif-alert-row">
@@ -239,17 +240,17 @@ export default function NotificationsPage() {
                         )}
                         {muted && (
                           <span
-                            style={{ ...S.badge, color: "rgba(255,255,255,0.55)", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
+                            style={{ ...S.badge, color: color.texto.suave, background: color.superficie.alta, border: `1px solid ${color.borde.fuerte}` }}
                             title="Tienes este tipo apagado en tu perfil, así que no te llega por correo"
                           >
                             🔕 sin avisos
                           </span>
                         )}
                       </div>
-                      <div style={{ marginTop: 5, fontSize: 12, color: "rgba(255,255,255,0.50)" }}>
+                      <div style={{ marginTop: 5, fontSize: 12, color: color.texto.suave }}>
                         {last
                           ? <>Último: {formatDateShort(last.performed_at)}{nextDate && <> · Próximo: {formatDateShort(nextDate)}</>}</>
-                          : <span style={{ color: "rgba(255,255,255,0.32)" }}>Sin registro previo</span>
+                          : <span style={{ color: color.texto.tenue }}>Sin registro previo</span>
                         }
                       </div>
                     </div>
@@ -270,8 +271,8 @@ export default function NotificationsPage() {
       <div style={S.card}>
         <div style={{ marginBottom: 14 }}>
           <div style={S.sectionTitle}>Enviar resumen por email</div>
-          <div style={{ marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.50)", lineHeight: 1.5 }}>
-            Envía un resumen con todas las alertas habilitadas al correo <strong style={{ color: "rgba(255,255,255,0.75)" }}>{userEmail}</strong>.
+          <div style={{ marginTop: 3, fontSize: 12, color: color.texto.suave, lineHeight: 1.5 }}>
+            Envía un resumen con todas las alertas habilitadas al correo <strong style={{ color: color.texto.normal }}>{userEmail}</strong>.
           </div>
         </div>
 
@@ -292,16 +293,16 @@ export default function NotificationsPage() {
         {sendResult && (
           <div style={{
             ...S.sendResult,
-            borderColor: sendResult.ok ? "rgba(134,239,172,0.25)" : "rgba(239,68,68,0.25)",
-            background: sendResult.ok ? "rgba(134,239,172,0.07)" : "rgba(239,68,68,0.07)",
-            color: sendResult.ok ? "rgba(134,239,172,0.90)" : "rgba(239,68,68,0.90)",
+            borderColor: sendResult.ok ? color.estado.alDiaBorde : color.estado.vencidoBorde,
+            background: sendResult.ok ? color.estado.alDiaTenue : color.estado.vencidoTenue,
+            color: sendResult.ok ? color.estado.alDiaTexto : color.estado.vencido,
           }}>
             {sendResult.ok ? "✓ " : "✕ "}{sendResult.message}
           </div>
         )}
 
-        <div style={{ marginTop: 12, fontSize: 12, color: "rgba(255,255,255,0.38)", lineHeight: 1.5 }}>
-          Configura qué tipos reciben email en <a href="/settings/profile" style={{ color: "rgba(165,180,252,0.70)", textDecoration: "none" }}>tu perfil →</a>
+        <div style={{ marginTop: 12, fontSize: 12, color: color.texto.tenue, lineHeight: 1.5 }}>
+          Configura qué tipos reciben email en <a href="/settings/profile" style={{ color: color.identidad.texto, textDecoration: "none" }}>tu perfil →</a>
         </div>
       </div>
     </>
@@ -310,23 +311,23 @@ export default function NotificationsPage() {
 
 // ── Estilos ────────────────────────────────────────────────────────────────────
 const S = {
-  card: { borderRadius: 20, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.055)", boxShadow: "0 20px 50px rgba(0,0,0,0.30)", padding: 16 },
-  kicker: { fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255,255,255,0.45)" },
-  heroTitle: { marginTop: 5, fontSize: "clamp(20px, 5vw, 28px)", fontWeight: 900, letterSpacing: -0.6, color: "rgba(255,255,255,0.96)", lineHeight: 1.1 },
+  card: { borderRadius: radio.xl, border: `1px solid ${color.borde.normal}`, background: color.superficie.alta, boxShadow: sombra.media, padding: 16 },
+  kicker: { fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: color.texto.tenue },
+  heroTitle: { marginTop: 5, fontSize: "clamp(20px, 5vw, 28px)", fontWeight: 900, letterSpacing: -0.6, color: color.texto.fuerte, lineHeight: 1.1 },
   heroSub: { marginTop: 6, fontSize: 13 },
-  chip: { display: "inline-flex", alignItems: "center", padding: "4px 10px", borderRadius: 999, fontSize: 12, fontWeight: 900 },
-  sectionTitle: { fontWeight: 900, fontSize: 14, color: "rgba(255,255,255,0.92)" },
+  chip: { display: "inline-flex", alignItems: "center", padding: "4px 10px", borderRadius: radio.full, fontSize: 12, fontWeight: 900 },
+  sectionTitle: { fontWeight: 900, fontSize: 14, color: color.texto.fuerte },
 
-  alertCard: { padding: "12px 14px", borderRadius: 14, border: "1px solid", overflow: "hidden" },
-  alertBikeName: { fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(255,255,255,0.45)" },
-  alertTypeName: { fontWeight: 900, fontSize: 14, color: "rgba(255,255,255,0.92)" },
-  badge: { display: "inline-flex", alignItems: "center", padding: "3px 8px", borderRadius: 999, fontSize: 11, fontWeight: 900, whiteSpace: "nowrap", flexShrink: 0 },
+  alertCard: { padding: "12px 14px", borderRadius: radio.md, border: "1px solid", overflow: "hidden" },
+  alertBikeName: { fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: color.texto.tenue },
+  alertTypeName: { fontWeight: 900, fontSize: 14, color: color.texto.fuerte },
+  badge: { display: "inline-flex", alignItems: "center", padding: "3px 8px", borderRadius: radio.full, fontSize: 11, fontWeight: 900, whiteSpace: "nowrap", flexShrink: 0 },
 
-  linkChip: { display: "inline-flex", alignItems: "center", padding: "7px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" },
-  sendBtn: { border: 0, fontWeight: 900, padding: "13px 20px", borderRadius: 14, color: "#0b1220", background: "linear-gradient(135deg, rgba(255,255,255,0.96), rgba(255,255,255,0.82))", boxShadow: "0 10px 28px rgba(0,0,0,0.30)", fontSize: 14 },
-  sendResult: { marginTop: 12, padding: "10px 14px", borderRadius: 12, border: "1px solid", fontSize: 13, fontWeight: 600 },
+  linkChip: { display: "inline-flex", alignItems: "center", padding: "7px 12px", borderRadius: radio.sm, border: `1px solid ${color.borde.fuerte}`, background: color.superficie.alta, color: color.texto.normal, fontSize: 12, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" },
+  sendBtn: { border: 0, fontWeight: 900, padding: "13px 20px", borderRadius: radio.md, color: "#0b1220", background: `linear-gradient(135deg, ${color.superficie.alta}, ${color.superficie.alta})`, boxShadow: sombra.suave, fontSize: 14 },
+  sendResult: { marginTop: 12, padding: "10px 14px", borderRadius: radio.md, border: "1px solid", fontSize: 13, fontWeight: 600 },
 
-  emptyIcon: { width: 52, height: 52, borderRadius: 18, display: "grid", placeItems: "center", margin: "0 auto 12px", background: "rgba(134,239,172,0.08)", border: "1px solid rgba(134,239,172,0.20)", fontSize: 24 },
-  emptyTitle: { fontWeight: 900, fontSize: 16, color: "rgba(255,255,255,0.88)" },
-  emptyText: { marginTop: 6, fontSize: 13, color: "rgba(255,255,255,0.55)" },
+  emptyIcon: { width: 52, height: 52, borderRadius: radio.lg, display: "grid", placeItems: "center", margin: "0 auto 12px", background: color.estado.alDiaTexto, border: `1px solid ${color.estado.alDiaTexto}`, fontSize: 24 },
+  emptyTitle: { fontWeight: 900, fontSize: 16, color: color.texto.normal },
+  emptyText: { marginTop: 6, fontSize: 13, color: color.texto.suave },
 };

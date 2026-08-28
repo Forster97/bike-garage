@@ -12,7 +12,7 @@ import {
   PROFILES, healthColor, resolveRule,
 } from "../../../../../lib/maintenanceHelpers";
 import { buildBikeView, indexLastRecords, tipoAplica } from "../../../../../lib/maintenanceView";
-import { color, radio, espacio, tacto, texto as textoT } from "../../../../../lib/design";
+import { color, radio, espacio, tacto, texto as textoT, sombra } from "../../../../../lib/design";
 
 const emptyForm = () => ({
   type_id: "", type_name: "", performed_at: todayISO(),
@@ -339,10 +339,10 @@ export default function BikeMaintenancePage() {
     <>
       {pageNav}
       <div className="animate-pulse rounded-[18px] border p-4"
-        style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)" }}>
-        <div className="h-5 w-2/3 rounded-full" style={{ background: "rgba(255,255,255,0.10)" }} />
-        <div className="mt-3 h-4 w-1/2 rounded-full" style={{ background: "rgba(255,255,255,0.08)" }} />
-        <div className="mt-3 h-4 w-3/4 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }} />
+        style={{ border: `1px solid ${color.borde.normal}`, background: color.superficie.alta }}>
+        <div className="h-5 w-2/3 rounded-full" style={{ background: color.superficie.alta }} />
+        <div className="mt-3 h-4 w-1/2 rounded-full" style={{ background: color.superficie.alta }} />
+        <div className="mt-3 h-4 w-3/4 rounded-full" style={{ background: color.superficie.alta }} />
       </div>
     </>
   );
@@ -380,15 +380,15 @@ export default function BikeMaintenancePage() {
         .m-modal-wrap {
           /* Por encima de la barra de navegación, que vive en z-index 50 (BG-042) */
           position: fixed; inset: 0; z-index: 1000;
-          background: rgba(0,0,0,0.60); backdrop-filter: blur(4px);
+          background: ${color.velo.normal}; backdrop-filter: blur(4px);
           overscroll-behavior: contain;
           display: flex; align-items: center; justify-content: center; padding: 16px;
         }
         .m-modal {
           position: relative; width: 100%; max-width: 720px;
-          border-radius: 22px; border: 1px solid rgba(255,255,255,0.12);
-          background: rgba(7,10,18,0.95); backdrop-filter: blur(16px);
-          box-shadow: 0 25px 70px rgba(0,0,0,0.65); padding: 16px;
+          border-radius: 22px; border: 1px solid ${color.borde.fuerte};
+          background: ${color.superficie.modal}; backdrop-filter: blur(16px);
+          box-shadow: ${sombra.fuerte}; padding: 16px;
           max-height: 90vh; overflow-y: auto;
         }
         .m-rec-row { display: flex; align-items: flex-start; gap: 10px; }
@@ -400,7 +400,7 @@ export default function BikeMaintenancePage() {
           .m-hist-content { flex: 1 1 calc(100% - 22px); min-width: 0; }
           .m-hist-actions {
             flex-shrink: 0; width: calc(100% - 22px); margin-left: 22px;
-            justify-content: flex-end; border-top: 1px solid rgba(255,255,255,0.07);
+            justify-content: flex-end; border-top: 1px solid ${color.borde.sutil};
             padding-top: 8px; margin-top: 6px;
           }
           .m-grid2 { grid-template-columns: 1fr !important; }
@@ -409,7 +409,7 @@ export default function BikeMaintenancePage() {
           .m-rec-row { flex-wrap: wrap; gap: 6px; }
           .m-rec-actions {
             width: 100%; justify-content: flex-end;
-            border-top: 1px solid rgba(255,255,255,0.07); padding-top: 8px; margin-top: 4px;
+            border-top: 1px solid ${color.borde.sutil}; padding-top: 8px; margin-top: 4px;
           }
         }
       `}</style>
@@ -423,34 +423,34 @@ export default function BikeMaintenancePage() {
 
             {/* Salud general */}
             <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>Salud:</span>
+              <span style={{ fontSize: 12, color: color.texto.tenue }}>Salud:</span>
               <span style={{ fontWeight: 900, fontSize: 14, color: hc.fg }}>{healthScore}%</span>
               <span style={{ ...S.miniChip, color: hc.fg, background: hc.bg, border: `1px solid ${hc.border}` }}>
                 {hc.label}
               </span>
               {overdueCount > 0 && (
-                <span style={{ ...S.miniChip, color: "rgba(239,68,68,0.90)", background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.22)" }}>
+                <span style={{ ...S.miniChip, color: color.estado.vencido, background: color.estado.vencidoTenue, border: `1px solid ${color.estado.vencidoBorde}` }}>
                   {overdueCount} vencido{overdueCount > 1 ? "s" : ""}
                 </span>
               )}
               {soonCount > 0 && (
-                <span style={{ ...S.miniChip, color: "rgba(251,191,36,0.90)", background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.20)" }}>
+                <span style={{ ...S.miniChip, color: color.estado.proximo, background: color.estado.proximoTenue, border: `1px solid ${color.estado.proximoBorde}` }}>
                   {soonCount} próximo{soonCount > 1 ? "s" : ""}
                 </span>
               )}
             </div>
 
             {/* Barra de salud */}
-            <div style={{ marginTop: 8, height: 5, borderRadius: 99, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+            <div style={{ marginTop: 8, height: 5, borderRadius: radio.full, background: color.superficie.alta, overflow: "hidden" }}>
               <div style={{
-                height: "100%", width: `${healthScore}%`, borderRadius: 99,
+                height: "100%", width: `${healthScore}%`, borderRadius: radio.full,
                 background: hc.fg, transition: "width 0.6s ease",
               }} />
             </div>
 
             {/* Perfil */}
             <div style={{ marginTop: 12, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.40)", marginRight: 2 }}>Perfil:</span>
+              <span style={{ fontSize: 11, color: color.texto.tenue, marginRight: 2 }}>Perfil:</span>
               {PROFILES.map((p) => (
                 <button
                   key={p.id}
@@ -458,11 +458,11 @@ export default function BikeMaintenancePage() {
                   disabled={savingProfile}
                   title={p.description}
                   style={{
-                    padding: "4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+                    padding: "4px 10px", borderRadius: radio.full, fontSize: 11, fontWeight: 700,
                     cursor: savingProfile ? "wait" : "pointer",
-                    border: bikeProfile === p.id ? "1px solid rgba(99,102,241,0.55)" : "1px solid rgba(255,255,255,0.11)",
-                    background: bikeProfile === p.id ? "rgba(99,102,241,0.20)" : "rgba(255,255,255,0.04)",
-                    color: bikeProfile === p.id ? "rgba(165,180,252,0.95)" : "rgba(255,255,255,0.55)",
+                    border: `1px solid ${bikeProfile === p.id ? color.identidad.base : color.borde.normal}`,
+                    background: bikeProfile === p.id ? color.identidad.borde : color.superficie.media,
+                    color: bikeProfile === p.id ? color.identidad.texto : color.texto.suave,
                   }}
                 >
                   {p.label}
@@ -472,7 +472,7 @@ export default function BikeMaintenancePage() {
 
             {/* Odómetro */}
             <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.40)" }}>Odómetro:</span>
+              <span style={{ fontSize: 11, color: color.texto.tenue }}>Odómetro:</span>
               {editingOdometer ? (
                 <>
                   <input
@@ -481,7 +481,7 @@ export default function BikeMaintenancePage() {
                     style={{ ...S.input, padding: "5px 10px", width: 90, fontSize: 13 }}
                     inputMode="numeric" placeholder="km" autoFocus
                   />
-                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.40)" }}>km</span>
+                  <span style={{ fontSize: 12, color: color.texto.tenue }}>km</span>
                   <button onClick={saveOdometer} disabled={savingOdometer} style={{ ...S.secondaryBtn, fontSize: 11 }}>
                     {savingOdometer ? "…" : "Guardar"}
                   </button>
@@ -489,7 +489,7 @@ export default function BikeMaintenancePage() {
                 </>
               ) : (
                 <>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.88)" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: color.texto.normal }}>
                     {bikeStats?.odometer_km != null ? `${Number(bikeStats.odometer_km).toLocaleString("es-CL")} km` : "Sin registrar"}
                   </span>
                   <button onClick={() => setEditingOdometer(true)} style={{ ...S.ghostBtn, fontSize: 11 }}>
@@ -515,7 +515,7 @@ export default function BikeMaintenancePage() {
           <div style={{ marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
             <div style={S.sectionTitle}>Estado del mantenimiento</div>
             {bikeParts.length > 0 && filteredTypes.length < types.length && (
-              <Link href={`/garage/${bikeId}`} style={{ fontSize: 11, color: "rgba(165,180,252,0.70)", textDecoration: "none" }}>
+              <Link href={`/garage/${bikeId}`} style={{ fontSize: 11, color: color.identidad.texto, textDecoration: "none" }}>
                 {filteredTypes.length} de {types.length} tareas · por componentes ›
               </Link>
             )}
@@ -529,10 +529,10 @@ export default function BikeMaintenancePage() {
               const isCustom = !!customRulesByTypeId[String(type.id)];
               const isEditingThisRule = editingRuleId === type.id;
 
-              const rowBg = status === "overdue" ? "rgba(239,68,68,0.07)"
-                : status === "soon" ? "rgba(251,191,36,0.05)" : "rgba(0,0,0,0.18)";
-              const rowBorder = status === "overdue" ? "1px solid rgba(239,68,68,0.22)"
-                : status === "soon" ? "1px solid rgba(251,191,36,0.18)" : "1px solid rgba(255,255,255,0.08)";
+              const rowBg = status === "overdue" ? color.estado.vencidoTenue
+                : status === "soon" ? color.estado.proximoTenue : color.superficie.hundida;
+              const rowBorder = `1px solid ${status === "overdue" ? color.estado.vencidoBorde
+                : status === "soon" ? color.estado.proximoBorde : color.borde.normal}`;
 
               // Sub info con km
               const kmPart = remainingKm !== null
@@ -540,7 +540,7 @@ export default function BikeMaintenancePage() {
                 : "";
 
               return (
-                <div key={type.id} style={{ borderRadius: 16, overflow: "hidden", border: rowBorder }}>
+                <div key={type.id} style={{ borderRadius: radio.lg, overflow: "hidden", border: rowBorder }}>
 
                   {/* Cabecera */}
                   <button
@@ -556,7 +556,7 @@ export default function BikeMaintenancePage() {
                           <span style={S.accTypeName}>{type.name}</span>
                           {count > 0 && <span style={S.countPill}>{count}</span>}
                           {isCustom && (
-                            <span style={{ ...S.miniChip, fontSize: 10, color: "rgba(165,180,252,0.80)", background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.25)" }}>
+                            <span style={{ ...S.miniChip, fontSize: 10, color: color.identidad.texto, background: color.identidad.tenue, border: `1px solid ${color.identidad.borde}` }}>
                               personalizado
                             </span>
                           )}
@@ -566,15 +566,15 @@ export default function BikeMaintenancePage() {
                             <>
                               Último: {formatDateShort(last.performed_at)}
                               {nextDueDate && (
-                                <> · <span style={{ color: "rgba(255,255,255,0.75)" }}>Próximo: {formatDateShort(nextDueDate)}</span>{kmPart}</>
+                                <> · <span style={{ color: color.texto.normal }}>Próximo: {formatDateShort(nextDueDate)}</span>{kmPart}</>
                               )}
                             </>
                           ) : nextDueDate ? (
-                            <span style={{ color: "rgba(255,255,255,0.50)" }}>
-                              Sin registro · <span style={{ color: "rgba(255,255,255,0.75)" }}>Próximo: {formatDateShort(nextDueDate)}</span>{kmPart}
+                            <span style={{ color: color.texto.suave }}>
+                              Sin registro · <span style={{ color: color.texto.normal }}>Próximo: {formatDateShort(nextDueDate)}</span>{kmPart}
                             </span>
                           ) : (
-                            <span style={{ color: "rgba(255,255,255,0.32)" }}>Sin registro todavía</span>
+                            <span style={{ color: color.texto.tenue }}>Sin registro todavía</span>
                           )}
                         </div>
                       </div>
@@ -586,11 +586,11 @@ export default function BikeMaintenancePage() {
                           {badge.label}
                         </span>
                       ) : last ? (
-                        <span style={{ ...S.badge, color: "rgba(134,239,172,0.90)", background: "rgba(134,239,172,0.08)", border: "1px solid rgba(134,239,172,0.20)" }}>
+                        <span style={{ ...S.badge, color: color.estado.alDiaTexto, background: color.estado.alDiaTexto, border: `1px solid ${color.estado.alDiaTexto}` }}>
                           Al día{remainingDays != null ? ` · ${Math.round(remainingDays)}d` : ""}
                         </span>
                       ) : (
-                        <span style={{ ...S.badge, color: "rgba(255,255,255,0.28)", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                        <span style={{ ...S.badge, color: color.texto.tenue, background: color.superficie.media, border: `1px solid ${color.borde.normal}` }}>
                           Sin registro
                         </span>
                       )}
@@ -605,11 +605,11 @@ export default function BikeMaintenancePage() {
 
                   {/* Cuerpo expandido */}
                   {isOpen && (
-                    <div style={{ background: "rgba(0,0,0,0.14)", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                    <div style={{ background: color.superficie.hundida, borderTop: `1px solid ${color.borde.sutil}` }}>
 
                       {/* Historial */}
                       {count === 0 ? (
-                        <div style={{ padding: "14px", fontSize: 13, color: "rgba(255,255,255,0.52)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <div style={{ padding: "14px", fontSize: 13, color: color.texto.suave, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                           <span>Sin registros para este tipo.</span>
                           <button type="button" style={S.inlineLink} onClick={(e) => openAddForType(type, e)}>
                             Registrar ahora →
@@ -621,7 +621,7 @@ export default function BikeMaintenancePage() {
                           const costStr = formatCLP(r.cost_clp);
                           return (
                             <div key={r.id} className="m-hist-row"
-                              style={{ borderBottom: isLast ? "none" : "1px solid rgba(255,255,255,0.06)" }}>
+                              style={{ borderBottom: isLast ? "none" : `1px solid ${color.borde.sutil}` }}>
                               <div style={S.timelineWrap}>
                                 <div style={S.timelineDot} />
                                 {!isLast && <div style={S.timelineLine} />}
@@ -650,9 +650,9 @@ export default function BikeMaintenancePage() {
                       )}
 
                       {/* Hint y editor de regla */}
-                      <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "10px 14px" }}>
+                      <div style={{ borderTop: `1px solid ${color.borde.sutil}`, padding: "10px 14px" }}>
                         {type.notes_hint && !isEditingThisRule && (
-                          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.38)", fontStyle: "italic", marginBottom: 8 }}>
+                          <div style={{ fontSize: 12, color: color.texto.tenue, fontStyle: "italic", marginBottom: 8 }}>
                             💡 {type.notes_hint}
                           </div>
                         )}
@@ -660,7 +660,7 @@ export default function BikeMaintenancePage() {
                         {isEditingThisRule ? (
                           /* Editor inline de intervalo */
                           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.50)" }}>Cada:</span>
+                            <span style={{ fontSize: 12, color: color.texto.suave }}>Cada:</span>
                             <input
                               value={ruleForm.days}
                               onChange={(e) => setRuleForm((p) => ({ ...p, days: e.target.value }))}
@@ -668,7 +668,7 @@ export default function BikeMaintenancePage() {
                               style={{ ...S.input, padding: "5px 8px", width: 65, fontSize: 13 }}
                               inputMode="numeric"
                             />
-                            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.38)" }}>días /</span>
+                            <span style={{ fontSize: 12, color: color.texto.tenue }}>días /</span>
                             <input
                               value={ruleForm.km}
                               onChange={(e) => setRuleForm((p) => ({ ...p, km: e.target.value }))}
@@ -676,7 +676,7 @@ export default function BikeMaintenancePage() {
                               style={{ ...S.input, padding: "5px 8px", width: 80, fontSize: 13 }}
                               inputMode="numeric"
                             />
-                            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.38)" }}>km</span>
+                            <span style={{ fontSize: 12, color: color.texto.tenue }}>km</span>
                             <button
                               onClick={() => saveCustomRule(type.id)}
                               disabled={savingRule}
@@ -688,7 +688,7 @@ export default function BikeMaintenancePage() {
                             {isCustom && (
                               <button
                                 onClick={() => { setRuleForm({ days: "", km: "" }); saveCustomRule(type.id); }}
-                                style={{ ...S.ghostBtn, fontSize: 11, color: "rgba(239,68,68,0.65)" }}
+                                style={{ ...S.ghostBtn, fontSize: 11, color: color.estado.vencido }}
                               >
                                 Restaurar perfil
                               </button>
@@ -697,7 +697,7 @@ export default function BikeMaintenancePage() {
                         ) : (
                           /* Vista de intervalo actual */
                           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>
+                            <span style={{ fontSize: 12, color: color.texto.tenue }}>
                               Intervalo: {[
                                 rule?.interval_days && `${rule.interval_days} días`,
                                 rule?.interval_km && `${rule.interval_km.toLocaleString("es-CL")} km`,
@@ -726,7 +726,7 @@ export default function BikeMaintenancePage() {
         <div style={S.card}>
           <div style={{ marginBottom: 12 }}>
             <div style={S.sectionTitle}>Otros registros</div>
-            <div style={{ marginTop: 2, fontSize: 12, color: "rgba(255,255,255,0.46)" }}>
+            <div style={{ marginTop: 2, fontSize: 12, color: color.texto.tenue }}>
               Personalizados o sin intervalo definido
             </div>
           </div>
@@ -818,7 +818,7 @@ export default function BikeMaintenancePage() {
                     ))}
                     <button
                       type="button"
-                      style={{ ...S.tipoOpcion, color: "rgba(255,255,255,0.55)" }}
+                      style={{ ...S.tipoOpcion, color: color.texto.suave }}
                       onClick={() => { setField("type_id", ""); setDetallesAbiertos(true); }}
                     >
                       Otro — lo escribo yo
@@ -935,75 +935,75 @@ const S = {
   tipoLista: { display: "grid", gap: 8, maxHeight: "45vh", overflowY: "auto", paddingRight: 2 },
   tipoOpcion: {
     display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
-    width: "100%", minHeight: 52, padding: "12px 16px", borderRadius: 14,
-    border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.05)",
-    color: "rgba(255,255,255,0.92)", fontSize: 15, fontWeight: 600,
+    width: "100%", minHeight: 52, padding: "12px 16px", borderRadius: radio.md,
+    border: `1px solid ${color.borde.normal}`, background: color.superficie.media,
+    color: color.texto.fuerte, fontSize: 15, fontWeight: 600,
     textAlign: "left", cursor: "pointer",
   },
   tipoOpcionNombre: { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   confirmCard: {
-    padding: "18px 16px", borderRadius: 16, textAlign: "center",
-    border: "1px solid rgba(99,102,241,0.22)", background: "rgba(99,102,241,0.08)",
+    padding: "18px 16px", borderRadius: radio.lg, textAlign: "center",
+    border: `1px solid ${color.identidad.borde}`, background: color.identidad.tenue,
   },
-  confirmTipo: { fontSize: 19, fontWeight: 800, color: "rgba(255,255,255,0.95)", lineHeight: 1.25 },
-  confirmMeta: { fontSize: 13, color: "rgba(255,255,255,0.55)", marginTop: 6 },
+  confirmTipo: { fontSize: 19, fontWeight: 800, color: color.texto.fuerte, lineHeight: 1.25 },
+  confirmMeta: { fontSize: 13, color: color.texto.suave, marginTop: 6 },
   verDetalles: {
-    width: "100%", minHeight: 48, padding: "12px 16px", borderRadius: 14,
-    border: "1px dashed rgba(255,255,255,0.14)", background: "transparent",
-    color: "rgba(255,255,255,0.55)", fontSize: 14, cursor: "pointer",
+    width: "100%", minHeight: 48, padding: "12px 16px", borderRadius: radio.md,
+    border: `1px dashed ${color.borde.fuerte}`, background: "transparent",
+    color: color.texto.suave, fontSize: 14, cursor: "pointer",
   },
   registrarBtn: {
-    width: "100%", minHeight: 56, borderRadius: 16, border: 0,
+    width: "100%", minHeight: 56, borderRadius: radio.lg, border: 0,
     background: color.accion.base,
     color: color.texto.sobreAccion, fontSize: 17, fontWeight: 800, cursor: "pointer",
   },
   cancelarLink: {
     width: "100%", minHeight: 48, border: 0, background: "transparent",
-    color: "rgba(255,255,255,0.45)", fontSize: 14, cursor: "pointer",
+    color: color.texto.tenue, fontSize: 14, cursor: "pointer",
   },
-  card: { borderRadius: 20, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.055)", boxShadow: "0 20px 50px rgba(0,0,0,0.30)", padding: 14 },
-  kicker: { fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255,255,255,0.50)" },
-  heroTitle: { marginTop: 5, fontSize: "clamp(20px, 5vw, 26px)", fontWeight: 900, letterSpacing: -0.5, color: "rgba(255,255,255,0.96)", lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  heroSub: { fontSize: 13, color: "rgba(255,255,255,0.60)" },
-  sectionTitle: { fontWeight: 900, fontSize: 14, color: "rgba(255,255,255,0.92)" },
-  miniChip: { display: "inline-flex", alignItems: "center", padding: "3px 8px", borderRadius: 999, fontSize: 11, fontWeight: 900 },
-  expandArrow: { fontSize: 13, color: "rgba(255,255,255,0.45)", flexShrink: 0, lineHeight: 1.6 },
-  accTypeName: { fontWeight: 900, fontSize: 14, color: "rgba(255,255,255,0.92)", lineHeight: 1.3 },
-  accSub: { marginTop: 2, fontSize: 11, color: "rgba(255,255,255,0.50)", lineHeight: 1.4 },
-  countPill: { display: "inline-flex", alignItems: "center", padding: "1px 6px", borderRadius: 999, fontSize: 11, fontWeight: 900, background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.14)", color: "rgba(255,255,255,0.65)" },
-  addTypeBtn: { width: 32, height: 32, borderRadius: 999, border: "1px solid rgba(255,255,255,0.14)", background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.80)", fontWeight: 900, fontSize: 20, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  badge: { display: "inline-flex", alignItems: "center", padding: "4px 9px", borderRadius: 999, fontSize: 11, fontWeight: 900, whiteSpace: "nowrap", flexShrink: 0 },
+  card: { borderRadius: radio.xl, border: `1px solid ${color.borde.normal}`, background: color.superficie.alta, boxShadow: sombra.media, padding: 14 },
+  kicker: { fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: color.texto.suave },
+  heroTitle: { marginTop: 5, fontSize: "clamp(20px, 5vw, 26px)", fontWeight: 900, letterSpacing: -0.5, color: color.texto.fuerte, lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  heroSub: { fontSize: 13, color: color.texto.suave },
+  sectionTitle: { fontWeight: 900, fontSize: 14, color: color.texto.fuerte },
+  miniChip: { display: "inline-flex", alignItems: "center", padding: "3px 8px", borderRadius: radio.full, fontSize: 11, fontWeight: 900 },
+  expandArrow: { fontSize: 13, color: color.texto.tenue, flexShrink: 0, lineHeight: 1.6 },
+  accTypeName: { fontWeight: 900, fontSize: 14, color: color.texto.fuerte, lineHeight: 1.3 },
+  accSub: { marginTop: 2, fontSize: 11, color: color.texto.suave, lineHeight: 1.4 },
+  countPill: { display: "inline-flex", alignItems: "center", padding: "1px 6px", borderRadius: radio.full, fontSize: 11, fontWeight: 900, background: color.superficie.alta, border: `1px solid ${color.borde.fuerte}`, color: color.texto.suave },
+  addTypeBtn: { width: 32, height: 32, borderRadius: radio.full, border: `1px solid ${color.borde.fuerte}`, background: color.superficie.alta, color: color.texto.normal, fontWeight: 900, fontSize: 20, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  badge: { display: "inline-flex", alignItems: "center", padding: "4px 9px", borderRadius: radio.full, fontSize: 11, fontWeight: 900, whiteSpace: "nowrap", flexShrink: 0 },
   timelineWrap: { display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 4, flexShrink: 0, width: 14 },
-  timelineDot: { width: 8, height: 8, borderRadius: 999, background: "rgba(99,102,241,0.70)", border: "1px solid rgba(99,102,241,0.40)", flexShrink: 0 },
-  timelineLine: { width: 1, flex: 1, minHeight: 16, background: "rgba(255,255,255,0.09)", marginTop: 4 },
-  histDate: { fontWeight: 700, fontSize: 13, color: "rgba(255,255,255,0.88)", lineHeight: 1.3 },
-  histMeta: { marginTop: 2, fontSize: 12, color: "rgba(255,255,255,0.52)" },
-  histNotes: { marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.46)", fontStyle: "italic" },
-  componentChip: { marginTop: 3, display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700, color: "rgba(165,180,252,0.85)", background: "rgba(99,102,241,0.10)", border: "1px solid rgba(99,102,241,0.22)" },
-  dot: { display: "inline-block", width: 3, height: 3, borderRadius: 999, background: "rgba(255,255,255,0.25)" },
-  inlineLink: { border: "none", background: "none", color: "rgba(99,102,241,0.90)", fontWeight: 900, fontSize: 13, cursor: "pointer", padding: 0 },
-  recCard: { padding: "12px 12px", borderRadius: 14, background: "rgba(0,0,0,0.18)", border: "1px solid rgba(255,255,255,0.07)" },
-  recType: { fontWeight: 900, fontSize: 14, color: "rgba(255,255,255,0.92)" },
-  recDate: { marginTop: 2, fontSize: 12, color: "rgba(255,255,255,0.60)" },
-  recMeta: { marginTop: 2, fontSize: 12, color: "rgba(255,255,255,0.52)" },
-  recNotes: { marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.44)", fontStyle: "italic" },
-  emptyIcon: { width: 48, height: 48, borderRadius: 16, display: "grid", placeItems: "center", margin: "0 auto 12px", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", fontSize: 22 },
-  emptyTitle: { fontWeight: 900, fontSize: 16, color: "rgba(255,255,255,0.90)" },
-  emptyText: { marginTop: 6, fontSize: 13, color: "rgba(255,255,255,0.60)", lineHeight: 1.5 },
-  linkBtn: { color: "rgba(255,255,255,0.75)", textDecoration: "none", fontSize: 14, padding: "10px" },
+  timelineDot: { width: 8, height: 8, borderRadius: radio.full, background: color.identidad.base, border: `1px solid ${color.identidad.borde}`, flexShrink: 0 },
+  timelineLine: { width: 1, flex: 1, minHeight: 16, background: color.superficie.alta, marginTop: 4 },
+  histDate: { fontWeight: 700, fontSize: 13, color: color.texto.normal, lineHeight: 1.3 },
+  histMeta: { marginTop: 2, fontSize: 12, color: color.texto.suave },
+  histNotes: { marginTop: 3, fontSize: 12, color: color.texto.tenue, fontStyle: "italic" },
+  componentChip: { marginTop: 3, display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: radio.full, fontSize: 11, fontWeight: 700, color: color.identidad.texto, background: color.identidad.tenue, border: `1px solid ${color.identidad.borde}` },
+  dot: { display: "inline-block", width: 3, height: 3, borderRadius: radio.full, background: color.superficie.alta },
+  inlineLink: { border: "none", background: "none", color: color.identidad.base, fontWeight: 900, fontSize: 13, cursor: "pointer", padding: 0 },
+  recCard: { padding: "12px 12px", borderRadius: radio.md, background: color.superficie.hundida, border: `1px solid ${color.borde.sutil}` },
+  recType: { fontWeight: 900, fontSize: 14, color: color.texto.fuerte },
+  recDate: { marginTop: 2, fontSize: 12, color: color.texto.suave },
+  recMeta: { marginTop: 2, fontSize: 12, color: color.texto.suave },
+  recNotes: { marginTop: 3, fontSize: 12, color: color.texto.tenue, fontStyle: "italic" },
+  emptyIcon: { width: 48, height: 48, borderRadius: radio.lg, display: "grid", placeItems: "center", margin: "0 auto 12px", background: color.superficie.alta, border: `1px solid ${color.borde.fuerte}`, fontSize: 22 },
+  emptyTitle: { fontWeight: 900, fontSize: 16, color: color.texto.fuerte },
+  emptyText: { marginTop: 6, fontSize: 13, color: color.texto.suave, lineHeight: 1.5 },
+  linkBtn: { color: color.texto.normal, textDecoration: "none", fontSize: 14, padding: "10px" },
   primaryBtn: { border: 0, fontWeight: textoT.peso.fuerte, minHeight: tacto.minimo, padding: `0 ${espacio.lg}px`, borderRadius: radio.md, color: color.texto.sobreAccion, background: color.accion.base, cursor: "pointer", fontSize: textoT.base, whiteSpace: "nowrap" },
-  secondaryBtn: { border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.85)", fontWeight: 900, padding: "8px 12px", borderRadius: 12, cursor: "pointer", fontSize: 12, whiteSpace: "nowrap" },
-  secondaryBtnLg: { border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.85)", fontWeight: 900, padding: "13px 18px", borderRadius: 14, cursor: "pointer", fontSize: 14 },
-  ghostBtn: { border: "1px solid rgba(255,255,255,0.09)", background: "rgba(255,255,255,0.03)", color: "rgba(255,255,255,0.62)", fontWeight: 900, padding: "8px 12px", borderRadius: 12, cursor: "pointer", fontSize: 12, whiteSpace: "nowrap" },
-  iconBtn: { border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.88)", fontWeight: 900, padding: "8px 10px", borderRadius: 12, cursor: "pointer" },
-  iconBtnSm: { border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.70)", fontWeight: 900, padding: "4px 8px", borderRadius: 8, cursor: "pointer", fontSize: 11 },
-  sheetHandle: { width: 40, height: 4, borderRadius: 99, background: "rgba(255,255,255,0.18)", margin: "0 auto 16px" },
-  modalHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, paddingBottom: 12, borderBottom: "1px solid rgba(255,255,255,0.10)" },
-  modalTitle: { fontWeight: 900, fontSize: 16, color: "rgba(255,255,255,0.94)" },
+  secondaryBtn: { border: `1px solid ${color.borde.fuerte}`, background: color.superficie.alta, color: color.texto.normal, fontWeight: 900, padding: "8px 12px", borderRadius: radio.md, cursor: "pointer", fontSize: 12, whiteSpace: "nowrap" },
+  secondaryBtnLg: { border: `1px solid ${color.borde.fuerte}`, background: color.superficie.alta, color: color.texto.normal, fontWeight: 900, padding: "13px 18px", borderRadius: radio.md, cursor: "pointer", fontSize: 14 },
+  ghostBtn: { border: `1px solid ${color.borde.normal}`, background: color.superficie.baja, color: color.texto.suave, fontWeight: 900, padding: "8px 12px", borderRadius: radio.md, cursor: "pointer", fontSize: 12, whiteSpace: "nowrap" },
+  iconBtn: { border: `1px solid ${color.borde.fuerte}`, background: color.superficie.alta, color: color.texto.normal, fontWeight: 900, padding: "8px 10px", borderRadius: radio.md, cursor: "pointer" },
+  iconBtnSm: { border: `1px solid ${color.borde.normal}`, background: color.superficie.media, color: color.texto.suave, fontWeight: 900, padding: "4px 8px", borderRadius: radio.sm, cursor: "pointer", fontSize: 11 },
+  sheetHandle: { width: 40, height: 4, borderRadius: radio.full, background: color.superficie.alta, margin: "0 auto 16px" },
+  modalHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, paddingBottom: 12, borderBottom: `1px solid ${color.borde.normal}` },
+  modalTitle: { fontWeight: 900, fontSize: 16, color: color.texto.fuerte },
   field: { display: "grid", gap: 6 },
-  label: { fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.60)" },
-  input: { padding: "13px 12px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(0,0,0,0.25)", color: "rgba(255,255,255,0.92)", outline: "none", fontSize: 15, width: "100%", boxSizing: "border-box" },
-  tipRow: { display: "flex", gap: 8, alignItems: "flex-start", color: "rgba(255,255,255,0.55)", fontSize: 12, lineHeight: 1.5 },
-  tipDot: { width: 8, height: 8, borderRadius: 99, background: "rgba(99,102,241,0.80)", flexShrink: 0, marginTop: 3 },
+  label: { fontSize: 12, fontWeight: 600, color: color.texto.suave },
+  input: { padding: "13px 12px", borderRadius: radio.md, border: `1px solid ${color.borde.fuerte}`, background: color.superficie.hundida, color: color.texto.fuerte, outline: "none", fontSize: 15, width: "100%", boxSizing: "border-box" },
+  tipRow: { display: "flex", gap: 8, alignItems: "flex-start", color: color.texto.suave, fontSize: 12, lineHeight: 1.5 },
+  tipDot: { width: 8, height: 8, borderRadius: radio.full, background: color.identidad.base, flexShrink: 0, marginTop: 3 },
   tipText: {},
 };

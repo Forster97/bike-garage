@@ -19,6 +19,7 @@
 
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { color, sombra } from "../lib/design";
 
 export default function Modal({
   open,
@@ -77,7 +78,7 @@ const estilos = {
   wrap: {
     position: "fixed",
     inset: 0,
-    background: "rgba(0,0,0,0.60)",
+    background: color.velo.normal,
     backdropFilter: "blur(4px)",
     display: "flex",
     alignItems: "center",
@@ -96,9 +97,9 @@ const estilos = {
     WebkitOverflowScrolling: "touch",
     overscrollBehavior: "contain",
     borderRadius: 22,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(7,10,18,0.96)",
-    boxShadow: "0 25px 70px rgba(0,0,0,0.55)",
+    border: `1px solid ${color.borde.fuerte}`,
+    background: color.superficie.modal,
+    boxShadow: sombra.fuerte,
     padding: 14,
   },
 };

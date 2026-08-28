@@ -15,7 +15,7 @@ import { supabase } from "../../../../lib/supabaseClient";
 import { DEFAULT_CATEGORIES, MULTI_COMPONENT_CATEGORIES } from "../../../../lib/constants";
 import ComboBox from "../../../../components/ComboBox";
 import Modal from "../../../../components/Modal";
-import { color, radio, espacio, tacto, texto as textoT } from "../../../../lib/design";
+import { color, radio, espacio, tacto, texto as textoT, sombra } from "../../../../lib/design";
 
 // ── Constantes y funciones helper ─────────────────────────────────────────────
 
@@ -521,8 +521,8 @@ export default function BikeDetailPage() {
     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
       <button onClick={() => router.push("/garage")} style={styles.secondaryBtn}>← Garage</button>
       {bikeId && <>
-        <a href={`/garage/${bikeId}/maintenance`} style={{ color: "rgba(255,255,255,0.78)", textDecoration: "none", fontSize: 14, padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.04)" }}>Mantenimiento</a>
-        <a href={`/garage/${bikeId}/history`} style={{ color: "rgba(255,255,255,0.78)", textDecoration: "none", fontSize: 14, padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.04)" }}>Historial</a>
+        <a href={`/garage/${bikeId}/maintenance`} style={{ color: color.texto.normal, textDecoration: "none", fontSize: 14, padding: "10px 12px", borderRadius: radio.md, border: `1px solid ${color.borde.normal}`, background: color.superficie.media }}>Mantenimiento</a>
+        <a href={`/garage/${bikeId}/history`} style={{ color: color.texto.normal, textDecoration: "none", fontSize: 14, padding: "10px 12px", borderRadius: radio.md, border: `1px solid ${color.borde.normal}`, background: color.superficie.media }}>Historial</a>
       </>}
     </div>
   );
@@ -541,10 +541,10 @@ export default function BikeDetailPage() {
         </div>
       )}
         <div className="animate-pulse rounded-[18px] border p-4"
-          style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)" }}>
-          <div className="h-5 w-2/3 rounded-full" style={{ background: "rgba(255,255,255,0.10)" }} />
-          <div className="mt-3 h-4 w-1/2 rounded-full" style={{ background: "rgba(255,255,255,0.08)" }} />
-          <div className="mt-5 h-10 w-full rounded-xl" style={{ background: "rgba(255,255,255,0.10)" }} />
+          style={{ border: `1px solid ${color.borde.normal}`, background: color.superficie.alta }}>
+          <div className="h-5 w-2/3 rounded-full" style={{ background: color.superficie.alta }} />
+          <div className="mt-3 h-4 w-1/2 rounded-full" style={{ background: color.superficie.alta }} />
+          <div className="mt-5 h-10 w-full rounded-xl" style={{ background: color.superficie.alta }} />
         </div>
       </>
     );
@@ -555,11 +555,11 @@ export default function BikeDetailPage() {
       <>
         {pageNav}
         <div className="rounded-[18px] border p-10 text-center"
-          style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)" }}>
+          style={{ border: `1px solid ${color.borde.normal}`, background: color.superficie.alta }}>
           <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl border text-lg"
-            style={{ border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.08)" }}>🤕</div>
-          <div className="font-black" style={{ color: "rgba(255,255,255,0.92)" }}>No encontré esta bicicleta</div>
-          <p className="mt-2 text-sm" style={{ color: "rgba(255,255,255,0.68)" }}>Puede que no exista o no tengas permisos.</p>
+            style={{ border: `1px solid ${color.borde.fuerte}`, background: color.superficie.alta }}>🤕</div>
+          <div className="font-black" style={{ color: color.texto.fuerte }}>No encontré esta bicicleta</div>
+          <p className="mt-2 text-sm" style={{ color: color.texto.suave }}>Puede que no exista o no tengas permisos.</p>
           <button onClick={() => router.push("/garage")} style={styles.primaryBtn} className="mt-4">Volver al Garage</button>
         </div>
       </>
@@ -889,16 +889,16 @@ export default function BikeDetailPage() {
       {confirmDupOpen && (
         <Modal open onClose={() => setConfirmDupOpen(false)} maxWidth={400} zIndex={1020} padding={24}>
             <div style={{ fontSize: 32, textAlign: "center", marginBottom: 8 }}>⚠️</div>
-            <div style={{ fontWeight: 800, fontSize: 16, color: "rgba(255,255,255,0.92)", textAlign: "center", marginBottom: 8 }}>
+            <div style={{ fontWeight: 800, fontSize: 16, color: color.texto.fuerte, textAlign: "center", marginBottom: 8 }}>
               Esta bici ya tiene {partCategory.toLowerCase()}
             </div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", textAlign: "center", lineHeight: 1.5, marginBottom: 4 }}>
+            <div style={{ fontSize: 13, color: color.texto.suave, textAlign: "center", lineHeight: 1.5, marginBottom: 4 }}>
               Ya está{sameCategoryParts.length > 1 ? "n" : ""}:
             </div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", textAlign: "center", lineHeight: 1.6, marginBottom: 14 }}>
+            <div style={{ fontSize: 13, color: color.texto.normal, textAlign: "center", lineHeight: 1.6, marginBottom: 14 }}>
               {sameCategoryParts.map((p) => p.name).join(" · ")}
             </div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", textAlign: "center", lineHeight: 1.5, marginBottom: 18 }}>
+            <div style={{ fontSize: 12, color: color.texto.suave, textAlign: "center", lineHeight: 1.5, marginBottom: 18 }}>
               Normalmente una bici lleva una sola pieza de esta categoría.
               Si es a propósito, puedes agregarla igual.
             </div>
@@ -916,15 +916,15 @@ export default function BikeDetailPage() {
       {confirmPartId && (
         <Modal open onClose={() => setConfirmPartId(null)} maxWidth={380} zIndex={1010} padding={24}>
             <div style={{ fontSize: 32, textAlign: "center", marginBottom: 8 }}>🧩</div>
-            <div style={{ fontWeight: 800, fontSize: 16, color: "rgba(255,255,255,0.92)", textAlign: "center", marginBottom: 6 }}>
+            <div style={{ fontWeight: 800, fontSize: 16, color: color.texto.fuerte, textAlign: "center", marginBottom: 6 }}>
               {confirmPart?.name ?? "Componente"}
             </div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", textAlign: "center", lineHeight: 1.5, marginBottom: 20 }}>
+            <div style={{ fontSize: 13, color: color.texto.suave, textAlign: "center", lineHeight: 1.5, marginBottom: 20 }}>
               ¿Quitar este componente de la bici?
             </div>
             <div style={{ display: "grid", gap: 8 }}>
               <button
-                style={{ ...styles.ghostBtn, width: "100%", textAlign: "center", color: "rgba(239,68,68,0.85)", borderColor: "rgba(239,68,68,0.25)" }}
+                style={{ ...styles.ghostBtn, width: "100%", textAlign: "center", color: color.estado.vencido, borderColor: color.estado.vencidoBorde }}
                 onClick={removePart}
               >
                 Quitar
@@ -942,17 +942,17 @@ export default function BikeDetailPage() {
       {confirmarBorrarBici && (
         <Modal open onClose={() => setConfirmarBorrarBici(false)} maxWidth={380} zIndex={1010} padding={24}>
             <div style={{ fontSize: 32, textAlign: "center", marginBottom: 8 }}>🗑</div>
-            <div style={{ fontWeight: 800, fontSize: 16, color: "rgba(255,255,255,0.92)", textAlign: "center", marginBottom: 6 }}>
+            <div style={{ fontWeight: 800, fontSize: 16, color: color.texto.fuerte, textAlign: "center", marginBottom: 6 }}>
               ¿Eliminar {bike?.name || "esta bicicleta"}?
             </div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", textAlign: "center", lineHeight: 1.5, marginBottom: 20 }}>
+            <div style={{ fontSize: 13, color: color.texto.suave, textAlign: "center", lineHeight: 1.5, marginBottom: 20 }}>
               Se eliminan también sus componentes y sus registros de mantención.
               Esto no se puede deshacer.
             </div>
             <div style={{ display: "grid", gap: 8 }}>
               <button
                 disabled={borrando}
-                style={{ ...styles.ghostBtn, width: "100%", textAlign: "center", color: "rgba(239,68,68,0.85)", borderColor: "rgba(239,68,68,0.25)", opacity: borrando ? 0.5 : 1 }}
+                style={{ ...styles.ghostBtn, width: "100%", textAlign: "center", color: color.estado.vencido, borderColor: color.estado.vencidoBorde, opacity: borrando ? 0.5 : 1 }}
                 onClick={async () => {
                   setBorrando(true);
                   const { error } = await supabase.from("bikes").delete().eq("id", bikeId);
@@ -978,66 +978,66 @@ export default function BikeDetailPage() {
 
 // ── Estilos ────────────────────────────────────────────────────────────────────
 const styles = {
-  heroCard: { borderRadius: 22, overflow: "hidden", border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)", boxShadow: "0 25px 60px rgba(0,0,0,0.35)", padding: 14 },
+  heroCard: { borderRadius: radio.xl, overflow: "hidden", border: `1px solid ${color.borde.normal}`, background: color.superficie.alta, boxShadow: sombra.media, padding: 14 },
   heroTop: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14, flexWrap: "wrap" },
-  heroKicker: { fontSize: 12, color: "rgba(255,255,255,0.65)" },
+  heroKicker: { fontSize: 12, color: color.texto.suave },
   heroTitleRow: { display: "flex", alignItems: "center", gap: 8, marginTop: 6 },
-  heroTitle: { margin: 0, fontSize: 26, lineHeight: 1.05, letterSpacing: -0.6, color: "rgba(255,255,255,0.96)", maxWidth: 640, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  heroTitle: { margin: 0, fontSize: 26, lineHeight: 1.05, letterSpacing: -0.6, color: color.texto.fuerte, maxWidth: 640, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   heroMeta: { marginTop: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
-  heroMetaSoft: { color: "rgba(255,255,255,0.65)", fontSize: 13 },
-  heroDot: { width: 4, height: 4, borderRadius: 999, background: "rgba(255,255,255,0.25)" },
-  heroSubMeta: { marginTop: 8, fontSize: 12, color: "rgba(255,255,255,0.62)" },
-  heroPill: { borderRadius: 18, padding: "12px 12px", background: "rgba(0,0,0,0.22)", border: "1px solid rgba(255,255,255,0.08)", minWidth: 200 },
-  heroPillTitle: { fontSize: 12, color: "rgba(255,255,255,0.65)" },
-  heroPillValue: { marginTop: 6, fontWeight: 900, fontSize: 24, color: "rgba(255,255,255,0.92)" },
+  heroMetaSoft: { color: color.texto.suave, fontSize: 13 },
+  heroDot: { width: 4, height: 4, borderRadius: radio.full, background: color.superficie.alta },
+  heroSubMeta: { marginTop: 8, fontSize: 12, color: color.texto.suave },
+  heroPill: { borderRadius: radio.lg, padding: "12px 12px", background: color.superficie.hundida, border: `1px solid ${color.borde.normal}`, minWidth: 200 },
+  heroPillTitle: { fontSize: 12, color: color.texto.suave },
+  heroPillValue: { marginTop: 6, fontWeight: 900, fontSize: 24, color: color.texto.fuerte },
   sectionTop: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 },
-  sectionTitle: { fontWeight: 900, color: "rgba(255,255,255,0.92)" },
-  sectionHint: { fontSize: 12, color: "rgba(255,255,255,0.60)" },
+  sectionTitle: { fontWeight: 900, color: color.texto.fuerte },
+  sectionHint: { fontSize: 12, color: color.texto.suave },
   distRow: { display: "grid", gridTemplateColumns: "120px 1fr 70px", gap: 10, alignItems: "center" },
-  distCat: { fontSize: 12, color: "rgba(255,255,255,0.70)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  distTrack: { height: 8, borderRadius: 99, overflow: "hidden", background: "rgba(0,0,0,0.22)", border: "1px solid rgba(255,255,255,0.08)" },
-  distFill: { height: "100%", borderRadius: 99, background: "linear-gradient(135deg, rgba(99,102,241,0.85), rgba(34,197,94,0.75))" },
-  distVal: { textAlign: "right", fontSize: 12, color: "rgba(255,255,255,0.60)" },
+  distCat: { fontSize: 12, color: color.texto.suave, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  distTrack: { height: 8, borderRadius: radio.full, overflow: "hidden", background: color.superficie.hundida, border: `1px solid ${color.borde.normal}` },
+  distFill: { height: "100%", borderRadius: radio.full, background: `linear-gradient(135deg, ${color.identidad.base}, ${color.estado.alDia})` },
+  distVal: { textAlign: "right", fontSize: 12, color: color.texto.suave },
   actionsRow: { display: "flex", gap: 10, alignItems: "center", marginTop: 2 },
   grid: { marginTop: 2, display: "grid", gridTemplateColumns: "1fr", gap: 10 },
-  partCard: { padding: 14, minWidth: 0, overflow: "hidden", borderRadius: 18, background: "rgba(0,0,0,0.22)", border: "1px solid rgba(255,255,255,0.08)" },
+  partCard: { padding: 14, minWidth: 0, overflow: "hidden", borderRadius: radio.lg, background: color.superficie.hundida, border: `1px solid ${color.borde.normal}` },
   partTop: { display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap", minWidth: 0 },
   partNameRow: { display: "flex", alignItems: "center", gap: 7, minWidth: 0 },
-  partName: { fontWeight: 900, color: "rgba(255,255,255,0.92)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 },
-  partMeta: { marginTop: 6, fontSize: 13, color: "rgba(255,255,255,0.70)" },
-  partMetaSoft: { color: "rgba(255,255,255,0.60)" },
-  partSubMeta: { marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.52)" },
+  partName: { fontWeight: 900, color: color.texto.fuerte, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 },
+  partMeta: { marginTop: 6, fontSize: 13, color: color.texto.suave },
+  partMetaSoft: { color: color.texto.suave },
+  partSubMeta: { marginTop: 3, fontSize: 12, color: color.texto.suave },
   partBtns: { display: "flex", gap: 8, alignItems: "center", flexShrink: 0, marginLeft: "auto" },
   editRow: { marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" },
   field: { display: "grid", gap: 6 },
-  label: { fontSize: 12, color: "rgba(255,255,255,0.65)" },
-  optional: { color: "rgba(255,255,255,0.38)", fontWeight: 400 },
-  explicaPeso: { marginTop: 6, fontSize: 12, color: "rgba(250,204,21,0.85)", lineHeight: 1.4 },
-  badgeUnverified: { flexShrink: 0, padding: 0, width: 18, height: 18, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 900, lineHeight: 1, borderRadius: 999, background: "rgba(234,179,8,0.12)", color: "#facc15", border: "1px solid rgba(234,179,8,0.30)", cursor: "help" },
-  hint: { fontSize: 11, color: "rgba(255,255,255,0.42)", lineHeight: 1.4 },
+  label: { fontSize: 12, color: color.texto.suave },
+  optional: { color: color.texto.tenue, fontWeight: 400 },
+  explicaPeso: { marginTop: 6, fontSize: 12, color: color.estado.proximo, lineHeight: 1.4 },
+  badgeUnverified: { flexShrink: 0, padding: 0, width: 18, height: 18, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 900, lineHeight: 1, borderRadius: radio.full, background: color.estado.proximoTenue, color: color.estado.proximo, border: `1px solid ${color.estado.proximoBorde}`, cursor: "help" },
+  hint: { fontSize: 11, color: color.texto.tenue, lineHeight: 1.4 },
   comboWrap: { width: "100%" },
-  catalogHit: { fontSize: 11, color: "rgba(134,239,172,0.85)", lineHeight: 1.4, marginTop: 2 },
-  checkRow: { display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: "rgba(255,255,255,0.85)", cursor: "pointer", padding: "10px 0", userSelect: "none" },
-  checkbox: { width: 18, height: 18, accentColor: "rgba(99,102,241,0.9)", cursor: "pointer" },
-  input: { padding: "12px 12px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(0,0,0,0.22)", color: "rgba(255,255,255,0.92)", outline: "none", fontSize: 14 },
+  catalogHit: { fontSize: 11, color: color.estado.alDiaTexto, lineHeight: 1.4, marginTop: 2 },
+  checkRow: { display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: color.texto.normal, cursor: "pointer", padding: "10px 0", userSelect: "none" },
+  checkbox: { width: 18, height: 18, accentColor: color.identidad.base, cursor: "pointer" },
+  input: { padding: "12px 12px", borderRadius: radio.md, border: `1px solid ${color.borde.fuerte}`, background: color.superficie.hundida, color: color.texto.fuerte, outline: "none", fontSize: 14 },
   primaryBtn: { flexShrink: 0, whiteSpace: "nowrap", border: 0, fontWeight: textoT.peso.fuerte, fontSize: textoT.base, padding: `0 ${espacio.md}px`, minHeight: tacto.minimo, borderRadius: radio.md, color: color.texto.sobreAccion, background: color.accion.base, cursor: "pointer" },
-  secondaryBtn: { flexShrink: 0, whiteSpace: "nowrap", border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.88)", fontWeight: 800, fontSize: 13, padding: "0 12px", minHeight: 44, borderRadius: 12, cursor: "pointer" },
-  ghostBtn: { flexShrink: 0, whiteSpace: "nowrap", border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.82)", fontWeight: 800, fontSize: 13, padding: "0 12px", minHeight: 44, borderRadius: 12, cursor: "pointer" },
-  iconBtn: { border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.88)", fontWeight: 900, padding: "8px 10px", borderRadius: 12, cursor: "pointer" },
+  secondaryBtn: { flexShrink: 0, whiteSpace: "nowrap", border: `1px solid ${color.borde.fuerte}`, background: color.superficie.alta, color: color.texto.normal, fontWeight: 800, fontSize: 13, padding: "0 12px", minHeight: 44, borderRadius: radio.md, cursor: "pointer" },
+  ghostBtn: { flexShrink: 0, whiteSpace: "nowrap", border: `1px solid ${color.borde.fuerte}`, background: color.superficie.media, color: color.texto.normal, fontWeight: 800, fontSize: 13, padding: "0 12px", minHeight: 44, borderRadius: radio.md, cursor: "pointer" },
+  iconBtn: { border: `1px solid ${color.borde.fuerte}`, background: color.superficie.alta, color: color.texto.normal, fontWeight: 900, padding: "8px 10px", borderRadius: radio.md, cursor: "pointer" },
   btnRow: { display: "flex", gap: 10, flexWrap: "wrap" },
   btnRowRight: { display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" },
   grid2: { display: "grid", gridTemplateColumns: "1fr", gap: 10 },
-  empty: { padding: "18px 14px", borderRadius: 18, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", textAlign: "center" },
-  emptyIcon: { width: 46, height: 46, borderRadius: 16, display: "grid", placeItems: "center", margin: "0 auto 10px", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.92)", fontSize: 18, fontWeight: 900 },
-  emptyTitle: { fontWeight: 900, color: "rgba(255,255,255,0.92)" },
-  emptyText: { marginTop: 6, color: "rgba(255,255,255,0.68)", fontSize: 13 },
-  avisoHistorial: { display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 12, border: "1px solid rgba(251,191,36,0.25)", background: "rgba(251,191,36,0.08)", color: "rgba(251,191,36,0.95)", fontSize: 13, fontWeight: 600, cursor: "pointer", lineHeight: 1.4 },
+  empty: { padding: "18px 14px", borderRadius: radio.lg, background: color.superficie.alta, border: `1px solid ${color.borde.normal}`, textAlign: "center" },
+  emptyIcon: { width: 46, height: 46, borderRadius: radio.lg, display: "grid", placeItems: "center", margin: "0 auto 10px", background: color.superficie.alta, border: `1px solid ${color.borde.fuerte}`, color: color.texto.fuerte, fontSize: 18, fontWeight: 900 },
+  emptyTitle: { fontWeight: 900, color: color.texto.fuerte },
+  emptyText: { marginTop: 6, color: color.texto.suave, fontSize: 13 },
+  avisoHistorial: { display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: radio.md, border: `1px solid ${color.estado.proximoBorde}`, background: color.estado.proximoTenue, color: color.estado.proximo, fontSize: 13, fontWeight: 600, cursor: "pointer", lineHeight: 1.4 },
   zonaPeligrosa: { marginTop: 8, display: "flex", justifyContent: "center" },
-  borrarBiciBtn: { padding: "10px 18px", minHeight: 44, borderRadius: 11, border: "1px solid rgba(239,68,68,0.30)", background: "rgba(239,68,68,0.08)", color: "rgba(239,68,68,0.85)", fontWeight: 700, fontSize: 13, cursor: "pointer" },
-  modal: { position: "relative", width: "100%", maxWidth: 720, borderRadius: 22, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(7,10,18,0.90)", backdropFilter: "blur(12px)", boxShadow: "0 25px 70px rgba(0,0,0,0.55)", padding: 14 },
-  modalHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, paddingBottom: 10, borderBottom: "1px solid rgba(255,255,255,0.10)" },
-  modalTitle: { fontWeight: 900, color: "rgba(255,255,255,0.92)" },
-  tipRow: { display: "flex", gap: 8, alignItems: "center", color: "rgba(255,255,255,0.65)", fontSize: 12 },
-  tipDot: { width: 8, height: 8, borderRadius: 99, background: "rgba(99,102,241,0.75)" },
+  borrarBiciBtn: { padding: "10px 18px", minHeight: 44, borderRadius: radio.sm, border: `1px solid ${color.estado.vencidoBorde}`, background: color.estado.vencidoTenue, color: color.estado.vencido, fontWeight: 700, fontSize: 13, cursor: "pointer" },
+  modal: { position: "relative", width: "100%", maxWidth: 720, borderRadius: radio.xl, border: `1px solid ${color.borde.fuerte}`, background: color.superficie.modal, backdropFilter: "blur(12px)", boxShadow: sombra.fuerte, padding: 14 },
+  modalHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, paddingBottom: 10, borderBottom: `1px solid ${color.borde.normal}` },
+  modalTitle: { fontWeight: 900, color: color.texto.fuerte },
+  tipRow: { display: "flex", gap: 8, alignItems: "center", color: color.texto.suave, fontSize: 12 },
+  tipDot: { width: 8, height: 8, borderRadius: radio.full, background: color.identidad.base },
   tipText: { lineHeight: 1.4 },
 };

@@ -6,6 +6,8 @@
  *
  * @param {{ open: boolean }} props
  */
+import { color } from "../lib/design";
+
 export default function Chevron({ open }) {
   return (
     <svg
@@ -21,7 +23,7 @@ export default function Chevron({ open }) {
     >
       <path
         d="M4 6l4 4 4-4"
-        stroke="rgba(255,255,255,0.40)"
+        stroke={color.texto.tenue}
         strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round"

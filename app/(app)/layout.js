@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { getSupabase } from "../../lib/supabaseClient";
 import BackgroundGlow from "../../components/BackgroundGlow";
+import { color, radio } from "../../lib/design";
 
 export default function AppGroupLayout({ children }) {
   const router = useRouter();
@@ -60,7 +61,7 @@ export default function AppGroupLayout({ children }) {
               <Link href="/settings/categories" style={{ ...s.navItem, ...(isCategories ? s.navItemActive : {}) }}>Categorías</Link>
             </nav>
             {email && (
-              <Link href="/settings/profile" style={{ ...s.userChip, textDecoration: "none", ...(isProfile ? { borderColor: "rgba(99,102,241,0.40)", background: "rgba(99,102,241,0.10)" } : {}) }} title={email}>
+              <Link href="/settings/profile" style={{ ...s.userChip, textDecoration: "none", ...(isProfile ? { borderColor: color.identidad.borde, background: color.identidad.tenue } : {}) }} title={email}>
                 <span style={s.onlineDot} />
                 <span style={s.userChipText}>{userLabel}</span>
               </Link>
@@ -79,7 +80,7 @@ export default function AppGroupLayout({ children }) {
            En pantalla grande no aparece: ahí sigue el menú de arriba. */}
       <style>{`
         @media(min-width:640px){ .bottom-nav{display:none!important} }
-        @media(max-width:639px){ .bn-item:active{ background:rgba(255,255,255,0.06) } }
+        @media(max-width:639px){ .bn-item:active{ background:${color.superficie.alta} } }
       `}</style>
       <nav className="bottom-nav" style={s.bottomNav} aria-label="Navegación principal">
         {[
@@ -108,16 +109,16 @@ const s = {
   shell: {
     minHeight: "100vh",
     background: "#060910",
-    color: "rgba(255,255,255,0.90)",
+    color: color.texto.fuerte,
     fontFamily: '"DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif',
   },
   header: {
     position: "sticky",
     top: 0,
     zIndex: 20,
-    borderBottom: "1px solid rgba(255,255,255,0.07)",
+    borderBottom: `1px solid ${color.borde.sutil}`,
     backdropFilter: "blur(16px)",
-    background: "rgba(6,9,16,0.80)",
+    background: color.superficie.header,
   },
   headerInner: {
     maxWidth: 1020,
@@ -137,21 +138,21 @@ const s = {
   logo: {
     width: 32,
     height: 32,
-    borderRadius: 9,
+    borderRadius: radio.sm,
     display: "grid",
     placeItems: "center",
     fontWeight: 900,
     fontSize: 11,
     color: "white",
     background: "linear-gradient(135deg, #6366f1, #22c55e)",
-    boxShadow: "0 0 20px rgba(99,102,241,0.5), 0 2px 8px rgba(0,0,0,0.4)",
+    boxShadow: `0 0 20px ${color.identidad.base}, 0 2px 8px rgba(0,0,0,0.4)`,
     letterSpacing: "-0.5px",
     flexShrink: 0,
   },
   brandName: {
     fontWeight: 700,
     fontSize: 15,
-    color: "rgba(255,255,255,0.90)",
+    color: color.texto.fuerte,
     letterSpacing: "-0.3px",
   },
   right: {
@@ -170,36 +171,36 @@ const s = {
     textDecoration: "none",
     fontSize: 13,
     fontWeight: 500,
-    color: "rgba(255,255,255,0.50)",
+    color: color.texto.suave,
     padding: "7px 12px",
-    borderRadius: 9,
+    borderRadius: radio.sm,
     whiteSpace: "nowrap",
   },
   navItemActive: {
-    color: "rgba(255,255,255,0.90)",
-    background: "rgba(255,255,255,0.07)",
+    color: color.texto.fuerte,
+    background: color.superficie.alta,
   },
   userChip: {
     display: "flex",
     alignItems: "center",
     gap: 6,
     padding: "6px 10px",
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(255,255,255,0.04)",
+    borderRadius: radio.full,
+    border: `1px solid ${color.borde.normal}`,
+    background: color.superficie.media,
   },
   onlineDot: {
     display: "block",
     width: 6,
     height: 6,
-    borderRadius: 999,
+    borderRadius: radio.full,
     background: "rgb(34,197,94)",
-    boxShadow: "0 0 6px rgba(34,197,94,0.7)",
+    boxShadow: `0 0 6px ${color.estado.alDia}`,
     flexShrink: 0,
   },
   userChipText: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.55)",
+    color: color.texto.suave,
     maxWidth: 160,
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -207,11 +208,11 @@ const s = {
     // hide on small mobile
   },
   logoutBtn: {
-    border: "1px solid rgba(255,255,255,0.10)",
-    background: "rgba(255,255,255,0.04)",
-    color: "rgba(255,255,255,0.60)",
+    border: `1px solid ${color.borde.normal}`,
+    background: color.superficie.media,
+    color: color.texto.suave,
     cursor: "pointer",
-    borderRadius: 9,
+    borderRadius: radio.sm,
     padding: "7px 13px",
     fontSize: 13,
     fontWeight: 600,
@@ -222,8 +223,8 @@ const s = {
   bottomNav: {
     position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 50,
     display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
-    borderTop: "1px solid rgba(255,255,255,0.10)",
-    background: "rgba(11,18,32,0.92)",
+    borderTop: `1px solid ${color.borde.normal}`,
+    background: color.superficie.barra,
     backdropFilter: "blur(12px)",
     // Deja libre el indicador de inicio del iPhone
     paddingBottom: "env(safe-area-inset-bottom, 0px)",
@@ -231,9 +232,9 @@ const s = {
   bnItem: {
     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
     gap: 3, minHeight: 58, textDecoration: "none",
-    color: "rgba(255,255,255,0.45)", transition: "color .15s",
+    color: color.texto.tenue, transition: "color .15s",
   },
-  bnItemActive: { color: "rgba(255,255,255,0.95)" },
+  bnItemActive: { color: color.texto.fuerte },
   bnIcon: { fontSize: 19, lineHeight: 1 },
   bnLabel: { fontSize: 10.5, fontWeight: 700, letterSpacing: "0.01em" },
 

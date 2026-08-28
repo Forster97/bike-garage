@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../../../lib/supabaseClient";
 import Chevron from "../../../../components/Chevron";
-import { color } from "../../../../lib/design";
+import { color, radio, sombra } from "../../../../lib/design";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -168,7 +168,7 @@ export default function ProfilePage() {
     <div style={{ display: "grid", gap: 12 }}>
       {[1, 2].map((i) => (
         <div key={i} className="animate-pulse rounded-[18px]"
-          style={{ height: 120, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)", borderRadius: 20 }} />
+          style={{ height: 120, border: `1px solid ${color.borde.normal}`, background: color.superficie.media, borderRadius: radio.xl }} />
       ))}
     </div>
   );
@@ -178,7 +178,7 @@ export default function ProfilePage() {
     <>
       <style>{`
         .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .profile-avatar-ring:hover { border-color: rgba(99,102,241,0.60) !important; }
+        .profile-avatar-ring:hover { border-color: ${color.identidad.base} !important; }
         @media (max-width: 600px) {
           .profile-grid { grid-template-columns: 1fr; }
         }
@@ -195,9 +195,9 @@ export default function ProfilePage() {
               onClick={() => fileRef.current?.click()}
               style={{
                 width: 80, height: 80, borderRadius: "50%",
-                border: "2px solid rgba(99,102,241,0.30)",
+                border: `2px solid ${color.identidad.borde}`,
                 overflow: "hidden", cursor: "pointer",
-                background: "linear-gradient(135deg, rgba(99,102,241,0.25), rgba(34,197,94,0.15))",
+                background: `linear-gradient(135deg, ${color.identidad.medio}, ${color.estado.alDiaTenue})`,
                 display: "grid", placeItems: "center",
                 transition: "border-color 0.2s",
                 position: "relative",
@@ -206,11 +206,11 @@ export default function ProfilePage() {
               {avatarSrc ? (
                 <img src={avatarSrc} alt="Avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               ) : (
-                <span style={{ fontSize: 26, fontWeight: 900, color: "rgba(255,255,255,0.70)" }}>{initials}</span>
+                <span style={{ fontSize: 26, fontWeight: 900, color: color.texto.suave }}>{initials}</span>
               )}
               {/* Overlay al hover */}
               <div style={{
-                position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)",
+                position: "absolute", inset: 0, background: color.velo.suave,
                 display: "grid", placeItems: "center", opacity: 0,
                 transition: "opacity 0.2s",
               }}
@@ -228,7 +228,7 @@ export default function ProfilePage() {
               style={{
                 position: "absolute", bottom: -2, right: -2,
                 width: 26, height: 26, borderRadius: "50%",
-                background: "rgba(99,102,241,0.90)",
+                background: color.identidad.base,
                 border: "2px solid #060910",
                 display: "grid", placeItems: "center",
                 cursor: "pointer", fontSize: 13,
@@ -242,10 +242,10 @@ export default function ProfilePage() {
 
           {/* Info */}
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255,255,255,0.40)", marginBottom: 4 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: color.texto.tenue, marginBottom: 4 }}>
               Mi perfil
             </div>
-            <div style={{ fontSize: "clamp(18px,5vw,24px)", fontWeight: 900, letterSpacing: -0.5, color: "rgba(255,255,255,0.95)", lineHeight: 1.1 }}>
+            <div style={{ fontSize: "clamp(18px,5vw,24px)", fontWeight: 900, letterSpacing: -0.5, color: color.texto.fuerte, lineHeight: 1.1 }}>
               {displayName}
             </div>
             <div style={{ marginTop: 5, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
@@ -338,19 +338,19 @@ export default function ProfilePage() {
                     style={{
                       flex: 1,
                       padding: "10px 0",
-                      borderRadius: 10,
+                      borderRadius: radio.sm,
                       fontWeight: 700,
                       fontSize: 13,
                       cursor: "pointer",
                       border: form.preferred_units === unit
-                        ? "1px solid rgba(99,102,241,0.50)"
-                        : "1px solid rgba(255,255,255,0.10)",
+                        ? `1px solid ${color.identidad.base}`
+                        : `1px solid ${color.borde.normal}`,
                       background: form.preferred_units === unit
-                        ? "rgba(99,102,241,0.20)"
-                        : "rgba(255,255,255,0.04)",
+                        ? color.identidad.borde
+                        : color.superficie.media,
                       color: form.preferred_units === unit
-                        ? "rgba(165,180,252,0.95)"
-                        : "rgba(255,255,255,0.50)",
+                        ? color.identidad.texto
+                        : color.texto.suave,
                     }}
                   >
                     {unit === "km" ? "Kilómetros (km)" : "Millas (mi)"}
@@ -370,7 +370,7 @@ export default function ProfilePage() {
                 style={{ ...S.input, opacity: 0.5, cursor: "not-allowed" }}
               />
             </label>
-            <div style={{ marginTop: 6, fontSize: 11, color: "rgba(255,255,255,0.35)" }}>
+            <div style={{ marginTop: 6, fontSize: 11, color: color.texto.tenue }}>
               El correo se gestiona desde la configuración de autenticación.
             </div>
           </div>
@@ -378,10 +378,10 @@ export default function ProfilePage() {
           {/* Resultado */}
           {saveResult && (
             <div style={{
-              marginTop: 14, padding: "10px 14px", borderRadius: 12,
-              border: `1px solid ${saveResult.ok ? "rgba(134,239,172,0.25)" : "rgba(239,68,68,0.25)"}`,
-              background: saveResult.ok ? "rgba(134,239,172,0.07)" : "rgba(239,68,68,0.07)",
-              color: saveResult.ok ? "rgba(134,239,172,0.90)" : "rgba(239,68,68,0.90)",
+              marginTop: 14, padding: "10px 14px", borderRadius: radio.md,
+              border: `1px solid ${saveResult.ok ? color.estado.alDiaBorde : color.estado.vencidoBorde}`,
+              background: saveResult.ok ? color.estado.alDiaTenue : color.estado.vencidoTenue,
+              color: saveResult.ok ? color.estado.alDiaTexto : color.estado.vencido,
               fontSize: 13, fontWeight: 600,
             }}>
               {saveResult.ok ? "✓ " : "✕ "}{saveResult.message}
@@ -415,7 +415,7 @@ export default function ProfilePage() {
           >
             <div style={{ textAlign: "left" }}>
               <div style={S.sectionTitle}>Notificaciones por email</div>
-              <div style={{ marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.46)", lineHeight: 1.5 }}>
+              <div style={{ marginTop: 3, fontSize: 12, color: color.texto.tenue, lineHeight: 1.5 }}>
                 Activa o desactiva el email automático para cada tipo de mantenimiento
               </div>
             </div>
@@ -426,12 +426,12 @@ export default function ProfilePage() {
             {types.filter((t) => t.default_interval_days).map((type) => {
               const enabled = prefs[type.id] !== false;
               return (
-                <div key={type.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 12, background: "rgba(0,0,0,0.15)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                <div key={type.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: radio.md, background: color.superficie.hundida, border: `1px solid ${color.borde.sutil}` }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: enabled ? "rgba(255,255,255,0.90)" : "rgba(255,255,255,0.40)" }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: enabled ? color.texto.fuerte : color.texto.tenue }}>
                       {type.name}
                     </div>
-                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.40)", marginTop: 1 }}>
+                    <div style={{ fontSize: 11, color: color.texto.tenue, marginTop: 1 }}>
                       Cada {type.default_interval_days} días{type.default_interval_km ? ` · ${type.default_interval_km} km` : ""}
                     </div>
                   </div>
@@ -440,14 +440,14 @@ export default function ProfilePage() {
                     disabled={savingPref === type.id}
                     title={enabled ? "Desactivar" : "Activar"}
                     style={{
-                      position: "relative", width: 36, height: 20, borderRadius: 999,
+                      position: "relative", width: 36, height: 20, borderRadius: radio.full,
                       border: "none", cursor: savingPref === type.id ? "not-allowed" : "pointer",
                       flexShrink: 0, transition: "background 0.2s",
-                      background: enabled ? "rgba(99,102,241,0.85)" : "rgba(255,255,255,0.12)",
+                      background: enabled ? color.identidad.base : color.borde.fuerte,
                     }}
                   >
                     <span style={{
-                      position: "absolute", top: 2, left: 0, width: 16, height: 16, borderRadius: 999,
+                      position: "absolute", top: 2, left: 0, width: 16, height: 16, borderRadius: radio.full,
                       background: "white", boxShadow: "0 1px 4px rgba(0,0,0,0.35)",
                       transition: "transform 0.2s",
                       transform: enabled ? "translateX(18px)" : "translateX(2px)",
@@ -467,20 +467,20 @@ export default function ProfilePage() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <div>
             <div style={S.sectionTitle}>Categorías de componentes</div>
-            <div style={{ marginTop: 6, fontSize: 13, color: "rgba(255,255,255,0.45)", lineHeight: 1.5 }}>
+            <div style={{ marginTop: 6, fontSize: 13, color: color.texto.tenue, lineHeight: 1.5 }}>
               Qué partes de la bici te interesa seguir
             </div>
           </div>
-          <span style={{ color: "rgba(255,255,255,0.35)", flexShrink: 0, fontSize: 20 }} aria-hidden>›</span>
+          <span style={{ color: color.texto.tenue, flexShrink: 0, fontSize: 20 }} aria-hidden>›</span>
         </div>
       </Link>
 
       {/* ── Zona peligrosa ── */}
-      <div style={{ ...S.card, borderColor: "rgba(239,68,68,0.15)" }}>
+      <div style={{ ...S.card, borderColor: color.estado.vencidoBorde }}>
         <div style={S.sectionTitle}>Cuenta</div>
         <div style={{ marginTop: 10, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.50)", lineHeight: 1.5 }}>
-            Email: <strong style={{ color: "rgba(255,255,255,0.75)" }}>{userEmail}</strong>
+          <div style={{ fontSize: 13, color: color.texto.suave, lineHeight: 1.5 }}>
+            Email: <strong style={{ color: color.texto.normal }}>{userEmail}</strong>
           </div>
           <button
             onClick={async () => {
@@ -488,10 +488,10 @@ export default function ProfilePage() {
               router.replace("/login");
             }}
             style={{
-              padding: "9px 18px", borderRadius: 10,
-              border: "1px solid rgba(239,68,68,0.30)",
-              background: "rgba(239,68,68,0.08)",
-              color: "rgba(239,68,68,0.85)",
+              padding: "9px 18px", borderRadius: radio.sm,
+              border: `1px solid ${color.estado.vencidoBorde}`,
+              background: color.estado.vencidoTenue,
+              color: color.estado.vencido,
               fontWeight: 700, fontSize: 13, cursor: "pointer",
             }}
           >
@@ -506,30 +506,30 @@ export default function ProfilePage() {
 // ── Estilos ────────────────────────────────────────────────────────────────────
 const S = {
   card: {
-    borderRadius: 20,
-    border: "1px solid rgba(255,255,255,0.10)",
-    background: "rgba(255,255,255,0.055)",
-    boxShadow: "0 20px 50px rgba(0,0,0,0.30)",
+    borderRadius: radio.xl,
+    border: `1px solid ${color.borde.normal}`,
+    background: color.superficie.alta,
+    boxShadow: sombra.media,
     padding: 20,
   },
-  sectionTitle: { fontWeight: 900, fontSize: 14, color: "rgba(255,255,255,0.92)" },
+  sectionTitle: { fontWeight: 900, fontSize: 14, color: color.texto.fuerte },
   metaChip: {
     fontSize: 11, fontWeight: 600,
-    padding: "3px 9px", borderRadius: 999,
-    background: "rgba(255,255,255,0.07)",
-    border: "1px solid rgba(255,255,255,0.10)",
-    color: "rgba(255,255,255,0.60)",
+    padding: "3px 9px", borderRadius: radio.full,
+    background: color.superficie.alta,
+    border: `1px solid ${color.borde.normal}`,
+    color: color.texto.suave,
     whiteSpace: "nowrap",
   },
   fieldWrap: { display: "flex", flexDirection: "column", gap: 6 },
-  label: { fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.55)", letterSpacing: "0.02em" },
+  label: { fontSize: 12, fontWeight: 700, color: color.texto.suave, letterSpacing: "0.02em" },
   input: {
-    background: "rgba(255,255,255,0.06)",
-    border: "1px solid rgba(255,255,255,0.12)",
-    borderRadius: 10,
+    background: color.superficie.alta,
+    border: `1px solid ${color.borde.fuerte}`,
+    borderRadius: radio.sm,
     padding: "10px 13px",
     fontSize: 14,
-    color: "rgba(255,255,255,0.90)",
+    color: color.texto.fuerte,
     outline: "none",
     width: "100%",
     boxSizing: "border-box",
@@ -538,10 +538,10 @@ const S = {
     border: 0,
     fontWeight: 900,
     padding: "12px 24px",
-    borderRadius: 12,
+    borderRadius: radio.md,
     color: color.texto.sobreAccion,
     background: color.accion.base,
-    boxShadow: "0 10px 28px rgba(0,0,0,0.30)",
+    boxShadow: sombra.suave,
     fontSize: 14,
   },
 };

@@ -336,7 +336,7 @@ export default function GaragePage() {
                       {estado ? (
                         <span style={{ color: estado.color, fontWeight: 600 }}>{estado.texto}</span>
                       ) : (
-                        <span style={{ color: "rgba(255,255,255,0.25)" }}>…</span>
+                        <span style={{ color: color.texto.tenue }}>…</span>
                       )}
                     </div>
                   </div>
@@ -478,19 +478,19 @@ export default function GaragePage() {
                  La auto-carga está en pausa (ver createBikeWithTemplate), así que
                  esto se muestra como referencia y no promete cargar nada. */}
             {loadingTemplate && (
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", padding: "8px 0" }}>
+              <div style={{ fontSize: 12, color: color.texto.tenue, padding: "8px 0" }}>
                 Buscando componentes…
               </div>
             )}
 
             {!loadingTemplate && templatePreview !== null && templatePreview.length > 0 && (
-              <div style={{ borderRadius: 12, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.04)", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ borderRadius: radio.md, border: `1px solid ${color.borde.normal}`, background: color.superficie.media, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.55)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: color.texto.suave, letterSpacing: "0.05em", textTransform: "uppercase" }}>
                     Este modelo suele traer
                   </span>
                   {templatePreview.some((p) => p.weight_g) && (
-                    <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.45)", whiteSpace: "nowrap" }}>
+                    <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, color: color.texto.tenue, whiteSpace: "nowrap" }}>
                       ~{(templatePreview.reduce((s2, p) => s2 + (p.weight_g ?? 0), 0) / 1000).toFixed(2)} kg
                     </span>
                   )}
@@ -498,17 +498,17 @@ export default function GaragePage() {
                 <div style={{ display: "grid", gap: 3 }}>
                   {templatePreview.map((p, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                      <span style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", minWidth: 0 }}>
+                      <span style={{ fontSize: 12, color: color.texto.suave, minWidth: 0 }}>
                         {p.name}
-                        <span style={{ color: "rgba(255,255,255,0.28)", marginLeft: 6 }}>{p.category}</span>
+                        <span style={{ color: color.texto.tenue, marginLeft: 6 }}>{p.category}</span>
                       </span>
-                      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", whiteSpace: "nowrap", flexShrink: 0 }}>
+                      <span style={{ fontSize: 11, color: color.texto.tenue, whiteSpace: "nowrap", flexShrink: 0 }}>
                         {p.weight_g ? `${p.weight_g} g` : "—"}
                       </span>
                     </div>
                   ))}
                 </div>
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", lineHeight: 1.4 }}>
+                <div style={{ fontSize: 11, color: color.texto.tenue, lineHeight: 1.4 }}>
                   Es solo referencia: los componentes los agregas tú después, uno a uno.
                 </div>
               </div>
@@ -529,43 +529,43 @@ export default function GaragePage() {
 // ── Estilos ────────────────────────────────────────────────────────────────────
 const s = {
   titleRow: { display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 8 },
-  titleLabel: { fontSize: 11, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: 4 },
-  title: { margin: 0, fontSize: "clamp(28px, 6vw, 38px)", fontWeight: 900, letterSpacing: "-1px", color: "rgba(255,255,255,0.95)", lineHeight: 1 },
-  subtitulo: { marginTop: 7, fontSize: 13, fontWeight: 600, color: "rgba(251,191,36,0.85)" },
-  puntoEstado: { position: "absolute", top: -3, right: -3, width: 12, height: 12, borderRadius: 999, border: "2px solid #060910" },
-  countPill: { display: "flex", alignItems: "baseline", gap: 5, padding: "10px 16px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)" },
-  countNum: { fontSize: 22, fontWeight: 900, color: "rgba(255,255,255,0.90)", letterSpacing: "-0.5px" },
-  countLabel: { fontSize: 12, color: "rgba(255,255,255,0.40)", fontWeight: 500 },
+  titleLabel: { fontSize: 11, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: color.texto.tenue, marginBottom: 4 },
+  title: { margin: 0, fontSize: "clamp(28px, 6vw, 38px)", fontWeight: 900, letterSpacing: "-1px", color: color.texto.fuerte, lineHeight: 1 },
+  subtitulo: { marginTop: 7, fontSize: 13, fontWeight: 600, color: color.estado.proximo },
+  puntoEstado: { position: "absolute", top: -3, right: -3, width: 12, height: 12, borderRadius: radio.full, border: "2px solid #060910" },
+  countPill: { display: "flex", alignItems: "baseline", gap: 5, padding: "10px 16px", borderRadius: radio.md, border: `1px solid ${color.borde.normal}`, background: color.superficie.media },
+  countNum: { fontSize: 22, fontWeight: 900, color: color.texto.fuerte, letterSpacing: "-0.5px" },
+  countLabel: { fontSize: 12, color: color.texto.tenue, fontWeight: 500 },
 
-  addCard: { borderRadius: 18, border: "1px solid rgba(255,255,255,0.09)", background: "rgba(255,255,255,0.04)", padding: "18px", display: "flex", flexDirection: "column", gap: 14 },
-  addCardTitle: { fontWeight: 700, fontSize: 15, color: "rgba(255,255,255,0.88)", letterSpacing: "-0.3px" },
-  addCardSub: { marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.40)" },
-  newBadge: { fontSize: 11, fontWeight: 700, color: "rgba(134,239,172,0.9)", background: "rgba(34,197,94,0.10)", border: "1px solid rgba(34,197,94,0.20)", padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" },
+  addCard: { borderRadius: radio.lg, border: `1px solid ${color.borde.normal}`, background: color.superficie.media, padding: "18px", display: "flex", flexDirection: "column", gap: 14 },
+  addCardTitle: { fontWeight: 700, fontSize: 15, color: color.texto.normal, letterSpacing: "-0.3px" },
+  addCardSub: { marginTop: 3, fontSize: 12, color: color.texto.tenue },
+  newBadge: { fontSize: 11, fontWeight: 700, color: color.estado.alDiaTexto, background: color.estado.alDiaTenue, border: `1px solid ${color.estado.alDiaBorde}`, padding: "4px 10px", borderRadius: radio.full, whiteSpace: "nowrap" },
   addRow: { display: "flex", gap: 8, flexWrap: "wrap" },
   comboWrapper: { flex: 1, minWidth: 180 },
-  input: { flex: 1, minWidth: 180, padding: "11px 14px", borderRadius: 11, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(0,0,0,0.25)", color: "rgba(255,255,255,0.90)", fontSize: 14, outline: "none" },
+  input: { flex: 1, minWidth: 180, padding: "11px 14px", borderRadius: radio.sm, border: `1px solid ${color.borde.normal}`, background: color.superficie.hundida, color: color.texto.fuerte, fontSize: 14, outline: "none" },
   addBtn: { minHeight: tacto.minimo, padding: `0 ${espacio.lg}px`, borderRadius: radio.md, border: 0, fontWeight: textoT.peso.fuerte, fontSize: textoT.base, color: color.texto.sobreAccion, background: color.accion.base, whiteSpace: "nowrap", cursor: "pointer" },
-  tip: { display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: "rgba(255,255,255,0.38)" },
-  tipDot: { display: "block", width: 5, height: 5, borderRadius: 999, background: "rgba(99,102,241,0.6)", flexShrink: 0 },
+  tip: { display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: color.texto.tenue },
+  tipDot: { display: "block", width: 5, height: 5, borderRadius: radio.full, background: color.identidad.base, flexShrink: 0 },
 
   list: { display: "flex", flexDirection: "column", gap: 8 },
 
-  skeletonCard: { display: "flex", alignItems: "center", gap: 14, padding: "16px", borderRadius: 16, border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.03)" },
-  skeletonAvatar: { width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.07)", flexShrink: 0 },
-  skeletonLine1: { height: 14, width: "55%", borderRadius: 999, background: "rgba(255,255,255,0.07)" },
-  skeletonLine2: { height: 11, width: "35%", borderRadius: 999, background: "rgba(255,255,255,0.05)" },
+  skeletonCard: { display: "flex", alignItems: "center", gap: 14, padding: "16px", borderRadius: radio.lg, border: `1px solid ${color.borde.sutil}`, background: color.superficie.baja },
+  skeletonAvatar: { width: 44, height: 44, borderRadius: radio.md, background: color.superficie.alta, flexShrink: 0 },
+  skeletonLine1: { height: 14, width: "55%", borderRadius: radio.full, background: color.superficie.alta },
+  skeletonLine2: { height: 11, width: "35%", borderRadius: radio.full, background: color.superficie.media },
 
-  emptyState: { padding: "48px 20px", borderRadius: 18, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.03)", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 },
+  emptyState: { padding: "48px 20px", borderRadius: radio.lg, border: `1px solid ${color.borde.sutil}`, background: color.superficie.baja, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 },
   emptyIcon: { fontSize: 32, marginBottom: 4 },
-  emptyTitle: { fontWeight: 700, fontSize: 17, color: "rgba(255,255,255,0.80)", letterSpacing: "-0.3px" },
-  emptyText: { margin: 0, fontSize: 14, color: "rgba(255,255,255,0.40)", lineHeight: 1.6, maxWidth: 320 },
+  emptyTitle: { fontWeight: 700, fontSize: 17, color: color.texto.normal, letterSpacing: "-0.3px" },
+  emptyText: { margin: 0, fontSize: 14, color: color.texto.tenue, lineHeight: 1.6, maxWidth: 320 },
 
-  bikeCard: { display: "flex", alignItems: "center", borderRadius: 16, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)", overflow: "hidden" },
+  bikeCard: { display: "flex", alignItems: "center", borderRadius: radio.lg, border: `1px solid ${color.borde.normal}`, background: color.superficie.media, overflow: "hidden" },
   bikeLink: { display: "flex", alignItems: "center", gap: 14, flex: 1, padding: "14px 16px", textDecoration: "none", minWidth: 0 },
-  bikeAvatar: { position: "relative", width: 44, height: 44, borderRadius: 14, display: "grid", placeItems: "center", fontWeight: 900, fontSize: 18, color: "rgba(255,255,255,0.85)", background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.20)", flexShrink: 0 },
+  bikeAvatar: { position: "relative", width: 44, height: 44, borderRadius: radio.md, display: "grid", placeItems: "center", fontWeight: 900, fontSize: 18, color: color.texto.normal, background: color.identidad.tenue, border: `1px solid ${color.identidad.borde}`, flexShrink: 0 },
   bikeInfo: { flex: 1, minWidth: 0 },
-  bikeName: { fontWeight: 700, fontSize: 16, color: "rgba(255,255,255,0.90)", letterSpacing: "-0.3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
-  bikeMeta: { marginTop: 3, fontSize: 12, color: "rgba(255,255,255,0.40)" },
-  bikeArrow: { fontSize: 16, color: "rgba(255,255,255,0.25)", flexShrink: 0 },
+  bikeName: { fontWeight: 700, fontSize: 16, color: color.texto.fuerte, letterSpacing: "-0.3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  bikeMeta: { marginTop: 3, fontSize: 12, color: color.texto.tenue },
+  bikeArrow: { fontSize: 16, color: color.texto.tenue, flexShrink: 0 },
 
 };

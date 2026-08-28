@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { color, radio, espacio, texto, tacto, sombra } from "../lib/design";
 
 // ComboBox pro: escribe o elige, con teclado (↑↓ Enter Esc) y scroll al item activo
 export default function ComboBox({
@@ -154,7 +155,7 @@ export default function ComboBox({
               onMouseEnter={() => setActive(i)}
               style={{
                 ...optS,
-                background: active === i ? "rgba(255,255,255,0.07)" : "transparent",
+                background: active === i ? color.superficie.alta : "transparent",
               }}
             >
               {opt}
@@ -169,12 +170,13 @@ export default function ComboBox({
 const inputS = {
   width: "100%",
   boxSizing: "border-box",
-  padding: "11px 14px",
-  borderRadius: 11,
-  border: "1px solid rgba(255,255,255,0.10)",
-  background: "rgba(0,0,0,0.25)",
-  color: "rgba(255,255,255,0.90)",
-  fontSize: 14,
+  minHeight: tacto.minimo,
+  padding: `0 ${espacio.md}px`,
+  borderRadius: radio.md,
+  border: `1px solid ${color.borde.normal}`,
+  background: color.superficie.hundida,
+  color: color.texto.fuerte,
+  fontSize: texto.md,
   outline: "none",
 };
 
@@ -187,17 +189,17 @@ const dropS = {
   left: 0,
   right: 0,
   zIndex: 50,
-  borderRadius: 10,
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "#0e1118",
-  boxShadow: "0 8px 24px rgba(0,0,0,0.55)",
+  borderRadius: radio.sm,
+  border: `1px solid ${color.borde.fuerte}`,
+  background: color.superficie.modal,
+  boxShadow: sombra.media,
   maxHeight: 200,
   overflowY: "auto",
 };
 
 const optS = {
-  padding: "9px 14px",
-  fontSize: 14,
-  color: "rgba(255,255,255,0.85)",
+  padding: `10px ${espacio.md}px`,
+  fontSize: texto.md,
+  color: color.texto.normal,
   cursor: "pointer",
 };

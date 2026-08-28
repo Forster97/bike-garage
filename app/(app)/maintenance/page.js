@@ -7,6 +7,7 @@ import Link from "next/link";
 import { getSupabase } from "../../../lib/supabaseClient";
 import { healthColor } from "../../../lib/maintenanceHelpers";
 import { loadGarageView } from "../../../lib/loadGarageView";
+import { color, radio } from "../../../lib/design";
 
 export default function MaintenanceDashboardPage() {
   const router = useRouter();
@@ -75,15 +76,15 @@ export default function MaintenanceDashboardPage() {
             <span style={s.kpiLabel}>Bicis</span>
           </div>
           <div style={s.kpiCard}>
-            <span style={{ ...s.kpiValue, color: "rgba(239,68,68,0.90)" }}>{totalOverdue}</span>
+            <span style={{ ...s.kpiValue, color: color.estado.vencido }}>{totalOverdue}</span>
             <span style={s.kpiLabel}>Vencidas</span>
           </div>
           <div style={s.kpiCard}>
-            <span style={{ ...s.kpiValue, color: "rgba(251,191,36,0.90)" }}>{totalSoon}</span>
+            <span style={{ ...s.kpiValue, color: color.estado.proximo }}>{totalSoon}</span>
             <span style={s.kpiLabel}>Próximas</span>
           </div>
           <div style={s.kpiCard}>
-            <span style={{ ...s.kpiValue, color: "rgba(134,239,172,0.90)" }}>
+            <span style={{ ...s.kpiValue, color: color.estado.alDiaTexto }}>
               {bikeData.length > 0 ? Math.round(bikeData.reduce((a, b) => a + b.health, 0) / bikeData.length) : 100}%
             </span>
             <span style={s.kpiLabel}>Salud media</span>
@@ -121,7 +122,7 @@ export default function MaintenanceDashboardPage() {
 
                 {/* Health bar */}
                 <div style={s.barTrack}>
-                  <div style={{ ...s.barFill, width: `${health}%`, background: health >= 80 ? "rgba(134,239,172,0.70)" : health >= 60 ? "rgba(251,191,36,0.70)" : "rgba(239,68,68,0.70)" }} />
+                  <div style={{ ...s.barFill, width: `${health}%`, background: health >= 80 ? color.estado.alDiaTexto : health >= 60 ? "rgba(251,191,36,0.70)" : color.estado.vencido }} />
                 </div>
                 <div style={{ ...s.healthLabel, color: hc.fg }}>{hc.label}</div>
 
@@ -179,14 +180,14 @@ const s = {
   spinner: {
     width: 32,
     height: 32,
-    border: "3px solid rgba(255,255,255,0.10)",
-    borderTop: "3px solid rgba(99,102,241,0.80)",
+    border: `3px solid ${color.borde.normal}`,
+    borderTop: `3px solid ${color.identidad.borde}`,
     borderRadius: "50%",
     animation: "spin 0.8s linear infinite",
   },
   loadText: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.45)",
+    color: color.texto.tenue,
   },
   titleRow: {
     display: "flex",
@@ -198,22 +199,22 @@ const s = {
     fontSize: 24,
     fontWeight: 800,
     margin: 0,
-    color: "rgba(255,255,255,0.92)",
+    color: color.texto.fuerte,
     letterSpacing: "-0.5px",
   },
   subtitle: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.40)",
+    color: color.texto.tenue,
   },
   alertBanner: {
     display: "flex",
     alignItems: "center",
     gap: 10,
     padding: "12px 16px",
-    borderRadius: 12,
-    background: "rgba(239,68,68,0.10)",
-    border: "1px solid rgba(239,68,68,0.25)",
-    color: "rgba(239,68,68,0.90)",
+    borderRadius: radio.md,
+    background: color.estado.vencidoTenue,
+    border: `1px solid ${color.estado.vencidoBorde}`,
+    color: color.estado.vencido,
     fontSize: 14,
   },
   alertIcon: {
@@ -229,9 +230,9 @@ const s = {
     flex: "1 1 80px",
     minWidth: 80,
     padding: "14px 16px",
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.07)",
-    background: "rgba(255,255,255,0.03)",
+    borderRadius: radio.md,
+    border: `1px solid ${color.borde.sutil}`,
+    background: color.superficie.baja,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -240,13 +241,13 @@ const s = {
   kpiValue: {
     fontSize: 26,
     fontWeight: 800,
-    color: "rgba(255,255,255,0.88)",
+    color: color.texto.normal,
     letterSpacing: "-1px",
     lineHeight: 1,
   },
   kpiLabel: {
     fontSize: 11,
-    color: "rgba(255,255,255,0.40)",
+    color: color.texto.tenue,
     fontWeight: 500,
     textTransform: "uppercase",
     letterSpacing: "0.5px",
@@ -261,21 +262,21 @@ const s = {
     flexDirection: "column",
     gap: 10,
     padding: "18px 20px",
-    borderRadius: 16,
-    border: "1px solid rgba(255,255,255,0.07)",
-    background: "rgba(255,255,255,0.03)",
+    borderRadius: radio.lg,
+    border: `1px solid ${color.borde.sutil}`,
+    background: color.superficie.baja,
     textDecoration: "none",
     color: "inherit",
     transition: "border-color 0.15s, background 0.15s",
     cursor: "pointer",
   },
   cardAlert: {
-    border: "1px solid rgba(239,68,68,0.20)",
-    background: "rgba(239,68,68,0.04)",
+    border: `1px solid ${color.estado.vencidoBorde}`,
+    background: color.estado.vencidoTenue,
   },
   cardSoon: {
-    border: "1px solid rgba(251,191,36,0.18)",
-    background: "rgba(251,191,36,0.03)",
+    border: `1px solid ${color.estado.proximoBorde}`,
+    background: color.estado.proximoTenue,
   },
   cardHeader: {
     display: "flex",
@@ -292,7 +293,7 @@ const s = {
   cardName: {
     fontSize: 16,
     fontWeight: 700,
-    color: "rgba(255,255,255,0.92)",
+    color: color.texto.fuerte,
     letterSpacing: "-0.3px",
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -300,14 +301,14 @@ const s = {
   },
   cardMeta: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.38)",
+    color: color.texto.tenue,
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
   },
   healthBadge: {
     padding: "4px 10px",
-    borderRadius: 999,
+    borderRadius: radio.full,
     border: "1px solid",
     fontSize: 13,
     fontWeight: 700,
@@ -315,13 +316,13 @@ const s = {
   },
   barTrack: {
     height: 5,
-    borderRadius: 999,
-    background: "rgba(255,255,255,0.07)",
+    borderRadius: radio.full,
+    background: color.superficie.alta,
     overflow: "hidden",
   },
   barFill: {
     height: "100%",
-    borderRadius: 999,
+    borderRadius: radio.full,
     transition: "width 0.4s ease",
   },
   healthLabel: {
@@ -339,54 +340,54 @@ const s = {
   pillRed: {
     display: "inline-block",
     padding: "3px 9px",
-    borderRadius: 999,
+    borderRadius: radio.full,
     fontSize: 12,
     fontWeight: 600,
-    background: "rgba(239,68,68,0.12)",
-    color: "rgba(239,68,68,0.90)",
-    border: "1px solid rgba(239,68,68,0.20)",
+    background: color.estado.vencidoTenue,
+    color: color.estado.vencido,
+    border: `1px solid ${color.estado.vencidoBorde}`,
   },
   pillYellow: {
     display: "inline-block",
     padding: "3px 9px",
-    borderRadius: 999,
+    borderRadius: radio.full,
     fontSize: 12,
     fontWeight: 600,
-    background: "rgba(251,191,36,0.10)",
-    color: "rgba(251,191,36,0.90)",
-    border: "1px solid rgba(251,191,36,0.20)",
+    background: color.estado.proximoTenue,
+    color: color.estado.proximo,
+    border: `1px solid ${color.estado.proximoBorde}`,
   },
   pillGreen: {
     display: "inline-block",
     padding: "3px 9px",
-    borderRadius: 999,
+    borderRadius: radio.full,
     fontSize: 12,
     fontWeight: 600,
-    background: "rgba(134,239,172,0.10)",
-    color: "rgba(134,239,172,0.85)",
-    border: "1px solid rgba(134,239,172,0.18)",
+    background: color.estado.alDiaTexto,
+    color: color.estado.alDiaTexto,
+    border: `1px solid ${color.estado.alDiaTexto}`,
   },
   cardFooter: {
     display: "flex",
     justifyContent: "space-between",
     flexWrap: "wrap",
     gap: 6,
-    borderTop: "1px solid rgba(255,255,255,0.05)",
+    borderTop: `1px solid ${color.borde.sutil}`,
     paddingTop: 8,
     marginTop: 2,
   },
   footerDetail: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.38)",
+    color: color.texto.tenue,
   },
   lastMaint: {
     fontSize: 11,
-    color: "rgba(255,255,255,0.30)",
+    color: color.texto.tenue,
     marginTop: -4,
   },
   cardArrow: {
     fontSize: 12,
-    color: "rgba(99,102,241,0.70)",
+    color: color.identidad.base,
     fontWeight: 600,
     marginTop: 2,
   },
@@ -405,12 +406,12 @@ const s = {
   emptyTitle: {
     fontSize: 18,
     fontWeight: 700,
-    color: "rgba(255,255,255,0.75)",
+    color: color.texto.normal,
     margin: 0,
   },
   emptyText: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.40)",
+    color: color.texto.tenue,
     margin: 0,
     maxWidth: 320,
   },
@@ -418,7 +419,7 @@ const s = {
     marginTop: 6,
     fontSize: 14,
     fontWeight: 600,
-    color: "rgba(99,102,241,0.80)",
+    color: color.identidad.base,
     textDecoration: "none",
   },
 };

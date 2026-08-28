@@ -5,6 +5,9 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { getSupabase } from "../../../lib/supabaseClient";
+import AuthShell, { Campo, ErrorCaja, Aviso, enlaceTenue } from "../../../components/AuthShell";
+import Input from "../../../components/Input";
+import Button from "../../../components/Button";
 
 export const dynamic = "force-dynamic";
 
@@ -94,147 +97,74 @@ export default function SignupPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <main className="min-h-[100svh] bg-zinc-950 text-zinc-50">
-      <div className="mx-auto flex min-h-[100svh] max-w-6xl items-center justify-center px-4 py-10">
-        <div className="w-full max-w-md">
+    <AuthShell titulo="Crear cuenta">
+      <form onSubmit={signUp} style={{ display: "grid", gap: 16 }}>
 
-          {/* Encabezado */}
-          <div className="mb-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 text-xs text-zinc-200">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              Bike Garage
-            </div>
+        <Campo
+          etiqueta="Correo electrónico"
+          aviso={emailTouched && !isValidEmail(email) ? "Ingrese un email válido." : null}
+        >
+          <Input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            inputMode="email"
+            autoComplete="email"
+            placeholder="tu@email.com"
+          />
+        </Campo>
 
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight">
-              Crear cuenta
-            </h1>
-          </div>
+        <Campo
+          etiqueta="Contraseña"
+          extra={
+            <button type="button" onClick={() => setShowPw((v) => !v)} style={enlaceTenue}>
+              {showPw ? "Ocultar" : "Mostrar"}
+            </button>
+          }
+          aviso={pwTouched && password.length < 6 ? "Mínimo 6 caracteres." : null}
+        >
+          <Input
+            type={showPw ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+            placeholder="mínimo 6 caracteres"
+          />
+        </Campo>
 
-          {/* Tarjeta con el formulario */}
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
-            <form onSubmit={signUp} className="grid gap-4">
+        <Campo
+          etiqueta="Confirmar contraseña"
+          extra={
+            <button type="button" onClick={() => setShowPw2((v) => !v)} style={enlaceTenue}>
+              {showPw2 ? "Ocultar" : "Mostrar"}
+            </button>
+          }
+          aviso={pw2Touched && password2 !== password ? "Las contraseñas no coinciden." : null}
+        >
+          <Input
+            type={showPw2 ? "text" : "password"}
+            value={password2}
+            onChange={(e) => setPassword2(e.target.value)}
+            autoComplete="new-password"
+            placeholder="repite tu contraseña"
+          />
+        </Campo>
 
-              {/* Campo email */}
-              <div className="grid gap-2">
-                <label className="text-sm text-zinc-200">Correo electrónico</label>
-                <input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  inputMode="email"
-                  autoComplete="email"
-                  placeholder="tu@email.com"
-                  className="h-11 w-full rounded-xl border border-zinc-800 bg-zinc-950/40 px-3 text-sm outline-none transition focus:border-zinc-600 focus:bg-zinc-950"
-                />
-                {/* Solo muestra el error si el usuario ya tocó el campo */}
-                {emailTouched && !isValidEmail(email) ? (
-                  <p className="text-xs text-amber-300">
-                    Ingrese un email válido.
-                  </p>
-                ) : null}
-              </div>
+        {/* El mismo aviso sirve para el éxito y para el error: cambia el color */}
+        {msg ? (
+          isSuccess ? <Aviso>{msg}</Aviso> : <ErrorCaja>{msg}</ErrorCaja>
+        ) : null}
 
-              {/* Campo contraseña */}
-              <div className="grid gap-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm text-zinc-200">Contraseña</label>
-                  <button
-                    type="button"
-                    onClick={() => setShowPw((v) => !v)}
-                    className="text-xs text-zinc-300 hover:text-zinc-100"
-                  >
-                    {showPw ? "Ocultar" : "Mostrar"}
-                  </button>
-                </div>
+        <Button type="submit" variant="accion" grande ancho disabled={!canSubmit}>
+          {loading ? "Creando…" : "Crear cuenta"}
+        </Button>
 
-                <input
-                  type={showPw ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="new-password"
-                  placeholder="mínimo 6 caracteres"
-                  className="h-11 w-full rounded-xl border border-zinc-800 bg-zinc-950/40 px-3 text-sm outline-none transition focus:border-zinc-600 focus:bg-zinc-950"
-                />
-                {pwTouched && password.length < 6 ? (
-                  <p className="text-xs text-amber-300">
-                    Mínimo 6 caracteres.
-                  </p>
-                ) : null}
-              </div>
-
-              {/* Campo confirmar contraseña */}
-              <div className="grid gap-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm text-zinc-200">
-                    Confirmar contraseña
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowPw2((v) => !v)}
-                    className="text-xs text-zinc-300 hover:text-zinc-100"
-                  >
-                    {showPw2 ? "Ocultar" : "Mostrar"}
-                  </button>
-                </div>
-
-                <input
-                  type={showPw2 ? "text" : "password"}
-                  value={password2}
-                  onChange={(e) => setPassword2(e.target.value)}
-                  autoComplete="new-password"
-                  placeholder="repite tu contraseña"
-                  className="h-11 w-full rounded-xl border border-zinc-800 bg-zinc-950/40 px-3 text-sm outline-none transition focus:border-zinc-600 focus:bg-zinc-950"
-                />
-                {/* Avisa si las contraseñas no coinciden */}
-                {pw2Touched && password2 !== password ? (
-                  <p className="text-xs text-amber-300">
-                    Las contraseñas no coinciden.
-                  </p>
-                ) : null}
-              </div>
-
-              {/* Mensaje de éxito (verde) o error (rojo) */}
-              {msg ? (
-                <div
-                  className={[
-                    "rounded-xl border px-3 py-2 text-sm",
-                    isSuccess
-                      ? "border-emerald-900/60 bg-emerald-950/35 text-emerald-100"
-                      : "border-red-900/60 bg-red-950/40 text-red-100",
-                  ].join(" ")}
-                >
-                  {msg}
-                </div>
-              ) : null}
-
-              {/* Botón de envío — deshabilitado si canSubmit es false */}
-              <button
-                type="submit"
-                disabled={!canSubmit}
-                className={[
-                  "h-11 rounded-xl px-4 text-sm font-semibold transition",
-                  "bg-emerald-500 text-zinc-950 hover:bg-emerald-400",
-                  "disabled:cursor-not-allowed disabled:opacity-40",
-                ].join(" ")}
-              >
-                {loading ? "Creando..." : "Crear cuenta"}
-              </button>
-
-              {/* Link para usuarios que ya tienen cuenta */}
-              <p className="pt-1 text-sm text-zinc-400">
-                ¿Ya tienes cuenta?{" "}
-                <Link href="/login" className="text-emerald-300 hover:underline">
-                  Iniciar sesión
-                </Link>
-              </p>
-            </form>
-          </div>
-
-          {/* Pie de página */}
-          <p className="mt-6 text-center text-xs text-zinc-500">
-            © {new Date().getFullYear()} Bike Garage
-          </p>
-        </div>
-      </div>
-    </main>
+        <p style={{ margin: 0, fontSize: 13, color: "inherit" }}>
+          <span style={enlaceTenue}>¿Ya tienes cuenta? </span>
+          <Link href="/login" style={{ ...enlaceTenue, fontWeight: 700 }}>
+            Iniciar sesión
+          </Link>
+        </p>
+      </form>
+    </AuthShell>
   );
 }

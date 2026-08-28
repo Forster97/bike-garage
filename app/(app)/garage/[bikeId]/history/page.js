@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "../../../../../lib/supabaseClient";
+import { color, radio, sombra } from "../../../../../lib/design";
 
 /* =========================
    Helpers
@@ -261,7 +262,7 @@ export default function BikeHistoryPage() {
   };
 
   const linkStyle = {
-    color: "rgba(255,255,255,0.78)",
+    color: color.texto.normal,
     textDecoration: "none",
     fontSize: 14,
     padding: "10px",
@@ -276,38 +277,38 @@ export default function BikeHistoryPage() {
       <div
         className="rounded-[22px] border p-4"
         style={{
-          border: "1px solid rgba(255,255,255,0.10)",
-          background: "rgba(255,255,255,0.06)",
-          boxShadow: "0 25px 60px rgba(0,0,0,0.45)",
+          border: `1px solid ${color.borde.normal}`,
+          background: color.superficie.alta,
+          boxShadow: sombra.fuerte,
         }}
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="text-xs" style={{ color: "rgba(255,255,255,0.65)" }}>
+            <div className="text-xs" style={{ color: color.texto.suave }}>
               Historial
             </div>
-            <div className="mt-1.5 text-2xl font-black tracking-tight" style={{ color: "rgba(255,255,255,0.95)" }}>
+            <div className="mt-1.5 text-2xl font-black tracking-tight" style={{ color: color.texto.fuerte }}>
               Cambios de componentes
             </div>
-            <div className="mt-1.5 text-sm" style={{ color: "rgba(255,255,255,0.70)" }}>
+            <div className="mt-1.5 text-sm" style={{ color: color.texto.suave }}>
               {bike?.name ? `Bici: ${bike.name}` : "—"}
             </div>
           </div>
           <span
             className="rounded-full px-3 py-2 text-xs font-black"
             style={{
-              background: "rgba(255,255,255,0.08)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              color: "rgba(255,255,255,0.75)",
+              background: color.superficie.alta,
+              border: `1px solid ${color.borde.fuerte}`,
+              color: color.texto.normal,
             }}
           >
             {logs.length} evento{logs.length === 1 ? "" : "s"}
           </span>
         </div>
 
-        <div className="mt-3 flex items-start gap-2.5 border-t pt-3" style={{ borderColor: "rgba(255,255,255,0.10)" }}>
-          <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: "rgba(99,102,241,0.70)" }} />
-          <p className="text-sm" style={{ color: "rgba(255,255,255,0.65)" }}>
+        <div className="mt-3 flex items-start gap-2.5 border-t pt-3" style={{ borderColor: color.borde.normal }}>
+          <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color.identidad.base }} />
+          <p className="text-sm" style={{ color: color.texto.suave }}>
             Aquí verás cuando creas, editas o eliminas componentes. Haz click en una fecha para expandir/colapsar.
           </p>
         </div>
@@ -317,20 +318,20 @@ export default function BikeHistoryPage() {
       <div
         className="mt-4 rounded-[22px] border p-4"
         style={{
-          border: "1px solid rgba(255,255,255,0.10)",
-          background: "rgba(255,255,255,0.06)",
-          boxShadow: "0 25px 60px rgba(0,0,0,0.45)",
+          border: `1px solid ${color.borde.normal}`,
+          background: color.superficie.alta,
+          boxShadow: sombra.fuerte,
         }}
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="text-xs" style={{ color: "rgba(255,255,255,0.65)" }}>
+            <div className="text-xs" style={{ color: color.texto.suave }}>
               Peso actual
             </div>
-            <div className="mt-1.5 text-2xl font-black tracking-tight" style={{ color: "rgba(255,255,255,0.95)" }}>
+            <div className="mt-1.5 text-2xl font-black tracking-tight" style={{ color: color.texto.fuerte }}>
               {formatKg(currentTotalG)}
             </div>
-            <div className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.60)" }}>
+            <div className="mt-1 text-xs" style={{ color: color.texto.suave }}>
               (suma de componentes con peso)
             </div>
           </div>
@@ -339,9 +340,9 @@ export default function BikeHistoryPage() {
             <span
               className="rounded-full px-3 py-2 text-xs font-black"
               style={{
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                color: "rgba(255,255,255,0.75)",
+                background: color.superficie.alta,
+                border: `1px solid ${color.borde.fuerte}`,
+                color: color.texto.normal,
               }}
             >
               {weightHistory.length} día{weightHistory.length === 1 ? "" : "s"} con registro
@@ -350,24 +351,24 @@ export default function BikeHistoryPage() {
         </div>
 
         {weightHistory.length === 0 ? (
-          <div className="mt-3 text-sm" style={{ color: "rgba(255,255,255,0.65)" }}>
+          <div className="mt-3 text-sm" style={{ color: color.texto.suave }}>
             Aún no hay suficiente historial para calcular el peso por día.
           </div>
         ) : (
-          <div className="mt-3 flex flex-col gap-2.5 border-t pt-3" style={{ borderColor: "rgba(255,255,255,0.10)" }}>
+          <div className="mt-3 flex flex-col gap-2.5 border-t pt-3" style={{ borderColor: color.borde.normal }}>
             {weightHistory.map((p) => (
               <div
                 key={p.dayKey}
                 className="flex items-center justify-between rounded-2xl border px-4 py-3"
                 style={{
-                  background: "rgba(0,0,0,0.18)",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: color.superficie.hundida,
+                  border: `1px solid ${color.borde.normal}`,
                 }}
               >
-                <div className="text-sm font-black" style={{ color: "rgba(255,255,255,0.85)" }}>
+                <div className="text-sm font-black" style={{ color: color.texto.normal }}>
                   {p.dayLabel}
                 </div>
-                <div className="text-sm font-black" style={{ color: "rgba(255,255,255,0.92)" }}>
+                <div className="text-sm font-black" style={{ color: color.texto.fuerte }}>
                   {formatKg(p.weight_g)}
                 </div>
               </div>
@@ -378,17 +379,17 @@ export default function BikeHistoryPage() {
 
       {/* Content */}
       {loading ? (
-        <div className="rounded-[18px] border p-4" style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)" }}>
-          <div className="font-black" style={{ color: "rgba(255,255,255,0.92)" }}>
+        <div className="rounded-[18px] border p-4" style={{ border: `1px solid ${color.borde.normal}`, background: color.superficie.alta }}>
+          <div className="font-black" style={{ color: color.texto.fuerte }}>
             Cargando…
           </div>
         </div>
       ) : logs.length === 0 ? (
-        <div className="rounded-[18px] border p-4" style={{ border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.06)" }}>
-          <div className="font-black" style={{ color: "rgba(255,255,255,0.92)" }}>
+        <div className="rounded-[18px] border p-4" style={{ border: `1px solid ${color.borde.normal}`, background: color.superficie.alta }}>
+          <div className="font-black" style={{ color: color.texto.fuerte }}>
             Aún no hay historial
           </div>
-          <p className="mt-1.5 text-sm" style={{ color: "rgba(255,255,255,0.68)" }}>
+          <p className="mt-1.5 text-sm" style={{ color: color.texto.suave }}>
             Cuando crees, edites o elimines componentes, aparecerán los registros aquí.
           </p>
         </div>
@@ -405,17 +406,17 @@ export default function BikeHistoryPage() {
                   onClick={() => toggleDay(day)}
                   className="flex items-center justify-between rounded-2xl border px-4 py-3 text-left"
                   style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.10)",
+                    background: color.superficie.media,
+                    border: `1px solid ${color.borde.normal}`,
                   }}
                 >
                   <div className="flex items-center gap-3">
                     <span
                       className="inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-black"
                       style={{
-                        background: "rgba(255,255,255,0.08)",
-                        border: "1px solid rgba(255,255,255,0.12)",
-                        color: "rgba(255,255,255,0.85)",
+                        background: color.superficie.alta,
+                        border: `1px solid ${color.borde.fuerte}`,
+                        color: color.texto.normal,
                       }}
                       aria-hidden="true"
                     >
@@ -423,10 +424,10 @@ export default function BikeHistoryPage() {
                     </span>
 
                     <div>
-                      <div className="text-xs font-black uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.78)" }}>
+                      <div className="text-xs font-black uppercase tracking-wider" style={{ color: color.texto.normal }}>
                         {day}
                       </div>
-                      <div className="text-xs" style={{ color: "rgba(255,255,255,0.55)" }}>
+                      <div className="text-xs" style={{ color: color.texto.suave }}>
                         {items.length} cambio{items.length === 1 ? "" : "s"}
                       </div>
                     </div>
@@ -435,9 +436,9 @@ export default function BikeHistoryPage() {
                   <span
                     className="rounded-full px-2.5 py-1 text-[11px] font-black"
                     style={{
-                      background: "rgba(255,255,255,0.06)",
-                      border: "1px solid rgba(255,255,255,0.10)",
-                      color: "rgba(255,255,255,0.70)",
+                      background: color.superficie.alta,
+                      border: `1px solid ${color.borde.normal}`,
+                      color: color.texto.suave,
                     }}
                   >
                     {isOpen ? "Ocultar" : "Ver"}
@@ -457,18 +458,18 @@ export default function BikeHistoryPage() {
                           key={l.id}
                           className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3"
                           style={{
-                            background: "rgba(0,0,0,0.22)",
-                            border: "1px solid rgba(255,255,255,0.08)",
+                            background: color.superficie.hundida,
+                            border: `1px solid ${color.borde.normal}`,
                           }}
                         >
                           <div>
-                            <div className="font-black" style={{ color: "rgba(255,255,255,0.92)" }}>
+                            <div className="font-black" style={{ color: color.texto.fuerte }}>
                               {labelAction(l.action)}
                             </div>
 
-                            <div className="mt-1 text-sm" style={{ color: "rgba(255,255,255,0.78)" }}>
+                            <div className="mt-1 text-sm" style={{ color: color.texto.normal }}>
                               Componente:{" "}
-                              <span style={{ color: "rgba(255,255,255,0.92)", fontWeight: 800 }}>
+                              <span style={{ color: color.texto.fuerte, fontWeight: 800 }}>
                                 {partName}
                               </span>
 
@@ -476,9 +477,9 @@ export default function BikeHistoryPage() {
                                 <span
                                   className="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-black"
                                   style={{
-                                    background: "rgba(255,255,255,0.08)",
-                                    border: "1px solid rgba(255,255,255,0.12)",
-                                    color: "rgba(255,255,255,0.75)",
+                                    background: color.superficie.alta,
+                                    border: `1px solid ${color.borde.fuerte}`,
+                                    color: color.texto.normal,
                                   }}
                                 >
                                   {partCat}
@@ -487,21 +488,21 @@ export default function BikeHistoryPage() {
                             </div>
 
                             {updateDetails ? (
-                              <div className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.60)" }}>
+                              <div className="mt-1 text-xs" style={{ color: color.texto.suave }}>
                                 {updateDetails}
                               </div>
                             ) : null}
 
-                            <div className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.60)" }}>
+                            <div className="mt-1 text-xs" style={{ color: color.texto.suave }}>
                               {new Date(l.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </div>
                           </div>
 
                           <div className="text-right">
-                            <div className="font-black" style={{ color: "rgba(255,255,255,0.92)" }}>
+                            <div className="font-black" style={{ color: color.texto.fuerte }}>
                               {formatDelta(l.old_weight_g, l.new_weight_g)}
                             </div>
-                            <div className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.60)" }}>
+                            <div className="mt-1 text-xs" style={{ color: color.texto.suave }}>
                               {formatWeights(l.old_weight_g, l.new_weight_g)}
                             </div>
                           </div>

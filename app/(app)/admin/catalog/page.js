@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
+import { color, radio } from "../../../../lib/design";
 
 const ADMIN_EMAIL = "bforsterb@gmail.com";
 
@@ -33,8 +34,8 @@ function catLabel(c) {
 }
 
 function discChip(d) {
-  const colors = { mtb: { bg: "rgba(34,197,94,0.15)", color: "#4ade80", border: "rgba(34,197,94,0.25)" }, road: { bg: "rgba(99,102,241,0.15)", color: "#a5b4fc", border: "rgba(99,102,241,0.25)" } };
-  const style = colors[d] ?? { bg: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.5)", border: "rgba(255,255,255,0.1)" };
+  const colors = { mtb: { bg: color.estado.alDiaTenue, color: color.estado.alDiaTexto, border: color.estado.alDiaBorde }, road: { bg: color.identidad.tenue, color: "#a5b4fc", border: color.identidad.borde } };
+  const style = colors[d] ?? { bg: color.superficie.alta, color: color.texto.suave, border: color.borde.normal };
   return (
     <span style={{ ...s.chip, background: style.bg, color: style.color, border: `1px solid ${style.border}` }}>
       {d?.toUpperCase() ?? "—"}
@@ -45,7 +46,7 @@ function discChip(d) {
 function confBadge(c) {
   const ok = c === "verified";
   return (
-    <span style={{ ...s.chip, background: ok ? "rgba(34,197,94,0.12)" : "rgba(234,179,8,0.12)", color: ok ? "#4ade80" : "#facc15", border: ok ? "1px solid rgba(34,197,94,0.2)" : "1px solid rgba(234,179,8,0.2)" }}>
+    <span style={{ ...s.chip, background: ok ? color.estado.alDiaTenue : color.estado.proximoTenue, color: ok ? color.estado.alDiaTexto : color.estado.proximo, border: `1px solid ${ok ? color.estado.alDiaBorde : color.estado.proximoBorde}` }}>
       {ok ? "✓ verified" : "~ likely"}
     </span>
   );
@@ -219,7 +220,7 @@ export default function AdminCatalogPage() {
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={9} style={{ ...s.td, textAlign: "center", color: "rgba(255,255,255,0.3)", padding: 32 }}>Sin resultados</td></tr>
+              <tr><td colSpan={9} style={{ ...s.td, textAlign: "center", color: color.texto.tenue, padding: 32 }}>Sin resultados</td></tr>
             )}
             {filtered.map((row) => (
               <tr key={row.id} style={s.tr}>
@@ -315,7 +316,7 @@ export default function AdminCatalogPage() {
         <div style={s.overlay} onClick={() => !deleting && setDeleteId(null)}>
           <div style={{ ...s.modalBox, maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
             <h2 style={s.modalTitle}>¿Eliminar componente?</h2>
-            <p style={{ color: "rgba(255,255,255,0.55)", marginBottom: 24, fontSize: 14 }}>
+            <p style={{ color: color.texto.suave, marginBottom: 24, fontSize: 14 }}>
               Esta acción no se puede deshacer. Si hay componentes de usuarios que referencian este catálogo, el FK se pondrá en NULL.
             </p>
             <div style={s.modalFooter}>
@@ -344,38 +345,38 @@ function Field({ label, children, full }) {
 const s = {
 
   page: { display: "flex", flexDirection: "column", gap: 20 },
-  center: { display: "flex", alignItems: "center", justifyContent: "center", height: 200, color: "rgba(255,255,255,0.4)" },
+  center: { display: "flex", alignItems: "center", justifyContent: "center", height: 200, color: color.texto.tenue },
 
   header: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
   title: { fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: "-0.5px" },
-  sub: { fontSize: 13, color: "rgba(255,255,255,0.4)", margin: "4px 0 0" },
-  addBtn: { flexShrink: 0, background: "#22c55e", color: "#030712", border: "none", borderRadius: 10, padding: "9px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer" },
+  sub: { fontSize: 13, color: color.texto.tenue, margin: "4px 0 0" },
+  addBtn: { flexShrink: 0, background: "#22c55e", color: "#030712", border: "none", borderRadius: radio.sm, padding: "9px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer" },
 
   filters: { display: "flex", gap: 8, flexWrap: "wrap" },
-  searchInput: { flex: 1, minWidth: 180, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 10, padding: "8px 12px", color: "rgba(255,255,255,0.85)", fontSize: 13, outline: "none" },
-  select: { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 10, padding: "8px 12px", color: "rgba(255,255,255,0.75)", fontSize: 13, cursor: "pointer", outline: "none" },
+  searchInput: { flex: 1, minWidth: 180, background: color.superficie.media, border: `1px solid ${color.borde.normal}`, borderRadius: radio.sm, padding: "8px 12px", color: color.texto.normal, fontSize: 13, outline: "none" },
+  select: { background: color.superficie.media, border: `1px solid ${color.borde.normal}`, borderRadius: radio.sm, padding: "8px 12px", color: color.texto.normal, fontSize: 13, cursor: "pointer", outline: "none" },
 
-  tableWrap: { overflowX: "auto", borderRadius: 14, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)" },
+  tableWrap: { overflowX: "auto", borderRadius: radio.md, border: `1px solid ${color.borde.sutil}`, background: color.superficie.baja },
   table: { width: "100%", borderCollapse: "collapse", minWidth: 780 },
-  th: { padding: "10px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.5px", borderBottom: "1px solid rgba(255,255,255,0.07)", whiteSpace: "nowrap" },
-  tr: { borderBottom: "1px solid rgba(255,255,255,0.04)" },
+  th: { padding: "10px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, color: color.texto.tenue, textTransform: "uppercase", letterSpacing: "0.5px", borderBottom: `1px solid ${color.borde.sutil}`, whiteSpace: "nowrap" },
+  tr: { borderBottom: `1px solid ${color.borde.sutil}` },
   td: { padding: "10px 12px", fontSize: 13, verticalAlign: "middle" },
-  bold: { fontWeight: 600, color: "rgba(255,255,255,0.85)" },
-  muted: { color: "rgba(255,255,255,0.45)", fontSize: 12 },
-  catText: { fontSize: 12, color: "rgba(255,255,255,0.55)" },
-  chip: { display: "inline-block", padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 600 },
+  bold: { fontWeight: 600, color: color.texto.normal },
+  muted: { color: color.texto.tenue, fontSize: 12 },
+  catText: { fontSize: 12, color: color.texto.suave },
+  chip: { display: "inline-block", padding: "2px 8px", borderRadius: radio.full, fontSize: 11, fontWeight: 600 },
   actions: { display: "flex", gap: 6, justifyContent: "flex-end" },
-  editBtn: { background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.25)", color: "#a5b4fc", borderRadius: 7, padding: "5px 10px", fontSize: 12, cursor: "pointer", fontWeight: 500 },
-  delBtn: { background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.20)", color: "#f87171", borderRadius: 7, padding: "5px 9px", fontSize: 12, cursor: "pointer" },
+  editBtn: { background: color.identidad.tenue, border: `1px solid ${color.identidad.borde}`, color: "#a5b4fc", borderRadius: radio.sm, padding: "5px 10px", fontSize: 12, cursor: "pointer", fontWeight: 500 },
+  delBtn: { background: color.estado.vencidoTenue, border: `1px solid ${color.estado.vencidoBorde}`, color: "#f87171", borderRadius: radio.sm, padding: "5px 9px", fontSize: 12, cursor: "pointer" },
 
-  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.70)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 20 },
-  modalBox: { background: "#0d1117", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 18, padding: 28, width: "100%", maxWidth: 620, maxHeight: "90vh", overflowY: "auto" },
+  overlay: { position: "fixed", inset: 0, background: color.velo.fuerte, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 20 },
+  modalBox: { background: "#0d1117", border: `1px solid ${color.borde.normal}`, borderRadius: radio.lg, padding: 28, width: "100%", maxWidth: 620, maxHeight: "90vh", overflowY: "auto" },
   modalTitle: { fontSize: 17, fontWeight: 700, margin: "0 0 20px", letterSpacing: "-0.3px" },
   formGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
-  label: { fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.40)", textTransform: "uppercase", letterSpacing: "0.5px" },
-  input: { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 9, padding: "8px 11px", color: "rgba(255,255,255,0.85)", fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box" },
+  label: { fontSize: 11, fontWeight: 600, color: color.texto.tenue, textTransform: "uppercase", letterSpacing: "0.5px" },
+  input: { background: color.superficie.media, border: `1px solid ${color.borde.normal}`, borderRadius: radio.sm, padding: "8px 11px", color: color.texto.normal, fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box" },
   err: { color: "#f87171", fontSize: 13, margin: "12px 0 0" },
   modalFooter: { display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 24 },
-  cancelBtn: { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.65)", borderRadius: 10, padding: "9px 18px", fontSize: 13, cursor: "pointer", fontWeight: 500 },
-  saveBtn: { background: "#22c55e", color: "#030712", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 13, cursor: "pointer", fontWeight: 700 },
+  cancelBtn: { background: color.superficie.alta, border: `1px solid ${color.borde.normal}`, color: color.texto.suave, borderRadius: radio.sm, padding: "9px 18px", fontSize: 13, cursor: "pointer", fontWeight: 500 },
+  saveBtn: { background: "#22c55e", color: "#030712", border: "none", borderRadius: radio.sm, padding: "9px 20px", fontSize: 13, cursor: "pointer", fontWeight: 700 },
 };

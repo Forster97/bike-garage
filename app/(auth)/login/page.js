@@ -6,6 +6,9 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getSupabase } from "../../../lib/supabaseClient";
+import AuthShell, { Campo, ErrorCaja, enlaceTenue } from "../../../components/AuthShell";
+import Input from "../../../components/Input";
+import Button from "../../../components/Button";
 
 export const dynamic = "force-dynamic";
 
@@ -80,123 +83,58 @@ export default function LoginPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <main className="min-h-[100svh] bg-zinc-950 text-zinc-50">
-      <div className="mx-auto flex min-h-[100svh] max-w-6xl items-center justify-center px-4 py-10">
-        <div className="w-full max-w-md">
-          {/* Encabezado */}
-          <div className="mb-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 text-xs text-zinc-200">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              Bike Garage
-            </div>
+    <AuthShell
+      titulo="Bienvenido de vuelta"
+      bajada="Inicia sesión para ver tu garage y llevar el control de tus bicicletas."
+    >
+      <form onSubmit={onSubmit} style={{ display: "grid", gap: 16 }}>
 
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight">
-              Bienvenido de vuelta
-            </h1>
-            <p className="mt-2 text-sm text-zinc-300">
-              Inicia sesión para ver tu garage y llevar el control de tus bicicletas.
-            </p>
-          </div>
+        <Campo
+          etiqueta="Correo electrónico"
+          aviso={email.length > 0 && !isValidEmail(email) ? "Ingrese un email válido." : null}
+        >
+          <Input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            inputMode="email"       // teclado de email en el teléfono
+            autoComplete="email"
+            placeholder="tu@email.com"
+          />
+        </Campo>
 
-          {/* Tarjeta con el formulario */}
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
-            <form onSubmit={onSubmit} className="grid gap-4">
+        <Campo
+          etiqueta="Contraseña"
+          extra={
+            <button type="button" onClick={() => setShowPw((v) => !v)} style={enlaceTenue}>
+              {showPw ? "Ocultar" : "Mostrar"}
+            </button>
+          }
+          aviso={password.length > 0 && password.length < 6 ? "Mínimo 6 caracteres." : null}
+        >
+          <Input
+            type={showPw ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            placeholder="••••••••"
+          />
+        </Campo>
 
-              {/* Campo email con validación inline */}
-              <div className="grid gap-2">
-                <label className="text-sm text-zinc-200">Correo electrónico</label>
-                <input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  inputMode="email"       // muestra teclado de email en móvil
-                  autoComplete="email"    // el navegador puede autocompletar
-                  placeholder="tu@email.com"
-                  className="h-11 w-full rounded-xl border border-zinc-800 bg-zinc-950/40 px-3 text-sm outline-none ring-0 transition focus:border-zinc-600 focus:bg-zinc-950"
-                />
-                {/* Muestra advertencia si el email tiene formato inválido */}
-                {email.length > 0 && !isValidEmail(email) ? (
-                  <p className="text-xs text-amber-300">
-                    Ingrese un email válido.
-                  </p>
-                ) : null}
-              </div>
+        <ErrorCaja>{errMsg}</ErrorCaja>
 
-              {/* Campo contraseña con toggle mostrar/ocultar */}
-              <div className="grid gap-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm text-zinc-200">Contraseña</label>
-                  {/* Botón para alternar entre mostrar y ocultar la contraseña */}
-                  <button
-                    type="button"
-                    onClick={() => setShowPw((v) => !v)} // alterna entre true y false
-                    className="text-xs text-zinc-300 hover:text-zinc-100"
-                  >
-                    {showPw ? "Ocultar" : "Mostrar"}
-                  </button>
-                </div>
+        <Button type="submit" variant="accion" grande ancho disabled={!canSubmit}>
+          {loading ? "Entrando…" : "Entrar"}
+        </Button>
 
-                <input
-                  type={showPw ? "text" : "password"} // "text" = visible, "password" = puntos
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  className="h-11 w-full rounded-xl border border-zinc-800 bg-zinc-950/40 px-3 text-sm outline-none transition focus:border-zinc-600 focus:bg-zinc-950"
-                />
-                {/* Avisa si la contraseña tiene menos de 6 caracteres */}
-                {password.length > 0 && password.length < 6 ? (
-                  <p className="text-xs text-amber-300">
-                    Mínimo 6 caracteres.
-                  </p>
-                ) : null}
-              </div>
-
-              {/* Mensaje de error del servidor */}
-              {errMsg ? (
-                <div className="rounded-xl border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm">
-                  <span className="font-semibold text-red-200">Error: </span>
-                  <span className="text-red-100">{errMsg}</span>
-                </div>
-              ) : null}
-
-              {/* Botón de envío — deshabilitado si canSubmit es false */}
-              <button
-                type="submit"
-                disabled={!canSubmit}
-                className={[
-                  "h-11 rounded-xl px-4 text-sm font-semibold transition",
-                  "bg-emerald-500 text-zinc-950 hover:bg-emerald-400",
-                  "disabled:cursor-not-allowed disabled:opacity-40",
-                ].join(" ")}
-              >
-                {loading ? "Entrando..." : "Entrar"}
-              </button>
-
-              {/* Botón volver a la página de inicio */}
-              <div className="flex items-center justify-between pt-1">
-                <button
-                  type="button"
-                  onClick={() => router.push("/")}
-                  className="text-xs text-zinc-300 hover:text-zinc-50"
-                >
-                  ← Volver
-                </button>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs text-zinc-400 hover:text-zinc-100"
-                >
-                  ¿Olvidaste tu contraseña?
-                </Link>
-              </div>
-            </form>
-          </div>
-
-          {/* Pie de página con año dinámico */}
-          <p className="mt-6 text-center text-xs text-zinc-500">
-            © {new Date().getFullYear()} Bike Garage
-          </p>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <button type="button" onClick={() => router.push("/")} style={enlaceTenue}>
+            ← Volver
+          </button>
+          <Link href="/forgot-password" style={enlaceTenue}>
+            ¿Olvidaste tu contraseña?
+          </Link>
         </div>
-      </div>
-    </main>
+      </form>
+    </AuthShell>
   );
 }

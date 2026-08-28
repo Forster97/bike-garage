@@ -3,6 +3,10 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabase } from "../../../lib/supabaseClient";
+import AuthShell, { Campo, ErrorCaja, enlaceTenue } from "../../../components/AuthShell";
+import Input from "../../../components/Input";
+import Button from "../../../components/Button";
+import { color } from "../../../lib/design";
 
 export const dynamic = "force-dynamic";
 
@@ -74,119 +78,83 @@ function ResetPasswordForm() {
 
   const canSubmit = password.length >= 6 && password === password2 && !loading;
 
+  const centrado = { display: "grid", gap: 16, textAlign: "center", justifyItems: "center" };
+
   return (
-    <main className="min-h-[100svh] bg-zinc-950 text-zinc-50">
-      <div className="mx-auto flex min-h-[100svh] max-w-6xl items-center justify-center px-4 py-10">
-        <div className="w-full max-w-md">
-
-          <div className="mb-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 text-xs text-zinc-200">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              Bike Garage
-            </div>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight">
-              Nueva contraseña
-            </h1>
-          </div>
-
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
-
-            {/* Error al establecer sesión de recovery */}
-            {errSession ? (
-              <div className="grid gap-4 text-center">
-                <div className="mx-auto text-3xl">⚠️</div>
-                <p className="text-sm text-red-300">{errSession}</p>
-                <button
-                  onClick={() => router.push("/forgot-password")}
-                  className="mx-auto text-sm text-zinc-400 hover:text-zinc-100"
-                >
-                  Solicitar nuevo link
-                </button>
-              </div>
-            ) : done ? (
-              /* Contraseña actualizada con éxito */
-              <div className="grid gap-4 text-center">
-                <div className="mx-auto text-3xl">✅</div>
-                <p className="text-sm text-emerald-300 font-semibold">
-                  Contraseña actualizada.
-                </p>
-                <p className="text-xs text-zinc-400">
-                  Redirigiendo a tu garage...
-                </p>
-              </div>
-            ) : !ready ? (
-              /* Esperando que se establezca la sesión de recovery */
-              <div className="grid gap-3 text-center py-4">
-                <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-zinc-600 border-t-emerald-400" />
-                <p className="text-sm text-zinc-400">Verificando link...</p>
-              </div>
-            ) : (
-              /* Formulario para ingresar nueva contraseña */
-              <form onSubmit={onSubmit} className="grid gap-4">
-                <div className="grid gap-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm text-zinc-200">Nueva contraseña</label>
-                    <button
-                      type="button"
-                      onClick={() => setShowPw((v) => !v)}
-                      className="text-xs text-zinc-300 hover:text-zinc-100"
-                    >
-                      {showPw ? "Ocultar" : "Mostrar"}
-                    </button>
-                  </div>
-                  <input
-                    type={showPw ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="new-password"
-                    placeholder="mínimo 6 caracteres"
-                    className="h-11 w-full rounded-xl border border-zinc-800 bg-zinc-950/40 px-3 text-sm outline-none transition focus:border-zinc-600 focus:bg-zinc-950"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <label className="text-sm text-zinc-200">Confirmar contraseña</label>
-                  <input
-                    type={showPw ? "text" : "password"}
-                    value={password2}
-                    onChange={(e) => setPassword2(e.target.value)}
-                    autoComplete="new-password"
-                    placeholder="repite tu contraseña"
-                    className="h-11 w-full rounded-xl border border-zinc-800 bg-zinc-950/40 px-3 text-sm outline-none transition focus:border-zinc-600 focus:bg-zinc-950"
-                  />
-                  {password2.length > 0 && password2 !== password ? (
-                    <p className="text-xs text-amber-300">Las contraseñas no coinciden.</p>
-                  ) : null}
-                </div>
-
-                {errMsg ? (
-                  <div className="rounded-xl border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm">
-                    <span className="font-semibold text-red-200">Error: </span>
-                    <span className="text-red-100">{errMsg}</span>
-                  </div>
-                ) : null}
-
-                <button
-                  type="submit"
-                  disabled={!canSubmit}
-                  className={[
-                    "h-11 rounded-xl px-4 text-sm font-semibold transition",
-                    "bg-emerald-500 text-zinc-950 hover:bg-emerald-400",
-                    "disabled:cursor-not-allowed disabled:opacity-40",
-                  ].join(" ")}
-                >
-                  {loading ? "Guardando..." : "Guardar contraseña"}
-                </button>
-              </form>
-            )}
-          </div>
-
-          <p className="mt-6 text-center text-xs text-zinc-500">
-            © {new Date().getFullYear()} Bike Garage
+    <AuthShell titulo="Nueva contraseña">
+      {errSession ? (
+        /* El link de recuperación no sirve o ya venció */
+        <div style={centrado}>
+          <div style={{ fontSize: 30 }}>⚠️</div>
+          <p style={{ margin: 0, fontSize: 14, color: color.estado.vencido, lineHeight: 1.5 }}>
+            {errSession}
+          </p>
+          <button onClick={() => router.push("/forgot-password")} style={enlaceTenue}>
+            Solicitar nuevo link
+          </button>
+        </div>
+      ) : done ? (
+        <div style={centrado}>
+          <div style={{ fontSize: 30 }}>✅</div>
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: color.estado.alDiaTexto }}>
+            Contraseña actualizada.
+          </p>
+          <p style={{ margin: 0, fontSize: 13, color: color.texto.tenue }}>
+            Redirigiendo a tu garage…
           </p>
         </div>
-      </div>
-    </main>
+      ) : !ready ? (
+        <div style={{ ...centrado, padding: "16px 0" }}>
+          <style>{`@keyframes girar { to { transform: rotate(360deg) } }`}</style>
+          <div style={{
+            width: 24, height: 24, borderRadius: 999,
+            border: `2px solid ${color.borde.fuerte}`,
+            borderTopColor: color.accion.base,
+            animation: "girar 0.8s linear infinite",
+          }} />
+          <p style={{ margin: 0, fontSize: 14, color: color.texto.tenue }}>Verificando link…</p>
+        </div>
+      ) : (
+        <form onSubmit={onSubmit} style={{ display: "grid", gap: 16 }}>
+          <Campo
+            etiqueta="Nueva contraseña"
+            extra={
+              <button type="button" onClick={() => setShowPw((v) => !v)} style={enlaceTenue}>
+                {showPw ? "Ocultar" : "Mostrar"}
+              </button>
+            }
+            aviso={password.length > 0 && password.length < 6 ? "Mínimo 6 caracteres." : null}
+          >
+            <Input
+              type={showPw ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              placeholder="mínimo 6 caracteres"
+            />
+          </Campo>
+
+          <Campo
+            etiqueta="Confirmar contraseña"
+            aviso={password2.length > 0 && password2 !== password ? "Las contraseñas no coinciden." : null}
+          >
+            <Input
+              type={showPw ? "text" : "password"}
+              value={password2}
+              onChange={(e) => setPassword2(e.target.value)}
+              autoComplete="new-password"
+              placeholder="repite tu contraseña"
+            />
+          </Campo>
+
+          <ErrorCaja>{errMsg}</ErrorCaja>
+
+          <Button type="submit" variant="accion" grande ancho disabled={!canSubmit}>
+            {loading ? "Guardando…" : "Guardar contraseña"}
+          </Button>
+        </form>
+      )}
+    </AuthShell>
   );
 }
 
