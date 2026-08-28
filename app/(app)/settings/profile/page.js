@@ -6,6 +6,7 @@ import TapLink from "../../../../components/TapLink";
 import { supabase } from "../../../../lib/supabaseClient";
 import Chevron from "../../../../components/Chevron";
 import { color, radio, sombra } from "../../../../lib/design";
+import Cargando from "../../../../components/Cargando";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -399,6 +400,7 @@ export default function ProfilePage() {
                 cursor: saving ? "not-allowed" : "pointer",
               }}
             >
+              {saving && <Cargando tam={14} style={{ marginRight: 8 }} />}
               {saving ? "Guardando…" : "Guardar cambios"}
             </button>
           </div>

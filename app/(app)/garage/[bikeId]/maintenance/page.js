@@ -13,6 +13,7 @@ import {
 } from "../../../../../lib/maintenanceHelpers";
 import { buildBikeView, indexLastRecords, tipoAplica } from "../../../../../lib/maintenanceView";
 import { color, radio, espacio, tacto, texto as textoT, sombra } from "../../../../../lib/design";
+import Cargando from "../../../../../components/Cargando";
 
 const emptyForm = () => ({
   type_id: "", type_name: "", performed_at: todayISO(),
@@ -57,12 +58,16 @@ export default function BikeMaintenancePage() {
   const [bikeStats, setBikeStats] = useState(null);
   const [customRules, setCustomRules] = useState([]);
   const [savingProfile, setSavingProfile] = useState(false);
+  // Cuál de los perfiles se tocó. El cursor "wait" no existe en un teléfono.
+  const [perfilEnCurso, setPerfilEnCurso] = useState(null);
   const [editingOdometer, setEditingOdometer] = useState(false);
   const [odometerInput, setOdometerInput] = useState("");
   const [savingOdometer, setSavingOdometer] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState(null);
   const [ruleForm, setRuleForm] = useState({ days: "", km: "" });
   const [savingRule, setSavingRule] = useState(false);
+  // Qué registro se está eliminando. Borrar tampoco avisaba nada.
+  const [borrandoId, setBorrandoId] = useState(null);
 
   // ── Carga inicial ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -324,9 +329,15 @@ export default function BikeMaintenancePage() {
   const deleteRecord = async (id, e) => {
     e?.stopPropagation?.();
     if (!confirm("¿Eliminar este registro de mantenimiento?")) return;
-    const { error } = await supabase.from("bike_maintenance").delete().eq("id", id);
-    if (error) return alert(error.message);
-    setRecords((p) => p.filter((r) => r.id !== id));
+    if (borrandoId) return;
+    setBorrandoId(id);
+    try {
+      const { error } = await supabase.from("bike_maintenance").delete().eq("id", id);
+      if (error) return alert(error.message);
+      setRecords((p) => p.filter((r) => r.id !== id));
+    } finally {
+      setBorrandoId(null);
+    }
   };
 
   const pageNav = (
@@ -454,7 +465,7 @@ export default function BikeMaintenancePage() {
               {PROFILES.map((p) => (
                 <button
                   key={p.id}
-                  onClick={() => saveProfile(p.id)}
+                  onClick={() => { setPerfilEnCurso(p.id); saveProfile(p.id); }}
                   disabled={savingProfile}
                   title={p.description}
                   style={{
@@ -465,7 +476,9 @@ export default function BikeMaintenancePage() {
                     color: bikeProfile === p.id ? color.identidad.texto : color.texto.suave,
                   }}
                 >
-                  {p.label}
+                  {savingProfile && perfilEnCurso === p.id
+                    ? <Cargando tam={11} grosor={2} />
+                    : p.label}
                 </button>
               ))}
             </div>
@@ -483,7 +496,7 @@ export default function BikeMaintenancePage() {
                   />
                   <span style={{ fontSize: 12, color: color.texto.tenue }}>km</span>
                   <button onClick={saveOdometer} disabled={savingOdometer} style={{ ...S.secondaryBtn, fontSize: 11 }}>
-                    {savingOdometer ? "…" : "Guardar"}
+                    {savingOdometer ? <Cargando tam={12} /> : "Guardar"}
                   </button>
                   <button onClick={() => { setEditingOdometer(false); setOdometerInput(String(bikeStats?.odometer_km ?? "")); }} style={S.iconBtnSm}>✕</button>
                 </>
@@ -642,7 +655,9 @@ export default function BikeMaintenancePage() {
                               </div>
                               <div className="m-hist-actions">
                                 <button style={S.secondaryBtn} onClick={(e) => openEdit(r, e)}>Editar</button>
-                                <button style={S.ghostBtn} onClick={(e) => deleteRecord(r.id, e)}>Eliminar</button>
+                                <button style={S.ghostBtn} onClick={(e) => deleteRecord(r.id, e)} disabled={borrandoId === r.id}>
+                                  {borrandoId === r.id ? <Cargando tam={13} /> : "Eliminar"}
+                                </button>
                               </div>
                             </div>
                           );
@@ -682,7 +697,7 @@ export default function BikeMaintenancePage() {
                               disabled={savingRule}
                               style={{ ...S.secondaryBtn, fontSize: 11 }}
                             >
-                              {savingRule ? "…" : "Guardar"}
+                              {savingRule ? <Cargando tam={12} /> : "Guardar"}
                             </button>
                             <button onClick={() => setEditingRuleId(null)} style={{ ...S.ghostBtn, fontSize: 11 }}>Cancelar</button>
                             {isCustom && (
@@ -753,7 +768,9 @@ export default function BikeMaintenancePage() {
                     </div>
                     <div className="m-rec-actions">
                       <button style={S.secondaryBtn} onClick={(e) => openEdit(r, e)}>Editar</button>
-                      <button style={S.ghostBtn} onClick={(e) => deleteRecord(r.id, e)}>Eliminar</button>
+                      <button style={S.ghostBtn} onClick={(e) => deleteRecord(r.id, e)} disabled={borrandoId === r.id}>
+                                  {borrandoId === r.id ? <Cargando tam={13} /> : "Eliminar"}
+                                </button>
                     </div>
                   </div>
                 </div>
@@ -914,7 +931,8 @@ export default function BikeMaintenancePage() {
                   )}
 
                   {/* El botón principal: ancho completo y abajo, al alcance del pulgar */}
-                  <button type="submit" style={S.registrarBtn} disabled={saving}>
+                  <button type="submit" style={{ ...S.registrarBtn, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10 }} disabled={saving}>
+                    {saving && <Cargando tam={18} />}
                     {saving ? "Guardando…" : isEditing ? "Actualizar" : "Registrar"}
                   </button>
                   <button type="button" style={S.cancelarLink} onClick={closeModal}>Cancelar</button>

@@ -29,7 +29,10 @@ export default function CategoriesPage() {
   const [custom, setCustom] = useState([]);        // categorías personalizadas del usuario (de la BD)
   const [hidden, setHidden] = useState(() => new Set()); // Set con los nombres de categorías ocultas
   const [newName, setNewName] = useState("");      // valor del input para agregar categoría
-  const [saving, setSaving] = useState(false);     // true mientras se guarda una nueva categoría
+  const [saving, setSaving] = useState(false);
+  // Qué categoría se está moviendo. Ocultar, mostrar y eliminar hablan con la
+  // base y no avisaban nada mientras tanto.
+  const [ocupada, setOcupada] = useState(null);     // true mientras se guarda una nueva categoría
   const [errorMsg, setErrorMsg] = useState("");    // mensaje de error visible al usuario
 
   // ── Listas computadas (se recalculan cuando cambian custom u hidden) ───────
@@ -138,6 +141,9 @@ export default function CategoriesPage() {
   // ── Función: ocultar una categoría ────────────────────────────────────────
   // Actualización optimista: cambia el estado primero, y si la BD falla, revierte.
   const hideCategory = async (name) => {
+    if (ocupada) return;
+    setOcupada(name);
+    try {
     setErrorMsg("");
     const { data: authData, error: authErr } = await supabase.auth.getUser();
     const user = authData?.user;
@@ -154,10 +160,16 @@ export default function CategoriesPage() {
       setHidden((prev) => { const next = new Set(prev); next.delete(n); return next; });
       setErrorMsg(error.message);
     }
+    } finally {
+      setOcupada(null);
+    }
   };
 
   // ── Función: mostrar una categoría oculta ─────────────────────────────────
   const unhideCategory = async (name) => {
+    if (ocupada) return;
+    setOcupada(name);
+    try {
     setErrorMsg("");
     const { data: authData, error: authErr } = await supabase.auth.getUser();
     const user = authData?.user;
@@ -174,11 +186,17 @@ export default function CategoriesPage() {
       setHidden((prev) => new Set([...prev, n]));
       setErrorMsg(error.message);
     }
+    } finally {
+      setOcupada(null);
+    }
   };
 
   // ── Función: eliminar una categoría personalizada ─────────────────────────
   // Solo borra de la tabla "categories", no afecta las categorías por defecto.
   const deleteCustom = async (row) => {
+    if (ocupada) return;
+    setOcupada(row.name);
+    try {
     setErrorMsg("");
     const { data: authData, error: authErr } = await supabase.auth.getUser();
     const user = authData?.user;
@@ -190,6 +208,9 @@ export default function CategoriesPage() {
     if (error) {
       setCustom((prev) => [...prev, row]); // si falla, la restaura
       setErrorMsg(error.message);
+    }
+    } finally {
+      setOcupada(null);
     }
   };
 
@@ -291,7 +312,7 @@ export default function CategoriesPage() {
             {visibleList.map((name) => (
               <div key={"vis-" + name} style={chip}>
                 <span style={{ fontSize: texto.base, fontWeight: texto.peso.medio, color: color.texto.fuerte }}>{name}</span>
-                <Button variant="fantasma" onClick={() => hideCategory(name)}>Ocultar</Button>
+                <Button variant="fantasma" onClick={() => hideCategory(name)} cargando={ocupada === name}>Ocultar</Button>
               </div>
             ))}
           </div>
@@ -311,7 +332,7 @@ export default function CategoriesPage() {
             {hiddenList.map((name) => (
               <div key={"hid-" + name} style={chip}>
                 <span style={{ fontSize: texto.base, fontWeight: texto.peso.medio, color: color.texto.suave }}>{name}</span>
-                <Button variant="fantasma" onClick={() => unhideCategory(name)}>Mostrar</Button>
+                <Button variant="fantasma" onClick={() => unhideCategory(name)} cargando={ocupada === name}>Mostrar</Button>
               </div>
             ))}
           </div>
@@ -341,10 +362,10 @@ export default function CategoriesPage() {
                     </Badge>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: espacio.sm }}>
-                    <Button variant="fantasma" onClick={() => (oculta ? unhideCategory(row.name) : hideCategory(row.name))}>
+                    <Button variant="fantasma" onClick={() => (oculta ? unhideCategory(row.name) : hideCategory(row.name))} cargando={ocupada === row.name}>
                       {oculta ? "Mostrar" : "Ocultar"}
                     </Button>
-                    <Button variant="peligro" onClick={() => deleteCustom(row)}>Eliminar</Button>
+                    <Button variant="peligro" onClick={() => deleteCustom(row)} cargando={ocupada === row.name}>Eliminar</Button>
                   </div>
                 </div>
               );

@@ -17,6 +17,7 @@ import ComboBox from "../../../../components/ComboBox";
 import Modal from "../../../../components/Modal";
 import { color, radio, espacio, tacto, texto as textoT, sombra } from "../../../../lib/design";
 import TapLink from "../../../../components/TapLink";
+import Cargando from "../../../../components/Cargando";
 
 // ── Constantes y funciones helper ─────────────────────────────────────────────
 
@@ -141,6 +142,11 @@ export default function BikeDetailPage() {
   const [explicaPeso, setExplicaPeso] = useState(null);
   const [confirmarBorrarBici, setConfirmarBorrarBici] = useState(false);
   const [borrando, setBorrando] = useState(false);
+  // Qué se está guardando ahora mismo, si es que algo: "componente", "peso",
+  // "quitar" o "bici". Ninguna de las cuatro funciones que escriben en la base
+  // tenía estado de espera: se tocaba Guardar y no pasaba nada visible mientras
+  // la app hacía hasta tres viajes a la base.
+  const [guardando, setGuardando] = useState(null);
 
   // ── Valores calculados ─────────────────────────────────────────────────────
   const totalWeightG = useMemo(
@@ -285,11 +291,17 @@ export default function BikeDetailPage() {
       size: bikeDraft.size.trim() || null,
       notes: bikeDraft.notes.trim() || null,
     };
-    const { data, error } = await supabase.from("bikes").update(patch).eq("id", bikeId).select("*").single();
-    if (error) return alert(error.message);
-    setBike(data);
-    setBikeDraft(draftFromBike(data));
-    setBikeEditMode(false);
+    if (guardando) return;
+    setGuardando("bici");
+    try {
+      const { data, error } = await supabase.from("bikes").update(patch).eq("id", bikeId).select("*").single();
+      if (error) return alert(error.message);
+      setBike(data);
+      setBikeDraft(draftFromBike(data));
+      setBikeEditMode(false);
+    } finally {
+      setGuardando(null);
+    }
   };
 
   // ── CRUD de componentes ────────────────────────────────────────────────────
@@ -389,6 +401,10 @@ export default function BikeDetailPage() {
     }
     setConfirmDupOpen(false);
 
+    if (guardando) return;          // dos toques seguidos no crean dos piezas
+    setGuardando("componente");
+    try {
+
     const userId = await getUserIdOrRedirect();
     if (!userId) return;
 
@@ -455,13 +471,19 @@ export default function BikeDetailPage() {
     setPartModel(""); setPartSubcategory(""); setPartSku("");
     setCatalogHit(null); setConfirmDupOpen(false);
     setAddOpen(false);
+
+    } finally {
+      setGuardando(null);
+    }
   };
 
   // Quita la pieza de ESTA bici. El modelo sigue vivo en el catalogo para todos:
   // por eso ya no existe la opcion de "eliminar de todas las bicis".
   const removePart = async () => {
     const mountId = confirmPartId;
-    setConfirmPartId(null);
+    if (guardando) return;
+    setGuardando("quitar");
+    try {
 
     const userId = await getUserIdOrRedirect();
     if (!userId) return;
@@ -479,6 +501,11 @@ export default function BikeDetailPage() {
     setParts((prev) => prev.filter((p) => p.id !== mountId));
     setEditById((prev) => { const next = { ...prev }; delete next[mountId]; return next; });
     if (editingPartId === mountId) setEditingPartId(null);
+    setConfirmPartId(null);
+
+    } finally {
+      setGuardando(null);
+    }
   };
 
   // La edicion inline ahora ajusta SOLO el peso de esta bici.
@@ -487,6 +514,9 @@ export default function BikeDetailPage() {
   const savePart = async (mountId) => {
     const row = editById[mountId];
     if (!row) return;
+    if (guardando) return;
+    setGuardando("peso");
+    try {
 
     const userId = await getUserIdOrRedirect();
     if (!userId) return;
@@ -515,6 +545,10 @@ export default function BikeDetailPage() {
     setParts((prev) => prev.map((p) => (p.id === mountId ? actualizado : p)));
     setEditById((prev) => ({ ...prev, [mountId]: { weight_g: actualizado.weight_override ?? "" } }));
     setEditingPartId(null);
+
+    } finally {
+      setGuardando(null);
+    }
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -622,7 +656,9 @@ export default function BikeDetailPage() {
                   </div>
                 </div>
                 <div style={styles.btnRow}>
-                  <button style={styles.primaryBtn} onClick={saveBike}>Guardar</button>
+                  <button style={styles.primaryBtn} onClick={saveBike} disabled={!!guardando}>
+                    {guardando === "bici" && <Cargando tam={14} />}Guardar
+                  </button>
                   <button style={styles.secondaryBtn} onClick={cancelBikeEdit}>Cancelar</button>
                 </div>
               </div>
@@ -738,7 +774,9 @@ export default function BikeDetailPage() {
                           }}
                           placeholder={p.catalogWeight != null ? String(p.catalogWeight) : "peso (g)"}
                           inputMode="numeric" style={{ ...styles.input, width: 160 }} />
-                        <button style={styles.primaryBtn} onClick={guardar}>Guardar</button>
+                        <button style={styles.primaryBtn} onClick={guardar} disabled={!!guardando}>
+                          {guardando === "peso" && <Cargando tam={14} />}Guardar
+                        </button>
                         <button style={styles.secondaryBtn} onClick={() => setEditingPartId(null)}>Cancelar</button>
                       </div>
                     )}
@@ -875,7 +913,10 @@ export default function BikeDetailPage() {
 
               <div style={styles.btnRowRight}>
                 <button type="button" style={styles.secondaryBtn} onClick={() => setAddOpen(false)}>Cancelar</button>
-                <button type="submit" style={styles.primaryBtn}>Guardar</button>
+                <button type="submit" style={styles.primaryBtn} disabled={!!guardando}>
+                  {guardando === "componente" && <Cargando tam={14} />}
+                  {guardando === "componente" ? "Guardando…" : "Guardar"}
+                </button>
               </div>
 
               <div style={styles.tipRow}>
@@ -907,8 +948,9 @@ export default function BikeDetailPage() {
               <button style={styles.primaryBtn} onClick={() => setConfirmDupOpen(false)}>
                 Volver a revisar
               </button>
-              <button style={styles.secondaryBtn} onClick={() => addPart()}>
-                Agregar igual
+              <button style={styles.secondaryBtn} onClick={() => addPart()} disabled={!!guardando}>
+                {guardando === "componente" && <Cargando tam={14} />}
+                {guardando === "componente" ? "Guardando…" : "Agregar igual"}
               </button>
             </div>
         </Modal>
@@ -927,8 +969,10 @@ export default function BikeDetailPage() {
               <button
                 style={{ ...styles.ghostBtn, width: "100%", textAlign: "center", color: color.estado.vencido, borderColor: color.estado.vencidoBorde }}
                 onClick={removePart}
+                disabled={!!guardando}
               >
-                Quitar
+                {guardando === "quitar" && <Cargando tam={14} />}
+                {guardando === "quitar" ? "Quitando…" : "Quitar"}
               </button>
               <button
                 style={{ ...styles.secondaryBtn, width: "100%", textAlign: "center" }}

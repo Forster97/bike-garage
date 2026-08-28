@@ -13,6 +13,7 @@ import { BIKE_TYPES } from "../../../lib/constants";
 import { bikeName } from "../../../lib/dateHelpers";
 import { loadGarageView, estadoDeBici } from "../../../lib/loadGarageView";
 import { color, radio, espacio, tacto, texto as textoT } from "../../../lib/design";
+import Cargando from "../../../components/Cargando";
 
 // ── Componente principal de la página ─────────────────────────────────────────
 export default function GaragePage() {
@@ -471,6 +472,7 @@ export default function GaragePage() {
                       : "pointer",
                 }}
               >
+                {adding && <Cargando tam={14} style={{ marginRight: 8 }} />}
                 {adding ? "Agregando…" : "Agregar"}
               </button>
             </div>

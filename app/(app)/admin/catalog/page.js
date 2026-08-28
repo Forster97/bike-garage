@@ -5,6 +5,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
 import { color, radio } from "../../../../lib/design";
+import Cargando from "../../../../components/Cargando";
 
 const ADMIN_EMAIL = "bforsterb@gmail.com";
 
@@ -304,6 +305,7 @@ export default function AdminCatalogPage() {
             <div style={s.modalFooter}>
               <button style={s.cancelBtn} onClick={() => setModal(null)} disabled={saving}>Cancelar</button>
               <button style={s.saveBtn} onClick={handleSave} disabled={saving}>
+                {saving && <Cargando tam={14} style={{ marginRight: 8 }} />}
                 {saving ? "Guardando…" : modal.mode === "create" ? "Crear" : "Guardar"}
               </button>
             </div>
