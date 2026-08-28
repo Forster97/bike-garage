@@ -58,14 +58,9 @@ export default function Home() {
         <section style={s.hero} className="hero-2col">
           <div style={s.heroTexto}>
             <h1 style={s.h1}>
-              Tu bici te avisa<br />
-              <span style={s.h1Accent}>antes de que se rompa.</span>
+              Anticípate a las mantenciones<br />
+              <span style={s.h1Accent}>antes de que tu bici se rompa.</span>
             </h1>
-
-            <p style={s.lead}>
-              Anota lo que le montas, lo que pesa y lo que le haces.
-              Bike Garage lleva la cuenta y te dice qué le toca.
-            </p>
 
             <div style={s.ctaRow}>
               <TapLink href="/signup" style={s.primaryCta}>Empezar gratis</TapLink>
@@ -135,8 +130,10 @@ export default function Home() {
               },
             ].map((f) => (
               <div key={f.titulo} style={s.card}>
-                <div style={{ fontSize: 24 }} aria-hidden="true">{f.icono}</div>
-                <div style={s.cardTitulo}>{f.titulo}</div>
+                <div style={s.cardCabecera}>
+                  <span style={s.cardTitulo}>{f.titulo}</span>
+                  <span style={{ fontSize: 22 }} aria-hidden="true">{f.icono}</span>
+                </div>
                 <p style={s.cardTexto}>{f.texto}</p>
               </div>
             ))}
@@ -234,10 +231,6 @@ const s = {
     fontWeight: texto.peso.maximo, letterSpacing: "-2px", color: color.texto.fuerte,
   },
   h1Accent: { color: color.accion.base },
-  lead: {
-    margin: `${espacio.lg}px 0 0`, fontSize: "clamp(15px, 4vw, 18px)",
-    lineHeight: 1.6, color: color.texto.suave, maxWidth: 460,
-  },
   ctaRow: { marginTop: espacio.xl, display: "flex", gap: espacio.md, flexWrap: "wrap" },
   primaryCta: {
     minHeight: tacto.comodo, display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -306,6 +299,7 @@ const s = {
     padding: espacio.xl, borderRadius: radio.lg,
     border: `1px solid ${color.borde.sutil}`, background: color.superficie.media,
   },
+  cardCabecera: { display: "flex", alignItems: "center", gap: espacio.sm },
   cardTitulo: { fontSize: texto.lg, fontWeight: texto.peso.fuerte, color: color.texto.fuerte, letterSpacing: "-0.3px" },
   cardTexto: { margin: 0, fontSize: texto.md, lineHeight: 1.6, color: color.texto.suave },
 
