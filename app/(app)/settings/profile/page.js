@@ -17,6 +17,39 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  // Eliminar la cuenta (BG-045). `confirmacion` guarda lo que el usuario
+  // escribe: solo se habilita el botón si escribe ELIMINAR. Un modal con dos
+  // botones se toca sin leer; escribir una palabra obliga a detenerse.
+  const [borrarAbierto, setBorrarAbierto] = useState(false);
+  const [confirmacion, setConfirmacion] = useState("");
+  const [borrandoCuenta, setBorrandoCuenta] = useState(false);
+  const [errorBorrar, setErrorBorrar] = useState("");
+
+  const eliminarCuenta = async () => {
+    if (confirmacion.trim().toUpperCase() !== "ELIMINAR" || borrandoCuenta) return;
+    setBorrandoCuenta(true);
+    setErrorBorrar("");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/account/delete", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setErrorBorrar(json?.error ?? "No se pudo eliminar la cuenta.");
+        setBorrandoCuenta(false);
+        return;
+      }
+      await supabase.auth.signOut();
+      router.replace("/");
+    } catch (err) {
+      console.error(err);
+      setErrorBorrar("No se pudo eliminar la cuenta. Intenta de nuevo.");
+      setBorrandoCuenta(false);
+    }
+  };
   const [saveResult, setSaveResult] = useState(null); // { ok, message }
 
   const [form, setForm] = useState({
@@ -500,6 +533,69 @@ export default function ProfilePage() {
             Cerrar sesión
           </button>
         </div>
+
+        {/* ── Eliminar la cuenta (BG-045) ──
+             Va detrás de un enlace discreto: es irreversible y no es algo que
+             uno vaya buscando. Pero TIENE que existir y ser encontrable —
+             quien entrega sus datos tiene derecho a llevárselos de vuelta. */}
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${color.borde.sutil}` }}>
+          {!borrarAbierto ? (
+            <button onClick={() => setBorrarAbierto(true)} style={S.enlaceBorrar}>
+              Eliminar mi cuenta
+            </button>
+          ) : (
+            <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: color.estado.vencido }}>
+                Esto no se puede deshacer
+              </div>
+              <div style={{ fontSize: 13, color: color.texto.suave, lineHeight: 1.6 }}>
+                Se eliminan tus bicis, sus componentes, todo tu historial de
+                mantención y tus preferencias.
+                <br />
+                <br />
+                Los modelos de componentes que hayas aportado <strong style={{ color: color.texto.normal }}>se quedan</strong>:
+                otras personas los tienen montados en sus bicis. Dejan de estar
+                a tu nombre, nada más.
+              </div>
+
+              <label style={{ fontSize: 13, color: color.texto.normal }}>
+                Escribe <strong>ELIMINAR</strong> para confirmar:
+              </label>
+              <input
+                value={confirmacion}
+                onChange={(e) => setConfirmacion(e.target.value)}
+                placeholder="ELIMINAR"
+                autoComplete="off"
+                style={{ ...S.input, maxWidth: 220 }}
+              />
+
+              {errorBorrar && (
+                <div style={{ fontSize: 13, color: color.estado.vencido }}>{errorBorrar}</div>
+              )}
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  onClick={eliminarCuenta}
+                  disabled={confirmacion.trim().toUpperCase() !== "ELIMINAR" || borrandoCuenta}
+                  style={{
+                    ...S.borrarCuentaBtn,
+                    opacity: confirmacion.trim().toUpperCase() !== "ELIMINAR" || borrandoCuenta ? 0.45 : 1,
+                    cursor: confirmacion.trim().toUpperCase() !== "ELIMINAR" || borrandoCuenta ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {borrandoCuenta && <Cargando tam={14} style={{ marginRight: 8 }} />}
+                  {borrandoCuenta ? "Eliminando…" : "Eliminar mi cuenta"}
+                </button>
+                <button
+                  onClick={() => { setBorrarAbierto(false); setConfirmacion(""); setErrorBorrar(""); }}
+                  style={S.enlaceBorrar}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </>
   );
@@ -507,6 +603,18 @@ export default function ProfilePage() {
 
 // ── Estilos ────────────────────────────────────────────────────────────────────
 const S = {
+  enlaceBorrar: {
+    minHeight: 44, padding: 0, background: "none", border: 0, cursor: "pointer",
+    fontSize: 13, color: color.texto.tenue, textDecoration: "underline",
+  },
+  borrarCuentaBtn: {
+    minHeight: 44, padding: "0 18px", borderRadius: radio.md,
+    border: `1px solid ${color.estado.vencidoBorde}`,
+    background: color.estado.vencidoTenue, color: color.estado.vencido,
+    fontWeight: 800, fontSize: 13,
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+  },
+
   card: {
     borderRadius: radio.xl,
     border: `1px solid ${color.borde.normal}`,
