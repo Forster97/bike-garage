@@ -762,11 +762,6 @@ export default function BikeDetailPage() {
         </button>
       </div>
 
-      {/* ── FAB ── */}
-      <button onClick={() => setAddOpen(true)} style={styles.fab} aria-label="Agregar componente" title="Agregar componente">
-        +
-      </button>
-
       {/* ── Modal para agregar componente ── */}
       <Modal open={addOpen} onClose={() => setAddOpen(false)}>
             <div style={styles.modalHeader}>
@@ -1035,7 +1030,6 @@ const styles = {
   emptyIcon: { width: 46, height: 46, borderRadius: 16, display: "grid", placeItems: "center", margin: "0 auto 10px", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.92)", fontSize: 18, fontWeight: 900 },
   emptyTitle: { fontWeight: 900, color: "rgba(255,255,255,0.92)" },
   emptyText: { marginTop: 6, color: "rgba(255,255,255,0.68)", fontSize: 13 },
-  fab: { position: "fixed", right: 18, bottom: "calc(78px + env(safe-area-inset-bottom, 0px))", width: 56, height: 56, borderRadius: 999, border: "1px solid rgba(255,255,255,0.12)", background: "linear-gradient(135deg, rgba(99,102,241,0.65), rgba(34,197,94,0.55))", color: "rgba(255,255,255,0.95)", fontWeight: 900, fontSize: 26, boxShadow: "0 18px 55px rgba(0,0,0,0.45)", cursor: "pointer" },
   avisoHistorial: { display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 12, border: "1px solid rgba(251,191,36,0.25)", background: "rgba(251,191,36,0.08)", color: "rgba(251,191,36,0.95)", fontSize: 13, fontWeight: 600, cursor: "pointer", lineHeight: 1.4 },
   zonaPeligrosa: { marginTop: 8, display: "flex", justifyContent: "center" },
   borrarBiciBtn: { padding: "10px 18px", minHeight: 44, borderRadius: 11, border: "1px solid rgba(239,68,68,0.30)", background: "rgba(239,68,68,0.08)", color: "rgba(239,68,68,0.85)", fontWeight: 700, fontSize: 13, cursor: "pointer" },
