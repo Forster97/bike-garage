@@ -720,11 +720,6 @@ export default function BikeDetailPage() {
                         {p.category}
                         {p.subcategory ? ` › ${p.subcategory}` : ""}
                         {" • "}{p.weight_g ?? "—"} g
-                        {p.weight_override != null ? (
-                          <span style={styles.partMetaSoft} title={`Peso de referencia: ${p.catalogWeight ?? "?"} g`}>
-                            {" • peso ajustado"}
-                          </span>
-                        ) : null}
                         {p.weight_g != null ? <span style={styles.partMetaSoft}> {"•"} {pct.toFixed(1)}%</span> : null}
                         {p.sku ? <div style={styles.partSubMeta}>SKU {p.sku}</div> : null}
                       </div>
