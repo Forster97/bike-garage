@@ -188,7 +188,7 @@ export default function NotificationsPage() {
               </span>
             )}
             {overdueCount === 0 && soonCount === 0 && (
-              <span style={{ ...S.chip, color: color.estado.alDiaTexto, background: color.estado.alDiaTexto, border: `1px solid ${color.estado.alDiaTexto}` }}>
+              <span style={{ ...S.chip, color: color.estado.alDiaTexto, background: color.estado.alDiaTenue, border: `1px solid ${color.estado.alDiaBorde}` }}>
                 Todo al día
               </span>
             )}

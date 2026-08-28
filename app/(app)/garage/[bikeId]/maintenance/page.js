@@ -14,6 +14,8 @@ import {
 import { buildBikeView, indexLastRecords, tipoAplica } from "../../../../../lib/maintenanceView";
 import { color, radio, espacio, tacto, texto as textoT, sombra } from "../../../../../lib/design";
 import Cargando from "../../../../../components/Cargando";
+import Chevron from "../../../../../components/Chevron";
+import { textoDeCuando } from "../../../../../lib/maintenanceHelpers";
 
 const emptyForm = () => ({
   type_id: "", type_name: "", performed_at: todayISO(),
@@ -33,6 +35,25 @@ function recordToForm(r) {
 }
 
 // ── Componente principal ───────────────────────────────────────────────────────
+
+// ── Los tres grupos, por urgencia ──
+// Lo vencido arriba y lo que está bien plegado: es lo que hacen todas las apps
+// de mantención que la gente usa de verdad. Quince tareas iguales son ruido.
+// El color de cada estado, en un solo lugar.
+const TONO = {
+  overdue: { texto: "rgba(239,68,68,0.90)", barra: "rgba(239,68,68,0.90)" },
+  soon: { texto: "rgba(251,191,36,0.90)", barra: "rgba(251,191,36,0.90)" },
+  ok: { texto: "rgba(255,255,255,0.35)", barra: "rgba(34,197,94,0.55)" },
+  none: { texto: "rgba(255,255,255,0.35)", barra: "rgba(255,255,255,0.14)" },
+};
+
+const GRUPOS = [
+  { id: "overdue", titulo: "VENCIDA", incluye: (s) => s === "overdue" },
+  { id: "soon", titulo: "PRÓXIMA", incluye: (s) => s === "soon" },
+  { id: "ok", titulo: "Al día", incluye: (s) => s !== "overdue" && s !== "soon" },
+];
+
+
 export default function BikeMaintenancePage() {
   const router = useRouter();
   const { bikeId } = useParams();
@@ -60,6 +81,10 @@ export default function BikeMaintenancePage() {
   const [savingProfile, setSavingProfile] = useState(false);
   // Cuál de los perfiles se tocó. El cursor "wait" no existe en un teléfono.
   const [perfilEnCurso, setPerfilEnCurso] = useState(null);
+  // El perfil, el odómetro y los intervalos se configuran una vez: no tienen
+  // por qué ocupar la pantalla que se mira todos los días (PRD-11.5).
+  const [configAbierta, setConfigAbierta] = useState(false);
+  const [alDiaAbierto, setAlDiaAbierto] = useState(false);
   const [editingOdometer, setEditingOdometer] = useState(false);
   const [odometerInput, setOdometerInput] = useState("");
   const [savingOdometer, setSavingOdometer] = useState(false);
@@ -371,6 +396,186 @@ export default function BikeMaintenancePage() {
     </>
   );
 
+
+  // Dibuja una tarea: su cabecera con barra y, si esta abierta, su historial
+  // y su editor de intervalo. El cuerpo es el mismo de antes.
+  const renderTarea = ({ type, last, rule, status, remainingDays, remainingKm, score }) => {
+    const isOpen = !!expandedTypes[type.name];
+    const typeRecords = recordsByTypeName[type.name] || [];
+    const count = typeRecords.length;
+    const isCustom = !!customRulesByTypeId[String(type.id)];
+    const isEditingThisRule = editingRuleId === type.id;
+
+    const rowBg = status === "overdue" ? color.estado.vencidoTenue
+      : status === "soon" ? color.estado.proximoTenue : color.superficie.hundida;
+    const rowBorder = `1px solid ${status === "overdue" ? color.estado.vencidoBorde
+      : status === "soon" ? color.estado.proximoBorde : color.borde.normal}`;
+
+    const tono = TONO[status] ?? TONO.ok;
+    const pct = Math.round((score ?? 0) * 100);
+    const cuando = textoDeCuando({ status, last, remainingDays, remainingKm });
+
+    return (
+      <div key={type.id} style={{ borderRadius: radio.lg, overflow: "hidden", border: rowBorder }}>
+
+        {/* Cabecera de la tarea.
+             La barra es lo que se lee de reojo: dibuja el `score`
+             que el motor ya calcula —cuanto del intervalo se
+             consumio—, sin recalcular nada. */}
+        <div style={{ background: rowBg }}>
+          <div style={S.filaTop}>
+            <button
+              type="button"
+              onClick={() => toggleType(type.name)}
+              style={S.filaNombre}
+              aria-expanded={isOpen}
+            >
+              <span style={{ ...S.expandArrow, transform: isOpen ? "rotate(90deg)" : "none" }}>▸</span>
+              <span style={S.accTypeName}>{type.name}</span>
+              {isCustom && <span style={S.puntoCustom} title="Intervalo personalizado" />}
+            </button>
+
+            <span style={{ ...S.filaCuando, color: tono.texto }}>{cuando}</span>
+
+            {/* Registrar que se hizo, desde la misma fila */}
+            <button
+              type="button"
+              onClick={(e) => openAddForType(type, e)}
+              style={S.hechoBtn}
+              title={`Registrar ${type.name}`}
+              aria-label={`Registrar ${type.name}`}
+            >✓</button>
+          </div>
+
+          <div style={S.barraPista}>
+            <div style={{
+              ...S.barraRelleno,
+              width: `${Math.min(pct, 100)}%`,
+              background: tono.barra,
+            }} />
+            {pct > 100 && (
+              <div style={{ ...S.barraExceso, width: `${Math.min(pct - 100, 100)}%` }} />
+            )}
+          </div>
+        </div>
+
+        {/* Cuerpo expandido */}
+        {isOpen && (
+          <div style={{ background: color.superficie.hundida, borderTop: `1px solid ${color.borde.sutil}` }}>
+
+            {/* Historial */}
+            {count === 0 ? (
+              <div style={{ padding: "14px", fontSize: 13, color: color.texto.suave, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span>Sin registros para este tipo.</span>
+                <button type="button" style={S.inlineLink} onClick={(e) => openAddForType(type, e)}>
+                  Registrar ahora →
+                </button>
+              </div>
+            ) : (
+              typeRecords.map((r, idx) => {
+                const isLast = idx === typeRecords.length - 1;
+                const costStr = formatCLP(r.cost_clp);
+                return (
+                  <div key={r.id} className="m-hist-row"
+                    style={{ borderBottom: isLast ? "none" : `1px solid ${color.borde.sutil}` }}>
+                    <div style={S.timelineWrap}>
+                      <div style={S.timelineDot} />
+                      {!isLast && <div style={S.timelineLine} />}
+                    </div>
+                    <div className="m-hist-content" style={{ flex: 1, minWidth: 0 }}>
+                      <div style={S.histDate}>{formatDate(r.performed_at)}</div>
+                      {r.component_id && partNameById[r.component_id] && (
+                        <div style={S.componentChip}>🔩 {partNameById[r.component_id]}</div>
+                      )}
+                      {(r.odometer_km != null || r.cost_clp != null) && (
+                        <div className="flex items-center flex-wrap gap-1.5" style={S.histMeta}>
+                          {r.odometer_km != null && <span>{r.odometer_km.toLocaleString("es-CL")} km</span>}
+                          {r.odometer_km != null && r.cost_clp != null && <span style={S.dot} />}
+                          {r.cost_clp != null && <span>{costStr}</span>}
+                        </div>
+                      )}
+                      {r.notes && <div style={S.histNotes}>{r.notes}</div>}
+                    </div>
+                    <div className="m-hist-actions">
+                      <button style={S.secondaryBtn} onClick={(e) => openEdit(r, e)}>Editar</button>
+                      <button style={S.ghostBtn} onClick={(e) => deleteRecord(r.id, e)} disabled={borrandoId === r.id}>
+                        {borrandoId === r.id ? <Cargando tam={13} /> : "Eliminar"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+
+            {/* Hint y editor de regla */}
+            <div style={{ borderTop: `1px solid ${color.borde.sutil}`, padding: "10px 14px" }}>
+              {type.notes_hint && !isEditingThisRule && (
+                <div style={{ fontSize: 12, color: color.texto.tenue, fontStyle: "italic", marginBottom: 8 }}>
+                  💡 {type.notes_hint}
+                </div>
+              )}
+
+              {isEditingThisRule ? (
+                /* Editor inline de intervalo */
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 12, color: color.texto.suave }}>Cada:</span>
+                  <input
+                    value={ruleForm.days}
+                    onChange={(e) => setRuleForm((p) => ({ ...p, days: e.target.value }))}
+                    placeholder="días"
+                    style={{ ...S.input, padding: "5px 8px", width: 65, fontSize: 13 }}
+                    inputMode="numeric"
+                  />
+                  <span style={{ fontSize: 12, color: color.texto.tenue }}>días /</span>
+                  <input
+                    value={ruleForm.km}
+                    onChange={(e) => setRuleForm((p) => ({ ...p, km: e.target.value }))}
+                    placeholder="km"
+                    style={{ ...S.input, padding: "5px 8px", width: 80, fontSize: 13 }}
+                    inputMode="numeric"
+                  />
+                  <span style={{ fontSize: 12, color: color.texto.tenue }}>km</span>
+                  <button
+                    onClick={() => saveCustomRule(type.id)}
+                    disabled={savingRule}
+                    style={{ ...S.secondaryBtn, fontSize: 11 }}
+                  >
+                    {savingRule ? <Cargando tam={12} /> : "Guardar"}
+                  </button>
+                  <button onClick={() => setEditingRuleId(null)} style={{ ...S.ghostBtn, fontSize: 11 }}>Cancelar</button>
+                  {isCustom && (
+                    <button
+                      onClick={() => { setRuleForm({ days: "", km: "" }); saveCustomRule(type.id); }}
+                      style={{ ...S.ghostBtn, fontSize: 11, color: color.estado.vencido }}
+                    >
+                      Restaurar perfil
+                    </button>
+                  )}
+                </div>
+              ) : (
+                /* Vista de intervalo actual */
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 12, color: color.texto.tenue }}>
+                    Intervalo: {[
+                      rule?.interval_days && `${rule.interval_days} días`,
+                      rule?.interval_km && `${rule.interval_km.toLocaleString("es-CL")} km`,
+                    ].filter(Boolean).join(" / ") || "—"}
+                  </span>
+                  <button
+                    onClick={(e) => openRuleEditor(type, rule, e)}
+                    style={{ ...S.ghostBtn, fontSize: 11, marginLeft: "auto" }}
+                  >
+                    ⚙ Personalizar
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const isEditing = modalMode === "edit";
   const currentTypeData = form.type_id ? typesById[Number(form.type_id)] : null;
 
@@ -425,43 +630,60 @@ export default function BikeMaintenancePage() {
         }
       `}</style>
 
-      {/* ── Hero ── */}
-      <div style={S.card}>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={S.kicker}>Mantenimiento</div>
-            <div style={S.heroTitle}>{bike.name}</div>
+      {/* ── Cabecera ──
+           El nombre, los kilómetros y —si hay algo pendiente— cuántas cosas.
+           Todo lo que se configura una vez se fue detrás del engranaje. */}
+      <div style={S.cabecera}>
+        <div style={{ minWidth: 0 }}>
+          <div style={S.kicker}>Mantenimiento</div>
+          <h1 style={S.heroTitle}>{bike.name}</h1>
+          {bikeStats?.odometer_km != null && (
+            <div style={S.km}>{Number(bikeStats.odometer_km).toLocaleString("es-CL")} km</div>
+          )}
+        </div>
+        <button
+          onClick={() => setConfigAbierta((v) => !v)}
+          style={S.engranaje}
+          title="Perfil de uso, odómetro e intervalos"
+          aria-label="Ajustes de mantenimiento"
+          aria-expanded={configAbierta}
+        >
+          ⚙
+        </button>
+      </div>
 
-            {/* Salud general */}
-            <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 12, color: color.texto.tenue }}>Salud:</span>
-              <span style={{ fontWeight: 900, fontSize: 14, color: hc.fg }}>{healthScore}%</span>
-              <span style={{ ...S.miniChip, color: hc.fg, background: hc.bg, border: `1px solid ${hc.border}` }}>
-                {hc.label}
-              </span>
-              {overdueCount > 0 && (
-                <span style={{ ...S.miniChip, color: color.estado.vencido, background: color.estado.vencidoTenue, border: `1px solid ${color.estado.vencidoBorde}` }}>
-                  {overdueCount} vencido{overdueCount > 1 ? "s" : ""}
-                </span>
+      {/* ── El titular ──
+           Es la respuesta a la única pregunta con la que uno abre esta
+           pantalla. Antes había que leer quince filas para deducirla. */}
+      {statusPanel.length > 0 && (
+        overdueCount + soonCount > 0 ? (
+          <div style={S.titularAlerta}>
+            <span style={S.titularNumero}>{overdueCount + soonCount}</span>
+            <span>
+              {overdueCount + soonCount === 1 ? "cosa pendiente" : "cosas pendientes"}
+              {overdueCount > 0 && soonCount > 0 && (
+                <span style={S.titularDetalle}> · {overdueCount} vencida{overdueCount > 1 ? "s" : ""}</span>
               )}
-              {soonCount > 0 && (
-                <span style={{ ...S.miniChip, color: color.estado.proximo, background: color.estado.proximoTenue, border: `1px solid ${color.estado.proximoBorde}` }}>
-                  {soonCount} próximo{soonCount > 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
+            </span>
+          </div>
+        ) : (
+          <div style={S.titularOk}>
+            <span style={{ fontSize: 18 }}>✓</span>
+            <span>Todo al día</span>
+          </div>
+        )
+      )}
 
-            {/* Barra de salud */}
-            <div style={{ marginTop: 8, height: 5, borderRadius: radio.full, background: color.superficie.alta, overflow: "hidden" }}>
-              <div style={{
-                height: "100%", width: `${healthScore}%`, borderRadius: radio.full,
-                background: hc.fg, transition: "width 0.6s ease",
-              }} />
+      {/* ── Ajustes ── */}
+      {configAbierta && (
+        <div style={S.card}>
+          {/* Perfil de uso */}
+          <div style={S.ajusteFila}>
+            <div>
+              <div style={S.ajusteTitulo}>Perfil de uso</div>
+              <div style={S.ajusteSub}>Cuánto exiges la bici. Acorta o alarga todos los intervalos.</div>
             </div>
-
-            {/* Perfil */}
-            <div style={{ marginTop: 12, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-              <span style={{ fontSize: 11, color: color.texto.tenue, marginRight: 2 }}>Perfil:</span>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {PROFILES.map((p) => (
                 <button
                   key={p.id}
@@ -469,271 +691,91 @@ export default function BikeMaintenancePage() {
                   disabled={savingProfile}
                   title={p.description}
                   style={{
-                    padding: "4px 10px", borderRadius: radio.full, fontSize: 11, fontWeight: 700,
-                    cursor: savingProfile ? "wait" : "pointer",
+                    ...S.perfilChip,
                     border: `1px solid ${bikeProfile === p.id ? color.identidad.base : color.borde.normal}`,
                     background: bikeProfile === p.id ? color.identidad.borde : color.superficie.media,
                     color: bikeProfile === p.id ? color.identidad.texto : color.texto.suave,
                   }}
                 >
-                  {savingProfile && perfilEnCurso === p.id
-                    ? <Cargando tam={11} grosor={2} />
-                    : p.label}
+                  {savingProfile && perfilEnCurso === p.id ? <Cargando tam={11} grosor={2} /> : p.label}
                 </button>
               ))}
             </div>
-
-            {/* Odómetro */}
-            <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 11, color: color.texto.tenue }}>Odómetro:</span>
-              {editingOdometer ? (
-                <>
-                  <input
-                    value={odometerInput}
-                    onChange={(e) => setOdometerInput(e.target.value)}
-                    style={{ ...S.input, padding: "5px 10px", width: 90, fontSize: 13 }}
-                    inputMode="numeric" placeholder="km" autoFocus
-                  />
-                  <span style={{ fontSize: 12, color: color.texto.tenue }}>km</span>
-                  <button onClick={saveOdometer} disabled={savingOdometer} style={{ ...S.secondaryBtn, fontSize: 11 }}>
-                    {savingOdometer ? <Cargando tam={12} /> : "Guardar"}
-                  </button>
-                  <button onClick={() => { setEditingOdometer(false); setOdometerInput(String(bikeStats?.odometer_km ?? "")); }} style={S.iconBtnSm}>✕</button>
-                </>
-              ) : (
-                <>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: color.texto.normal }}>
-                    {bikeStats?.odometer_km != null ? `${Number(bikeStats.odometer_km).toLocaleString("es-CL")} km` : "Sin registrar"}
-                  </span>
-                  <button onClick={() => setEditingOdometer(true)} style={{ ...S.ghostBtn, fontSize: 11 }}>
-                    Editar
-                  </button>
-                </>
-              )}
-            </div>
-
-            <div style={{ ...S.heroSub, marginTop: 8 }}>
-              {records.length} registro{records.length === 1 ? "" : "s"}
-              {records.length > 0 && <> · Último: {formatDateShort(records[0]?.performed_at)}</>}
-            </div>
           </div>
 
-          <button style={S.primaryBtn} onClick={openAdd}>+ Registrar</button>
-        </div>
-      </div>
-
-      {/* ── Panel acordeón por tipo ── */}
-      {statusPanel.length > 0 && (
-        <div style={S.card}>
-          <div style={{ marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
-            <div style={S.sectionTitle}>Estado del mantenimiento</div>
-            {bikeParts.length > 0 && filteredTypes.length < types.length && (
-              <TapLink href={`/garage/${bikeId}`} style={{ fontSize: 11, color: color.identidad.texto, textDecoration: "none" }}>
-                {filteredTypes.length} de {types.length} tareas · por componentes ›
-              </TapLink>
+          {/* Odómetro */}
+          <div style={{ ...S.ajusteFila, borderTop: `1px solid ${color.borde.sutil}`, paddingTop: 14 }}>
+            <div>
+              <div style={S.ajusteTitulo}>Odómetro</div>
+              <div style={S.ajusteSub}>Los kilómetros de la bici. Sin esto, los intervalos por km no cuentan.</div>
+            </div>
+            {editingOdometer ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  value={odometerInput}
+                  onChange={(e) => setOdometerInput(e.target.value)}
+                  style={{ ...S.input, width: 100 }}
+                  inputMode="numeric" placeholder="km" autoFocus
+                />
+                <button onClick={saveOdometer} disabled={savingOdometer} style={S.secondaryBtn}>
+                  {savingOdometer ? <Cargando tam={12} /> : "Guardar"}
+                </button>
+                <button onClick={() => { setEditingOdometer(false); setOdometerInput(String(bikeStats?.odometer_km ?? "")); }} style={S.iconBtnSm}>✕</button>
+              </div>
+            ) : (
+              <button onClick={() => setEditingOdometer(true)} style={S.secondaryBtn}>
+                {bikeStats?.odometer_km != null
+                  ? `${Number(bikeStats.odometer_km).toLocaleString("es-CL")} km`
+                  : "Sin registrar"}
+              </button>
             )}
           </div>
 
-          <div style={{ display: "grid", gap: 6 }}>
-            {statusPanel.map(({ type, last, rule, status, badge, remainingDays, remainingKm, nextDueDate }) => {
-              const isOpen = !!expandedTypes[type.name];
-              const typeRecords = recordsByTypeName[type.name] || [];
-              const count = typeRecords.length;
-              const isCustom = !!customRulesByTypeId[String(type.id)];
-              const isEditingThisRule = editingRuleId === type.id;
-
-              const rowBg = status === "overdue" ? color.estado.vencidoTenue
-                : status === "soon" ? color.estado.proximoTenue : color.superficie.hundida;
-              const rowBorder = `1px solid ${status === "overdue" ? color.estado.vencidoBorde
-                : status === "soon" ? color.estado.proximoBorde : color.borde.normal}`;
-
-              // Sub info con km
-              const kmPart = remainingKm !== null
-                ? (remainingKm > 0 ? ` · ${Math.round(remainingKm)} km restantes` : ` · ${Math.abs(Math.round(remainingKm))} km excedidos`)
-                : "";
-
-              return (
-                <div key={type.id} style={{ borderRadius: radio.lg, overflow: "hidden", border: rowBorder }}>
-
-                  {/* Cabecera */}
-                  <button
-                    type="button"
-                    onClick={() => toggleType(type.name)}
-                    className="m-acc-hdr"
-                    style={{ background: rowBg }}
-                  >
-                    <div className="flex items-start gap-2.5 flex-1 min-w-0">
-                      <span style={S.expandArrow}>{isOpen ? "▾" : "▸"}</span>
-                      <div style={{ minWidth: 0 }}>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span style={S.accTypeName}>{type.name}</span>
-                          {count > 0 && <span style={S.countPill}>{count}</span>}
-                          {isCustom && (
-                            <span style={{ ...S.miniChip, fontSize: 10, color: color.identidad.texto, background: color.identidad.tenue, border: `1px solid ${color.identidad.borde}` }}>
-                              personalizado
-                            </span>
-                          )}
-                        </div>
-                        <div style={S.accSub}>
-                          {last ? (
-                            <>
-                              Último: {formatDateShort(last.performed_at)}
-                              {nextDueDate && (
-                                <> · <span style={{ color: color.texto.normal }}>Próximo: {formatDateShort(nextDueDate)}</span>{kmPart}</>
-                              )}
-                            </>
-                          ) : nextDueDate ? (
-                            <span style={{ color: color.texto.suave }}>
-                              Sin registro · <span style={{ color: color.texto.normal }}>Próximo: {formatDateShort(nextDueDate)}</span>{kmPart}
-                            </span>
-                          ) : (
-                            <span style={{ color: color.texto.tenue }}>Sin registro todavía</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="m-acc-right">
-                      {badge ? (
-                        <span style={{ ...S.badge, color: badge.color, background: badge.bg, border: `1px solid ${badge.border}` }}>
-                          {badge.label}
-                        </span>
-                      ) : last ? (
-                        <span style={{ ...S.badge, color: color.estado.alDiaTexto, background: color.estado.alDiaTexto, border: `1px solid ${color.estado.alDiaTexto}` }}>
-                          Al día{remainingDays != null ? ` · ${Math.round(remainingDays)}d` : ""}
-                        </span>
-                      ) : (
-                        <span style={{ ...S.badge, color: color.texto.tenue, background: color.superficie.media, border: `1px solid ${color.borde.normal}` }}>
-                          Sin registro
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={(e) => openAddForType(type, e)}
-                        style={S.addTypeBtn}
-                        title={`Registrar ${type.name}`}
-                      >+</button>
-                    </div>
-                  </button>
-
-                  {/* Cuerpo expandido */}
-                  {isOpen && (
-                    <div style={{ background: color.superficie.hundida, borderTop: `1px solid ${color.borde.sutil}` }}>
-
-                      {/* Historial */}
-                      {count === 0 ? (
-                        <div style={{ padding: "14px", fontSize: 13, color: color.texto.suave, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                          <span>Sin registros para este tipo.</span>
-                          <button type="button" style={S.inlineLink} onClick={(e) => openAddForType(type, e)}>
-                            Registrar ahora →
-                          </button>
-                        </div>
-                      ) : (
-                        typeRecords.map((r, idx) => {
-                          const isLast = idx === typeRecords.length - 1;
-                          const costStr = formatCLP(r.cost_clp);
-                          return (
-                            <div key={r.id} className="m-hist-row"
-                              style={{ borderBottom: isLast ? "none" : `1px solid ${color.borde.sutil}` }}>
-                              <div style={S.timelineWrap}>
-                                <div style={S.timelineDot} />
-                                {!isLast && <div style={S.timelineLine} />}
-                              </div>
-                              <div className="m-hist-content" style={{ flex: 1, minWidth: 0 }}>
-                                <div style={S.histDate}>{formatDate(r.performed_at)}</div>
-                                {r.component_id && partNameById[r.component_id] && (
-                                  <div style={S.componentChip}>🔩 {partNameById[r.component_id]}</div>
-                                )}
-                                {(r.odometer_km != null || r.cost_clp != null) && (
-                                  <div className="flex items-center flex-wrap gap-1.5" style={S.histMeta}>
-                                    {r.odometer_km != null && <span>{r.odometer_km.toLocaleString("es-CL")} km</span>}
-                                    {r.odometer_km != null && r.cost_clp != null && <span style={S.dot} />}
-                                    {r.cost_clp != null && <span>{costStr}</span>}
-                                  </div>
-                                )}
-                                {r.notes && <div style={S.histNotes}>{r.notes}</div>}
-                              </div>
-                              <div className="m-hist-actions">
-                                <button style={S.secondaryBtn} onClick={(e) => openEdit(r, e)}>Editar</button>
-                                <button style={S.ghostBtn} onClick={(e) => deleteRecord(r.id, e)} disabled={borrandoId === r.id}>
-                                  {borrandoId === r.id ? <Cargando tam={13} /> : "Eliminar"}
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-
-                      {/* Hint y editor de regla */}
-                      <div style={{ borderTop: `1px solid ${color.borde.sutil}`, padding: "10px 14px" }}>
-                        {type.notes_hint && !isEditingThisRule && (
-                          <div style={{ fontSize: 12, color: color.texto.tenue, fontStyle: "italic", marginBottom: 8 }}>
-                            💡 {type.notes_hint}
-                          </div>
-                        )}
-
-                        {isEditingThisRule ? (
-                          /* Editor inline de intervalo */
-                          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 12, color: color.texto.suave }}>Cada:</span>
-                            <input
-                              value={ruleForm.days}
-                              onChange={(e) => setRuleForm((p) => ({ ...p, days: e.target.value }))}
-                              placeholder="días"
-                              style={{ ...S.input, padding: "5px 8px", width: 65, fontSize: 13 }}
-                              inputMode="numeric"
-                            />
-                            <span style={{ fontSize: 12, color: color.texto.tenue }}>días /</span>
-                            <input
-                              value={ruleForm.km}
-                              onChange={(e) => setRuleForm((p) => ({ ...p, km: e.target.value }))}
-                              placeholder="km"
-                              style={{ ...S.input, padding: "5px 8px", width: 80, fontSize: 13 }}
-                              inputMode="numeric"
-                            />
-                            <span style={{ fontSize: 12, color: color.texto.tenue }}>km</span>
-                            <button
-                              onClick={() => saveCustomRule(type.id)}
-                              disabled={savingRule}
-                              style={{ ...S.secondaryBtn, fontSize: 11 }}
-                            >
-                              {savingRule ? <Cargando tam={12} /> : "Guardar"}
-                            </button>
-                            <button onClick={() => setEditingRuleId(null)} style={{ ...S.ghostBtn, fontSize: 11 }}>Cancelar</button>
-                            {isCustom && (
-                              <button
-                                onClick={() => { setRuleForm({ days: "", km: "" }); saveCustomRule(type.id); }}
-                                style={{ ...S.ghostBtn, fontSize: 11, color: color.estado.vencido }}
-                              >
-                                Restaurar perfil
-                              </button>
-                            )}
-                          </div>
-                        ) : (
-                          /* Vista de intervalo actual */
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 12, color: color.texto.tenue }}>
-                              Intervalo: {[
-                                rule?.interval_days && `${rule.interval_days} días`,
-                                rule?.interval_km && `${rule.interval_km.toLocaleString("es-CL")} km`,
-                              ].filter(Boolean).join(" / ") || "—"}
-                            </span>
-                            <button
-                              onClick={(e) => openRuleEditor(type, rule, e)}
-                              style={{ ...S.ghostBtn, fontSize: 11, marginLeft: "auto" }}
-                            >
-                              ⚙ Personalizar
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          <div style={{ ...S.ajusteSub, borderTop: `1px solid ${color.borde.sutil}`, paddingTop: 14 }}>
+            Los intervalos de cada tarea se ajustan uno por uno, abriéndola en la lista.
           </div>
         </div>
+      )}
+      {/* ── Las tareas, agrupadas por urgencia (PRD-11.5) ──
+           Antes eran quince filas del mismo tamaño: la cadena vencida hace
+           doce días pesaba lo mismo que la revisión de noviembre. */}
+      {statusPanel.length > 0 && (
+        <>
+          {GRUPOS.map((g) => {
+            const tareas = statusPanel.filter((t) => g.incluye(t.status));
+            if (tareas.length === 0) return null;
+
+            const plegable = g.id === "ok";
+            const abierto = !plegable || alDiaAbierto;
+
+            return (
+              <div key={g.id} style={S.grupo}>
+                {plegable ? (
+                  <button onClick={() => setAlDiaAbierto((v) => !v)} style={S.grupoTituloBtn}>
+                    <Chevron open={abierto} />
+                    <span>{g.titulo} · {tareas.length}</span>
+                  </button>
+                ) : (
+                  <div style={{ ...S.grupoTitulo, color: g.color }}>
+                    {g.titulo}{tareas.length > 1 ? "S" : ""}
+                  </div>
+                )}
+
+                {abierto && (
+                  <div style={{ display: "grid", gap: 6 }}>
+                    {tareas.map(renderTarea)}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {bikeParts.length > 0 && filteredTypes.length < types.length && (
+            <TapLink href={`/garage/${bikeId}`} style={S.porComponentes}>
+              {filteredTypes.length} de {types.length} tareas · según lo que tienes montado ›
+            </TapLink>
+          )}
+        </>
       )}
 
       {/* ── Otros registros ── */}
@@ -949,6 +991,67 @@ export default function BikeMaintenancePage() {
 
 // ── Design tokens ──────────────────────────────────────────────────────────────
 const S = {
+  // ── PRD-11.5 · la pantalla de mantenimiento ──
+  cabecera: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: espacio.md, marginBottom: espacio.sm },
+  km: { marginTop: 4, fontSize: textoT.md, color: color.texto.suave },
+  engranaje: {
+    width: tacto.minimo, height: tacto.minimo, flexShrink: 0, display: "grid", placeItems: "center",
+    borderRadius: radio.md, border: `1px solid ${color.borde.normal}`, background: color.superficie.media,
+    color: color.texto.suave, fontSize: 17, cursor: "pointer",
+  },
+
+  // El titular: la respuesta a por qué uno abrió esta pantalla.
+  titularAlerta: {
+    display: "flex", alignItems: "center", gap: espacio.md,
+    padding: `${espacio.md}px ${espacio.lg}px`, borderRadius: radio.lg,
+    border: `1px solid ${color.estado.proximoBorde}`, background: color.estado.proximoTenue,
+    color: color.estado.proximo, fontSize: textoT.md, fontWeight: textoT.peso.medio,
+  },
+  titularNumero: { fontSize: 26, fontWeight: textoT.peso.maximo, lineHeight: 1 },
+  titularDetalle: { color: color.estado.vencido, fontWeight: textoT.peso.fuerte },
+  titularOk: {
+    display: "flex", alignItems: "center", gap: espacio.sm,
+    padding: `${espacio.md}px ${espacio.lg}px`, borderRadius: radio.lg,
+    border: `1px solid ${color.estado.alDiaBorde}`, background: color.estado.alDiaTenue,
+    color: color.estado.alDiaTexto, fontSize: textoT.md, fontWeight: textoT.peso.fuerte,
+  },
+
+  // Ajustes, detrás del engranaje
+  ajusteFila: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: espacio.md, flexWrap: "wrap" },
+  ajusteTitulo: { fontSize: textoT.md, fontWeight: textoT.peso.fuerte, color: color.texto.fuerte },
+  ajusteSub: { marginTop: 3, fontSize: textoT.sm, color: color.texto.tenue, lineHeight: 1.5, maxWidth: 340 },
+  perfilChip: { minHeight: 36, padding: `0 ${espacio.md}px`, borderRadius: radio.full, fontSize: textoT.sm, fontWeight: textoT.peso.fuerte, cursor: "pointer" },
+
+  // Los grupos
+  grupo: { marginTop: espacio.lg },
+  grupoTitulo: { marginBottom: espacio.sm, fontSize: textoT.xs, fontWeight: textoT.peso.maximo, letterSpacing: "1px" },
+  grupoTituloBtn: {
+    display: "flex", alignItems: "center", gap: espacio.sm, marginBottom: espacio.sm,
+    minHeight: tacto.minimo, padding: 0, background: "none", border: 0, cursor: "pointer",
+    fontSize: textoT.base, fontWeight: textoT.peso.medio, color: color.texto.suave,
+  },
+  porComponentes: { display: "block", marginTop: espacio.lg, fontSize: textoT.sm, color: color.texto.tenue },
+
+  // La fila de una tarea
+  filaTop: { display: "flex", alignItems: "center", gap: espacio.sm, padding: `${espacio.sm}px ${espacio.md}px` },
+  filaNombre: {
+    display: "flex", alignItems: "center", gap: espacio.sm, flex: 1, minWidth: 0,
+    minHeight: tacto.minimo, padding: 0, background: "none", border: 0, cursor: "pointer", textAlign: "left",
+  },
+  filaCuando: { fontSize: textoT.sm, whiteSpace: "nowrap", flexShrink: 0 },
+  puntoCustom: { width: 5, height: 5, borderRadius: radio.full, background: color.identidad.base, flexShrink: 0 },
+  hechoBtn: {
+    width: 34, height: 34, flexShrink: 0, display: "grid", placeItems: "center",
+    borderRadius: radio.full, border: `1px solid ${color.borde.fuerte}`,
+    background: color.superficie.alta, color: color.texto.normal,
+    fontSize: 15, fontWeight: textoT.peso.maximo, cursor: "pointer",
+  },
+
+  // La barra: lo consumido del intervalo. Es lo que se lee de reojo.
+  barraPista: { position: "relative", height: 4, background: color.superficie.hundida, overflow: "hidden" },
+  barraRelleno: { position: "absolute", left: 0, top: 0, height: "100%", transition: "width 0.5s ease" },
+  barraExceso: { position: "absolute", left: 0, top: 0, height: "100%", background: color.estado.vencido, opacity: 0.55 },
+
   // ── PRD-11.1 · registrar en 15 segundos ────────────────────────────────────
   tipoLista: { display: "grid", gap: 8, maxHeight: "45vh", overflowY: "auto", paddingRight: 2 },
   tipoOpcion: {
@@ -982,14 +1085,9 @@ const S = {
   card: { borderRadius: radio.xl, border: `1px solid ${color.borde.normal}`, background: color.superficie.alta, boxShadow: sombra.media, padding: 14 },
   kicker: { fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: color.texto.suave },
   heroTitle: { marginTop: 5, fontSize: "clamp(20px, 5vw, 26px)", fontWeight: 900, letterSpacing: -0.5, color: color.texto.fuerte, lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  heroSub: { fontSize: 13, color: color.texto.suave },
   sectionTitle: { fontWeight: 900, fontSize: 14, color: color.texto.fuerte },
-  miniChip: { display: "inline-flex", alignItems: "center", padding: "3px 8px", borderRadius: radio.full, fontSize: 11, fontWeight: 900 },
   expandArrow: { fontSize: 13, color: color.texto.tenue, flexShrink: 0, lineHeight: 1.6 },
   accTypeName: { fontWeight: 900, fontSize: 14, color: color.texto.fuerte, lineHeight: 1.3 },
-  accSub: { marginTop: 2, fontSize: 11, color: color.texto.suave, lineHeight: 1.4 },
-  countPill: { display: "inline-flex", alignItems: "center", padding: "1px 6px", borderRadius: radio.full, fontSize: 11, fontWeight: 900, background: color.superficie.alta, border: `1px solid ${color.borde.fuerte}`, color: color.texto.suave },
-  addTypeBtn: { width: 32, height: 32, borderRadius: radio.full, border: `1px solid ${color.borde.fuerte}`, background: color.superficie.alta, color: color.texto.normal, fontWeight: 900, fontSize: 20, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   badge: { display: "inline-flex", alignItems: "center", padding: "4px 9px", borderRadius: radio.full, fontSize: 11, fontWeight: 900, whiteSpace: "nowrap", flexShrink: 0 },
   timelineWrap: { display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 4, flexShrink: 0, width: 14 },
   timelineDot: { width: 8, height: 8, borderRadius: radio.full, background: color.identidad.base, border: `1px solid ${color.identidad.borde}`, flexShrink: 0 },
