@@ -631,7 +631,6 @@ export default function BikeDetailPage() {
             <div style={styles.heroPill}>
               <div style={styles.heroPillTitle}>Peso Total</div>
               <div style={styles.heroPillValue}>{formatKgFromGrams(totalWeightG)}</div>
-              <div style={styles.heroPillSub}>({totalWeightG.toFixed(0)} g)</div>
             </div>
           ) : null}
         </div>
@@ -995,7 +994,6 @@ const styles = {
   heroPill: { borderRadius: 18, padding: "12px 12px", background: "rgba(0,0,0,0.22)", border: "1px solid rgba(255,255,255,0.08)", minWidth: 200 },
   heroPillTitle: { fontSize: 12, color: "rgba(255,255,255,0.65)" },
   heroPillValue: { marginTop: 6, fontWeight: 900, fontSize: 24, color: "rgba(255,255,255,0.92)" },
-  heroPillSub: { marginTop: 4, fontSize: 12, color: "rgba(255,255,255,0.60)" },
   sectionTop: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 },
   sectionTitle: { fontWeight: 900, color: "rgba(255,255,255,0.92)" },
   sectionHint: { fontSize: 12, color: "rgba(255,255,255,0.60)" },
