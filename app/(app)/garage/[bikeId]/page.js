@@ -18,6 +18,7 @@ import Modal from "../../../../components/Modal";
 import { color, radio, espacio, tacto, texto as textoT, sombra } from "../../../../lib/design";
 import TapLink from "../../../../components/TapLink";
 import Cargando from "../../../../components/Cargando";
+import Chevron from "../../../../components/Chevron";
 
 // ── Constantes y funciones helper ─────────────────────────────────────────────
 
@@ -147,6 +148,7 @@ export default function BikeDetailPage() {
   // tenía estado de espera: se tocaba Guardar y no pasaba nada visible mientras
   // la app hacía hasta tres viajes a la base.
   const [guardando, setGuardando] = useState(null);
+  const [distribucionAbierta, setDistribucionAbierta] = useState(false);
 
   // ── Valores calculados ─────────────────────────────────────────────────────
   const totalWeightG = useMemo(
@@ -164,11 +166,6 @@ export default function BikeDetailPage() {
       .map(([cat, grams]) => ({ cat, grams }))
       .sort((a, b) => b.grams - a.grams);
   }, [parts]);
-
-  const topCategory = useMemo(() => {
-    if (!byCategory.length) return "—";
-    return byCategory[0]?.cat ?? "—";
-  }, [byCategory]);
 
   const filteredParts = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -601,7 +598,6 @@ export default function BikeDetailPage() {
     );
   }
 
-  const partCount = parts.length;
   const confirmPart = parts.find((p) => p.id === confirmPartId);
 
   return (
@@ -614,22 +610,14 @@ export default function BikeDetailPage() {
           <div style={{ minWidth: 0 }}>
             {!bikeEditMode ? (
               <>
-                <div style={styles.heroKicker}>Bici</div>
+                {/* El nombre y el año. El resto —tipo, talla, notas, cuántos
+                    componentes, la categoría más pesada— o ya lo sabes, o se
+                    ve más abajo. Todo sigue disponible al editar. */}
                 <div style={styles.heroTitleRow}>
                   <h1 style={styles.heroTitle}>{bike.name}</h1>
                   <button onClick={() => setBikeEditMode(true)} style={styles.iconBtn} title="Editar bici" aria-label="Editar bici">✏️</button>
                 </div>
-                <div style={styles.heroMeta}>
-                  <span style={styles.heroMetaSoft}>{partCount} componente{partCount === 1 ? "" : "s"}</span>
-                  <span style={styles.heroDot} />
-                  <span style={styles.heroMetaSoft}>Top: {topCategory}</span>
-                </div>
-                <div style={styles.heroSubMeta}>
-                  {bike.type ? `${bike.type}` : "—"}
-                  {bike.year ? ` • ${bike.year}` : ""}
-                  {bike.size ? ` • Talla ${bike.size}` : ""}
-                  {bike.notes ? ` • ${bike.notes}` : ""}
-                </div>
+                {bike.year ? <div style={styles.heroSubMeta}>{bike.year}</div> : null}
               </>
             ) : (
               <div style={{ display: "grid", gap: 10 }}>
@@ -673,13 +661,20 @@ export default function BikeDetailPage() {
           ) : null}
         </div>
 
-        {/* Distribución de peso */}
+        {/* Distribución de peso — plegada. Es interesante de mirar cada tanto,
+            no cada vez que se abre la bici. */}
         <div style={{ marginTop: 14 }}>
-          <div style={styles.sectionTop}>
-            <div style={styles.sectionTitle}>Distribución de peso</div>
-            <div style={styles.sectionHint}>Principales categorías</div>
-          </div>
-          <div style={{ display: "grid", gap: 10 }}>
+          <button
+            onClick={() => setDistribucionAbierta((v) => !v)}
+            style={styles.verDistribucion}
+            aria-expanded={distribucionAbierta}
+          >
+            <span>Ver distribución de peso</span>
+            <Chevron open={distribucionAbierta} />
+          </button>
+
+          {distribucionAbierta && (
+          <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
             {(byCategory.length ? byCategory.slice(0, 6) : [{ cat: "Sin piezas", grams: 0 }]).map((row) => {
               const pct = totalWeightG > 0 ? (row.grams / totalWeightG) * 100 : 0;
               return (
@@ -693,6 +688,7 @@ export default function BikeDetailPage() {
               );
             })}
           </div>
+          )}
         </div>
       </div>
 
@@ -1025,19 +1021,18 @@ export default function BikeDetailPage() {
 const styles = {
   heroCard: { borderRadius: radio.xl, overflow: "hidden", border: `1px solid ${color.borde.normal}`, background: color.superficie.alta, boxShadow: sombra.media, padding: 14 },
   heroTop: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14, flexWrap: "wrap" },
-  heroKicker: { fontSize: 12, color: color.texto.suave },
+  verDistribucion: {
+    width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+    gap: espacio.sm, minHeight: tacto.minimo, padding: 0,
+    background: "none", border: 0, cursor: "pointer",
+    fontSize: textoT.base, fontWeight: textoT.peso.medio, color: color.texto.suave,
+  },
   heroTitleRow: { display: "flex", alignItems: "center", gap: 8, marginTop: 6 },
   heroTitle: { margin: 0, fontSize: 26, lineHeight: 1.05, letterSpacing: -0.6, color: color.texto.fuerte, maxWidth: 640, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  heroMeta: { marginTop: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
-  heroMetaSoft: { color: color.texto.suave, fontSize: 13 },
-  heroDot: { width: 4, height: 4, borderRadius: radio.full, background: color.superficie.alta },
   heroSubMeta: { marginTop: 8, fontSize: 12, color: color.texto.suave },
   heroPill: { borderRadius: radio.lg, padding: "12px 12px", background: color.superficie.hundida, border: `1px solid ${color.borde.normal}`, minWidth: 200 },
   heroPillTitle: { fontSize: 12, color: color.texto.suave },
   heroPillValue: { marginTop: 6, fontWeight: 900, fontSize: 24, color: color.texto.fuerte },
-  sectionTop: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 },
-  sectionTitle: { fontWeight: 900, color: color.texto.fuerte },
-  sectionHint: { fontSize: 12, color: color.texto.suave },
   distRow: { display: "grid", gridTemplateColumns: "120px 1fr 70px", gap: 10, alignItems: "center" },
   distCat: { fontSize: 12, color: color.texto.suave, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   distTrack: { height: 8, borderRadius: radio.full, overflow: "hidden", background: color.superficie.hundida, border: `1px solid ${color.borde.normal}` },
