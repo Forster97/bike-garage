@@ -1,0 +1,47 @@
+-- BG-018 · La tabla fantasma `parts`, por fin.
+--
+-- Es el nombre anterior a un refactor. Cero referencias en el código desde
+-- febrero, pero llevaba meses sin borrarse porque nadie estaba seguro de qué
+-- había adentro. Con razón: hasta el 2026-08-27, `part_logs` tenía una llave
+-- foránea hacia acá CON ON DELETE CASCADE. Borrar esta tabla se habría llevado
+-- el historial completo, en silencio (ver BG-043).
+--
+-- Esa llave ya no existe, así que ahora sí se puede.
+--
+-- VERIFICADO ANTES DE BORRAR (2026-08-28)
+--   24 filas · las 24 tienen equivalente en component_catalog
+--   creadas entre el 2026-02-24 y el 2026-03-05
+--   cero referencias en el código
+--
+-- Aun así quedan escritas acá abajo. Son componentes reales que el usuario
+-- cargó; que estén duplicados en el catálogo no las hace desechables sin dejar
+-- constancia.
+--
+-- Asiento de AliExpress carbono (Seat / Post, 152 g)
+-- Bielas descendant DUB 170mm (Drivetrain, 730 g)
+-- Bolso delantero cierre seco (Accessories, 150 g)
+-- Calipers rival (Brakes, 280 g)
+-- Casette sram xd 11-52 (Drivetrain, 352 g)
+-- Cinta de manillar (Cockpit, 120 g)
+-- Commencal absolut 2012 (Marco, 1620 g)
+-- Corona snail 42t (Drivetrain, 110 g)
+-- Cuadro alloy (Frame, 2100 g)
+-- Cuadro orbes terra H30 S alloy (Frame, 1650 g)
+-- Discos (Brakes, 240 g)
+-- Ejes (Wheelset, 100 g)
+-- Fox f100 Rcl (Fork, 1579 g)
+-- Frenos magura mt7 (Brakes, 510 g)
+-- Horquilla de carbono orbea (Fork, 450 g)
+-- Líquido tubeless (Tires, 160 g)
+-- Maneras rival hrd (Brakes, 890 g)
+-- Neumaticos (Tires, 1080 g)
+-- Portacaramagniola (Portacaramagniola, 15 g)
+-- Potenciometro sigeyi (Accessories, 110 g)
+-- Ruedas deda zero 2 disc (Wheelset, 1650 g)
+-- Tester 4 (Fork, 273 g)
+-- Tija (Seat / Post, 300 g)
+-- Transmisión rival 1x11 (Drivetrain, 2050 g)
+--
+-- Aplicada en producción el 2026-08-28.
+
+drop table if exists parts;
