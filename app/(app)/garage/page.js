@@ -273,25 +273,27 @@ export default function GaragePage() {
   // Cuántas bicis piden algo. Alimenta el subtítulo del encabezado (PRD-11.3).
   const necesitanAtencion = bikes.filter((b) => estadoPorBici[b.id]?.atencion).length;
 
+  // Los cinco datos que la base exige. Estaba escrito tres veces seguidas:
+  // en `disabled`, en la opacidad y en el cursor.
+  const faltanDatos =
+    !newBrand.trim() ||
+    !newModel.trim() ||
+    !String(newYear).trim() ||
+    !newSize.trim() ||
+    !newType.trim();
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
       <div style={s.titleRow}>
-        <div>
-          <div style={s.titleLabel}>Mi colección</div>
-          <h1 style={s.title}>Garage</h1>
-          {/* Si todas están al día no decimos nada: el silencio también informa. */}
-          {!loading && necesitanAtencion > 0 && (
-            <div style={s.subtitulo}>
-              {necesitanAtencion} necesita{necesitanAtencion !== 1 ? "n" : ""} atención
-            </div>
-          )}
-        </div>
-
-        {!loading && (
-          <div style={s.countPill}>
-            <span style={s.countNum}>{bikes.length}</span>
-            <span style={s.countLabel}>{bikes.length === 1 ? "bici" : "bicis"}</span>
+        <h1 style={s.title}>Garage</h1>
+        {/* Una sola línea: cuántas hay y, si algo pide atención, cuántas.
+            Antes eran tres cosas —un rótulo, una píldora y un subtítulo—
+            diciendo lo mismo en distintos rincones. */}
+        {!loading && bikes.length > 0 && (
+          <div style={necesitanAtencion > 0 ? s.subtituloAlerta : s.subtitulo}>
+            {bikes.length} {bikes.length === 1 ? "bici" : "bicis"}
+            {necesitanAtencion > 0 && ` · ${necesitanAtencion} necesita${necesitanAtencion !== 1 ? "n" : ""} atención`}
           </div>
         )}
       </div>
@@ -312,7 +314,7 @@ export default function GaragePage() {
         <div style={s.emptyState}>
           <div style={s.emptyIcon}>🚲</div>
           <div style={s.emptyTitle}>Tu garage está vacío</div>
-          <p style={s.emptyText}>Agrega tu primera bici acá abajo para empezar a registrar componentes y pesos.</p>
+          <p style={s.emptyText}>Agrega tu primera bici acá abajo.</p>
         </div>
       ) : (
         <div style={s.list}>
@@ -369,14 +371,8 @@ export default function GaragePage() {
             gap: 12,
           }}
         >
-          <div style={{ textAlign: "left" }}>
-            <div style={s.addCardTitle}>Agregar bicicleta</div>
-            <div style={s.addCardSub}>Ej: Diverge Comp / Gambler / Orbea Terra</div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={s.newBadge}>+ Nueva</span>
-            <Chevron open={addOpen} />
-          </div>
+          <div style={s.addCardTitle}>＋ Agregar bicicleta</div>
+          <Chevron open={addOpen} />
         </button>
 
         {addOpen && (
@@ -419,11 +415,7 @@ export default function GaragePage() {
                 <input
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder={
-                    `${newBrand} ${newModel}`.trim()
-                      ? `Nombre (opcional) — por defecto: ${`${newBrand} ${newModel}`.trim()}`
-                      : "Nombre (opcional)"
-                  }
+                  placeholder={`${newBrand} ${newModel}`.trim() || "Nombre (opcional)"}
                   style={s.input}
                 />
               </div>
@@ -442,34 +434,12 @@ export default function GaragePage() {
 
               <button
                 onClick={addBike}
-                disabled={
-                  adding ||
-                  !newBrand.trim() ||
-                  !newModel.trim() ||
-                  !String(newYear).trim() ||
-                  !newSize.trim() ||
-                  !newType.trim()
-                }
+                disabled={adding || faltanDatos}
                 style={{
                   ...s.addBtn,
-                  opacity:
-                    adding ||
-                    !newBrand.trim() ||
-                    !newModel.trim() ||
-                    !String(newYear).trim() ||
-                    !newSize.trim() ||
-                    !newType.trim()
-                      ? 0.45
-                      : 1,
-                  cursor:
-                    adding ||
-                    !newBrand.trim() ||
-                    !newModel.trim() ||
-                    !String(newYear).trim() ||
-                    !newSize.trim() ||
-                    !newType.trim()
-                      ? "not-allowed"
-                      : "pointer",
+                  width: "100%",
+                  opacity: adding || faltanDatos ? 0.45 : 1,
+                  cursor: adding || faltanDatos ? "not-allowed" : "pointer",
                 }}
               >
                 {adding && <Cargando tam={14} style={{ marginRight: 8 }} />}
@@ -511,16 +481,9 @@ export default function GaragePage() {
                     </div>
                   ))}
                 </div>
-                <div style={{ fontSize: 11, color: color.texto.tenue, lineHeight: 1.4 }}>
-                  Es solo referencia: los componentes los agregas tú después, uno a uno.
-                </div>
               </div>
             )}
 
-            <div style={s.tip}>
-              <span style={s.tipDot} />
-              Estos 5 datos son obligatorios. Después podrás agregar notas y componentes dentro de cada bici.
-            </div>
           </>
         )}
       </div>
@@ -531,25 +494,17 @@ export default function GaragePage() {
 
 // ── Estilos ────────────────────────────────────────────────────────────────────
 const s = {
-  titleRow: { display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 8 },
-  titleLabel: { fontSize: 11, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: color.texto.tenue, marginBottom: 4 },
+  titleRow: { marginBottom: 4 },
   title: { margin: 0, fontSize: "clamp(28px, 6vw, 38px)", fontWeight: 900, letterSpacing: "-1px", color: color.texto.fuerte, lineHeight: 1 },
   subtitulo: { marginTop: 7, fontSize: 13, fontWeight: 600, color: color.estado.proximo },
   puntoEstado: { position: "absolute", top: -3, right: -3, width: 12, height: 12, borderRadius: radio.full, border: "2px solid #060910" },
-  countPill: { display: "flex", alignItems: "baseline", gap: 5, padding: "10px 16px", borderRadius: radio.md, border: `1px solid ${color.borde.normal}`, background: color.superficie.media },
-  countNum: { fontSize: 22, fontWeight: 900, color: color.texto.fuerte, letterSpacing: "-0.5px" },
-  countLabel: { fontSize: 12, color: color.texto.tenue, fontWeight: 500 },
 
   addCard: { borderRadius: radio.lg, border: `1px solid ${color.borde.normal}`, background: color.superficie.media, padding: "18px", display: "flex", flexDirection: "column", gap: 14 },
   addCardTitle: { fontWeight: 700, fontSize: 15, color: color.texto.normal, letterSpacing: "-0.3px" },
-  addCardSub: { marginTop: 3, fontSize: 12, color: color.texto.tenue },
-  newBadge: { fontSize: 11, fontWeight: 700, color: color.estado.alDiaTexto, background: color.estado.alDiaTenue, border: `1px solid ${color.estado.alDiaBorde}`, padding: "4px 10px", borderRadius: radio.full, whiteSpace: "nowrap" },
   addRow: { display: "flex", gap: 8, flexWrap: "wrap" },
   comboWrapper: { flex: 1, minWidth: 180 },
   input: { flex: 1, minWidth: 180, padding: "11px 14px", borderRadius: radio.sm, border: `1px solid ${color.borde.normal}`, background: color.superficie.hundida, color: color.texto.fuerte, fontSize: 14, outline: "none" },
   addBtn: { minHeight: tacto.minimo, padding: `0 ${espacio.lg}px`, borderRadius: radio.md, border: 0, fontWeight: textoT.peso.fuerte, fontSize: textoT.base, color: color.texto.sobreAccion, background: color.accion.base, whiteSpace: "nowrap", cursor: "pointer" },
-  tip: { display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: color.texto.tenue },
-  tipDot: { display: "block", width: 5, height: 5, borderRadius: radio.full, background: color.identidad.base, flexShrink: 0 },
 
   list: { display: "flex", flexDirection: "column", gap: 8 },
 
