@@ -775,7 +775,6 @@ export default function BikeMaintenancePage() {
       )}
 
       {/* ── FAB ── */}
-      <button onClick={openAdd} style={S.fab} aria-label="Registrar mantenimiento">+</button>
 
       {/* ── Modal ── */}
       {modalMode && (
@@ -997,7 +996,6 @@ const S = {
   ghostBtn: { border: "1px solid rgba(255,255,255,0.09)", background: "rgba(255,255,255,0.03)", color: "rgba(255,255,255,0.62)", fontWeight: 900, padding: "8px 12px", borderRadius: 12, cursor: "pointer", fontSize: 12, whiteSpace: "nowrap" },
   iconBtn: { border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.88)", fontWeight: 900, padding: "8px 10px", borderRadius: 12, cursor: "pointer" },
   iconBtnSm: { border: "1px solid rgba(255,255,255,0.10)", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.70)", fontWeight: 900, padding: "4px 8px", borderRadius: 8, cursor: "pointer", fontSize: 11 },
-  fab: { position: "fixed", right: 18, bottom: "calc(78px + env(safe-area-inset-bottom, 0px))", width: 56, height: 56, borderRadius: 999, border: "1px solid rgba(255,255,255,0.12)", background: "linear-gradient(135deg, rgba(99,102,241,0.70), rgba(34,197,94,0.60))", color: "rgba(255,255,255,0.95)", fontWeight: 900, fontSize: 28, boxShadow: "0 16px 48px rgba(0,0,0,0.50)", cursor: "pointer" },
   sheetHandle: { width: 40, height: 4, borderRadius: 99, background: "rgba(255,255,255,0.18)", margin: "0 auto 16px" },
   modalHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, paddingBottom: 12, borderBottom: "1px solid rgba(255,255,255,0.10)" },
   modalTitle: { fontWeight: 900, fontSize: 16, color: "rgba(255,255,255,0.94)" },
