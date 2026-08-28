@@ -7,19 +7,14 @@ import TapLink from "../../../../../components/TapLink";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "../../../../../lib/supabaseClient";
-import { color, radio, sombra } from "../../../../../lib/design";
+import { color, radio, espacio, texto as textoT, tacto } from "../../../../../lib/design";
+import Cargando from "../../../../../components/Cargando";
 
 /* =========================
    Helpers
 ========================= */
 
 // Convierte el código de acción de la BD en un texto legible en español
-function labelAction(a) {
-  if (a === "created") return "Componente creado";
-  if (a === "updated") return "Componente actualizado";
-  if (a === "deleted") return "Componente eliminado";
-  return a || "Evento";
-}
 
 // Calcula la diferencia de peso entre el valor anterior y el nuevo, en gramos.
 function formatDelta(oldW, newW) {
@@ -62,32 +57,6 @@ function getPartCategory(l, partsById) {
 
   const p = l.part_id ? partsById?.[l.part_id] : null;
   return p?.category ?? null;
-}
-
-// Para updated: línea "Cambios: ..."
-function getUpdateDetails(l) {
-  const changes = [];
-
-  const oldName = l.old_name ?? null;
-  const newName = l.new_name ?? null;
-  if (oldName != null && newName != null && oldName !== newName) {
-    changes.push(`nombre: "${oldName}" → "${newName}"`);
-  }
-
-  const oldCat = l.old_category ?? null;
-  const newCat = l.new_category ?? null;
-  if (oldCat != null && newCat != null && oldCat !== newCat) {
-    changes.push(`categoría: "${oldCat}" → "${newCat}"`);
-  }
-
-  const oldW = l.old_weight_g ?? null;
-  const newW = l.new_weight_g ?? null;
-  if (oldW != null && newW != null && Number(oldW) !== Number(newW)) {
-    changes.push(`peso: ${oldW} g → ${newW} g`);
-  }
-
-  if (changes.length === 0) return null;
-  return `Cambios: ${changes.join(" · ")}`;
 }
 
 function calcDelta(oldW, newW) {
@@ -261,256 +230,106 @@ export default function BikeHistoryPage() {
     setExpandedDays((prev) => ({ ...prev, [day]: !prev[day] }));
   };
 
-  const linkStyle = {
-    color: color.texto.normal,
-    textDecoration: "none",
-    fontSize: 14,
-    padding: "10px",
-  };
+  // ── Render ─────────────────────────────────────────────────────────────────
+
+  // El peso de cada día, para poder mostrarlo en su propia cabecera en vez de
+  // en una lista aparte que repetía las mismas fechas.
+  const pesoPorDia = {};
+  for (const p of weightHistory) pesoPorDia[p.dayLabel] = p.weight_g;
 
   return (
     <>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <TapLink href={`/garage/${bikeId}`} style={linkStyle}>← Volver</TapLink>
+      <div style={{ display: "flex", gap: espacio.sm, alignItems: "center" }}>
+        <TapLink href={`/garage/${bikeId}`} style={S.volver}>← Volver</TapLink>
       </div>
-      {/* Hero */}
-      <div
-        className="rounded-[22px] border p-4"
-        style={{
-          border: `1px solid ${color.borde.normal}`,
-          background: color.superficie.alta,
-          boxShadow: sombra.fuerte,
-        }}
-      >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="text-xs" style={{ color: color.texto.suave }}>
-              Historial
-            </div>
-            <div className="mt-1.5 text-2xl font-black tracking-tight" style={{ color: color.texto.fuerte }}>
-              Cambios de componentes
-            </div>
-            <div className="mt-1.5 text-sm" style={{ color: color.texto.suave }}>
-              {bike?.name ? `Bici: ${bike.name}` : "—"}
-            </div>
-          </div>
-          <span
-            className="rounded-full px-3 py-2 text-xs font-black"
-            style={{
-              background: color.superficie.alta,
-              border: `1px solid ${color.borde.fuerte}`,
-              color: color.texto.normal,
-            }}
-          >
-            {logs.length} evento{logs.length === 1 ? "" : "s"}
-          </span>
-        </div>
 
-        <div className="mt-3 flex items-start gap-2.5 border-t pt-3" style={{ borderColor: color.borde.normal }}>
-          <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color.identidad.base }} />
-          <p className="text-sm" style={{ color: color.texto.suave }}>
-            Aquí verás cuando creas, editas o eliminas componentes. Haz click en una fecha para expandir/colapsar.
-          </p>
+      {/* Cabecera: el nombre de la bici y su peso. Nada más. */}
+      <div style={S.cabecera}>
+        <div style={{ minWidth: 0 }}>
+          <div style={S.kicker}>Historial</div>
+          <h1 style={S.titulo}>{bike?.name || "Bicicleta"}</h1>
+        </div>
+        <div style={{ textAlign: "right", flexShrink: 0 }}>
+          <div style={S.peso}>{formatKg(currentTotalG)}</div>
+          <div style={S.pesoPie}>{logs.length} evento{logs.length === 1 ? "" : "s"}</div>
         </div>
       </div>
 
-      {/* Peso total + Historial */}
-      <div
-        className="mt-4 rounded-[22px] border p-4"
-        style={{
-          border: `1px solid ${color.borde.normal}`,
-          background: color.superficie.alta,
-          boxShadow: sombra.fuerte,
-        }}
-      >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="text-xs" style={{ color: color.texto.suave }}>
-              Peso actual
-            </div>
-            <div className="mt-1.5 text-2xl font-black tracking-tight" style={{ color: color.texto.fuerte }}>
-              {formatKg(currentTotalG)}
-            </div>
-            <div className="mt-1 text-xs" style={{ color: color.texto.suave }}>
-              (suma de componentes con peso)
-            </div>
-          </div>
-
-          {weightHistory.length > 0 ? (
-            <span
-              className="rounded-full px-3 py-2 text-xs font-black"
-              style={{
-                background: color.superficie.alta,
-                border: `1px solid ${color.borde.fuerte}`,
-                color: color.texto.normal,
-              }}
-            >
-              {weightHistory.length} día{weightHistory.length === 1 ? "" : "s"} con registro
-            </span>
-          ) : null}
-        </div>
-
-        {weightHistory.length === 0 ? (
-          <div className="mt-3 text-sm" style={{ color: color.texto.suave }}>
-            Aún no hay suficiente historial para calcular el peso por día.
-          </div>
-        ) : (
-          <div className="mt-3 flex flex-col gap-2.5 border-t pt-3" style={{ borderColor: color.borde.normal }}>
-            {weightHistory.map((p) => (
-              <div
-                key={p.dayKey}
-                className="flex items-center justify-between rounded-2xl border px-4 py-3"
-                style={{
-                  background: color.superficie.hundida,
-                  border: `1px solid ${color.borde.normal}`,
-                }}
-              >
-                <div className="text-sm font-black" style={{ color: color.texto.normal }}>
-                  {p.dayLabel}
-                </div>
-                <div className="text-sm font-black" style={{ color: color.texto.fuerte }}>
-                  {formatKg(p.weight_g)}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Content */}
       {loading ? (
-        <div className="rounded-[18px] border p-4" style={{ border: `1px solid ${color.borde.normal}`, background: color.superficie.alta }}>
-          <div className="font-black" style={{ color: color.texto.fuerte }}>
-            Cargando…
-          </div>
-        </div>
+        <div style={S.vacio}><Cargando tam={20} /></div>
       ) : logs.length === 0 ? (
-        <div className="rounded-[18px] border p-4" style={{ border: `1px solid ${color.borde.normal}`, background: color.superficie.alta }}>
-          <div className="font-black" style={{ color: color.texto.fuerte }}>
+        <div style={S.vacio}>
+          <div style={{ fontSize: 28 }}>🧾</div>
+          <div style={{ fontWeight: textoT.peso.fuerte, color: color.texto.fuerte }}>
             Aún no hay historial
           </div>
-          <p className="mt-1.5 text-sm" style={{ color: color.texto.suave }}>
-            Cuando crees, edites o elimines componentes, aparecerán los registros aquí.
+          <p style={{ margin: 0, fontSize: textoT.base, color: color.texto.suave, lineHeight: 1.5 }}>
+            Cada componente que agregues, ajustes o quites queda registrado acá.
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div style={{ display: "flex", flexDirection: "column", gap: espacio.sm }}>
           {orderedDays.map(({ day, items }) => {
-            const isOpen = !!expandedDays[day];
+            const abierto = !!expandedDays[day];
+            const pesoDelDia = pesoPorDia[day];
 
             return (
-              <div key={day} className="flex flex-col gap-2.5">
-                {/* ✅ Header colapsable */}
-                <button
-                  type="button"
-                  onClick={() => toggleDay(day)}
-                  className="flex items-center justify-between rounded-2xl border px-4 py-3 text-left"
-                  style={{
-                    background: color.superficie.media,
-                    border: `1px solid ${color.borde.normal}`,
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-black"
-                      style={{
-                        background: color.superficie.alta,
-                        border: `1px solid ${color.borde.fuerte}`,
-                        color: color.texto.normal,
-                      }}
-                      aria-hidden="true"
-                    >
-                      {isOpen ? "▾" : "▸"}
-                    </span>
-
-                    <div>
-                      <div className="text-xs font-black uppercase tracking-wider" style={{ color: color.texto.normal }}>
-                        {day}
-                      </div>
-                      <div className="text-xs" style={{ color: color.texto.suave }}>
-                        {items.length} cambio{items.length === 1 ? "" : "s"}
-                      </div>
-                    </div>
-                  </div>
-
-                  <span
-                    className="rounded-full px-2.5 py-1 text-[11px] font-black"
-                    style={{
-                      background: color.superficie.alta,
-                      border: `1px solid ${color.borde.normal}`,
-                      color: color.texto.suave,
-                    }}
-                  >
-                    {isOpen ? "Ocultar" : "Ver"}
+              <div key={day}>
+                {/* La fecha, cuántos cambios y con cuánto quedó la bici ese día.
+                    Antes esto último vivía en una lista aparte que repetía
+                    exactamente las mismas fechas. */}
+                <button type="button" onClick={() => toggleDay(day)} style={S.dia}>
+                  <span style={{ ...S.flecha, transform: abierto ? "rotate(90deg)" : "none" }} aria-hidden>
+                    ▸
                   </span>
+                  <span style={S.diaFecha}>{day}</span>
+                  <span style={S.diaCuenta}>{items.length}</span>
+                  {pesoDelDia != null && <span style={S.diaPeso}>{formatKg(pesoDelDia)}</span>}
                 </button>
 
-                {/* ✅ Lista del día (solo si está abierto) */}
-                {isOpen ? (
-                  <div className="flex flex-col gap-2.5">
+                {abierto && (
+                  <div style={S.eventos}>
                     {items.map((l) => {
-                      const partName = getPartDisplayName(l, partsById);
-                      const partCat = getPartCategory(l, partsById);
-                      const updateDetails = l.action === "updated" ? getUpdateDetails(l) : null;
+                      const nombre = getPartDisplayName(l, partsById);
+                      const categoria = getPartCategory(l, partsById);
+                      const acc = ACCION[l.action] ?? ACCION.otro;
+                      const delta = formatDelta(l.old_weight_g, l.new_weight_g);
 
                       return (
-                        <div
-                          key={l.id}
-                          className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3"
-                          style={{
-                            background: color.superficie.hundida,
-                            border: `1px solid ${color.borde.normal}`,
-                          }}
-                        >
-                          <div>
-                            <div className="font-black" style={{ color: color.texto.fuerte }}>
-                              {labelAction(l.action)}
-                            </div>
+                        <div key={l.id} style={S.evento}>
+                          {/* El signo dice qué pasó. Antes eran tres palabras
+                              —"Componente creado"— encima de la línea que ya
+                              repetía "Componente: …". */}
+                          <span
+                            style={{ ...S.signo, color: acc.color, borderColor: acc.color }}
+                            title={acc.titulo}
+                            aria-label={acc.titulo}
+                          >
+                            {acc.signo}
+                          </span>
 
-                            <div className="mt-1 text-sm" style={{ color: color.texto.normal }}>
-                              Componente:{" "}
-                              <span style={{ color: color.texto.fuerte, fontWeight: 800 }}>
-                                {partName}
-                              </span>
-
-                              {partCat ? (
-                                <span
-                                  className="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-black"
-                                  style={{
-                                    background: color.superficie.alta,
-                                    border: `1px solid ${color.borde.fuerte}`,
-                                    color: color.texto.normal,
-                                  }}
-                                >
-                                  {partCat}
-                                </span>
-                              ) : null}
-                            </div>
-
-                            {updateDetails ? (
-                              <div className="mt-1 text-xs" style={{ color: color.texto.suave }}>
-                                {updateDetails}
-                              </div>
-                            ) : null}
-
-                            <div className="mt-1 text-xs" style={{ color: color.texto.suave }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={S.nombre}>{nombre}</div>
+                            <div style={S.sub}>
+                              {categoria ? `${categoria} · ` : ""}
                               {new Date(l.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </div>
                           </div>
 
-                          <div className="text-right">
-                            <div className="font-black" style={{ color: color.texto.fuerte }}>
-                              {formatDelta(l.old_weight_g, l.new_weight_g)}
-                            </div>
-                            <div className="mt-1 text-xs" style={{ color: color.texto.suave }}>
-                              {formatWeights(l.old_weight_g, l.new_weight_g)}
-                            </div>
+                          <div style={{ textAlign: "right", flexShrink: 0 }}>
+                            <div style={{ ...S.delta, color: acc.color }}>{delta}</div>
+                            {/* El antes y el después solo cuando cambió un peso
+                                que ya existía: en un alta o una baja el signo
+                                de arriba ya lo dice todo. */}
+                            {l.action === "updated" && l.old_weight_g != null && l.new_weight_g != null && (
+                              <div style={S.sub}>{formatWeights(l.old_weight_g, l.new_weight_g)}</div>
+                            )}
                           </div>
                         </div>
                       );
                     })}
                   </div>
-                ) : null}
+                )}
               </div>
             );
           })}
@@ -519,3 +338,76 @@ export default function BikeHistoryPage() {
     </>
   );
 }
+
+// ── Estilos ────────────────────────────────────────────────────────────────────
+
+// Qué pasó, dicho con un signo en vez de con tres palabras.
+const ACCION = {
+  created: { signo: "+", color: color.estado.alDia, titulo: "Agregado" },
+  updated: { signo: "~", color: color.estado.proximo, titulo: "Peso ajustado" },
+  deleted: { signo: "−", color: color.estado.vencido, titulo: "Quitado" },
+  otro:    { signo: "•", color: color.texto.tenue, titulo: "Evento" },
+};
+
+const S = {
+  volver: { color: color.texto.normal, fontSize: textoT.md, padding: "10px 0" },
+
+  cabecera: {
+    display: "flex", alignItems: "flex-end", justifyContent: "space-between",
+    gap: espacio.md, marginBottom: espacio.sm,
+  },
+  kicker: {
+    fontSize: textoT.xs, fontWeight: textoT.peso.fuerte, letterSpacing: "1px",
+    textTransform: "uppercase", color: color.texto.tenue,
+  },
+  titulo: {
+    margin: "4px 0 0", fontSize: "clamp(24px, 5.5vw, 32px)", fontWeight: textoT.peso.maximo,
+    letterSpacing: "-0.8px", color: color.texto.fuerte, lineHeight: 1.1,
+    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+  },
+  peso: { fontSize: textoT.xl, fontWeight: textoT.peso.maximo, color: color.texto.fuerte, lineHeight: 1 },
+  pesoPie: { marginTop: 5, fontSize: textoT.sm, color: color.texto.tenue },
+
+  vacio: {
+    display: "flex", flexDirection: "column", alignItems: "center", gap: espacio.sm,
+    padding: "40px 20px", textAlign: "center",
+    borderRadius: radio.lg, border: `1px solid ${color.borde.sutil}`,
+    background: color.superficie.baja,
+  },
+
+  // La fila de un día: flecha, fecha, cuántos cambios y el peso de esa jornada.
+  dia: {
+    width: "100%", display: "flex", alignItems: "center", gap: espacio.md,
+    minHeight: tacto.minimo, padding: `0 ${espacio.md}px`,
+    borderRadius: radio.md, border: `1px solid ${color.borde.sutil}`,
+    background: color.superficie.media, cursor: "pointer", textAlign: "left",
+  },
+  flecha: {
+    fontSize: 12, color: color.texto.tenue, flexShrink: 0,
+    transition: "transform 0.15s ease", display: "inline-block",
+  },
+  diaFecha: { flex: 1, fontSize: textoT.base, fontWeight: textoT.peso.fuerte, color: color.texto.normal },
+  diaCuenta: {
+    minWidth: 20, textAlign: "center", fontSize: textoT.xs, fontWeight: textoT.peso.fuerte,
+    color: color.texto.tenue,
+  },
+  diaPeso: { fontSize: textoT.base, fontWeight: textoT.peso.fuerte, color: color.texto.suave, flexShrink: 0 },
+
+  eventos: { display: "flex", flexDirection: "column", padding: `${espacio.sm}px 0 ${espacio.md}px` },
+
+  evento: {
+    display: "flex", alignItems: "center", gap: espacio.md,
+    padding: `10px ${espacio.md}px`, minWidth: 0,
+  },
+  signo: {
+    width: 22, height: 22, flexShrink: 0, display: "grid", placeItems: "center",
+    borderRadius: radio.full, border: "1px solid", fontSize: 13,
+    fontWeight: textoT.peso.maximo, lineHeight: 1,
+  },
+  nombre: {
+    fontSize: textoT.md, fontWeight: textoT.peso.medio, color: color.texto.fuerte,
+    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+  },
+  sub: { marginTop: 3, fontSize: textoT.sm, color: color.texto.tenue },
+  delta: { fontSize: textoT.base, fontWeight: textoT.peso.fuerte, whiteSpace: "nowrap" },
+};
