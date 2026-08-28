@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
-const ADMIN_EMAIL = "bforsterb@gmail.com";
+import { esAdmin } from "../../../../lib/esAdmin";
 
 function adminClient() {
   return createClient(
@@ -14,7 +14,7 @@ async function verifyAdmin(request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
   if (!token) return null;
   const { data } = await adminClient().auth.getUser(token);
-  return data?.user?.email === ADMIN_EMAIL ? data.user : null;
+  return esAdmin(data?.user) ? data.user : null;
 }
 
 export async function POST(request) {

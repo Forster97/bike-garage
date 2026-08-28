@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
 import { color, radio } from "../../../../lib/design";
 import Cargando from "../../../../components/Cargando";
+import { esAdmin } from "../../../../lib/esAdmin";
 
-const ADMIN_EMAIL = "bforsterb@gmail.com";
 
 const CATEGORIES = ["cassette", "chain", "rear_derailleur", "crankset", "brake", "rotor"];
 const DISCIPLINES = ["mtb", "road"];
@@ -79,7 +79,7 @@ export default function AdminCatalogPage() {
   useEffect(() => {
     const init = async () => {
       const { data: ud } = await supabase.auth.getUser();
-      if (!ud?.user || ud.user.email !== ADMIN_EMAIL) {
+      if (!esAdmin(ud?.user)) {
         router.replace("/garage");
         return;
       }
